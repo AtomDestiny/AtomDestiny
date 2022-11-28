@@ -7,4 +7,6 @@
 /AtomDestiny.sln
 /Content/__ExternalObjects__
 /Content/__ExternalActors__
-/Intermediate/Build
+/Plugins/Developer/RiderLink/Intermediate/Build
+/Plugins/Developer/RiderLink/Intermediate
+/AtomDestiny.uproject.DotSettings.user
