@@ -1,5 +1,9 @@
 /.vs
+/.vsconfig
+/.idea
 /Saved
 /Intermediate
 /DerivedDataCache
-/Binaries
+/AtomDestiny.sln
+/Content/__ExternalObjects__
+/Content/__ExternalActors__
