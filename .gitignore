@@ -1,4 +1,6 @@
 /.vs
+/.vsconfig
+/.idea
 /Saved
 /Intermediate
 /DerivedDataCache
