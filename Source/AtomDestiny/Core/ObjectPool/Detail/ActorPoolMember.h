@@ -4,8 +4,6 @@
 
 #include <Engine/Classes/Components/ActorComponent.h>
 
-#include "ActorPoolMember.generated.h"
-
 namespace AtomDestiny
 {
     class Pool;
@@ -15,13 +13,12 @@ namespace AtomDestiny
     /// Added to freshly instantiated objects, so we can link back
     /// to the correct pool to UnSpawn.
     ///
-    UCLASS()
-    class UActorPoolMember final : public UActorComponent
+    class ATOMDESTINY_API UActorPoolMember final : public UActorComponent
     {
-        GENERATED_BODY()
-
     public:
-        TWeakPtr<Pool> pool;
+        TSharedPtr<Pool> pool;
     };
+    
+    using ActorPoolMember = UActorPoolMember;
     
 } // namespace AtomDestiny

@@ -24,7 +24,6 @@ namespace AtomDestiny::Utils
 
         const auto newComponent = NewObject<Component>(actor);
         newComponent->RegisterComponent();
-        newComponent->AttachToActor(actor);
         
         actor->AddInstanceComponent(newComponent);
 
@@ -32,7 +31,7 @@ namespace AtomDestiny::Utils
     }
 
     template<typename Component>
-    Component* AddNewComponentToActor(GameObject object)
+    Component* AddNewComponentToActor(const GameObject& object)
     {
         return AddNewComponentToActor<Component>(object.Get());
     }

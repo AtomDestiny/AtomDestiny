@@ -1,5 +1,8 @@
 ﻿#include "Pool.h"
 
+#include "AtomDestiny/Core/ActorUtils.h"
+#include "AtomDestiny/Core/ActorComponentUtils.h"
+
 using namespace AtomDestiny;
 
 Pool::Pool(GameObject object):
@@ -9,7 +12,7 @@ Pool::Pool(GameObject object):
 
 GameObject Pool::Spawn(FVector position, FRotator rotation)
 {
-    GameObject object = nullptr;
+    GameObject object;
 
     if (m_inactive.empty())
     {
@@ -24,27 +27,33 @@ GameObject Pool::Spawn(FVector position, FRotator rotation)
         const FString str = m_gameObjectToSpawn->GetName() + TEXT(" (") + FString::FromInt(m_nextId++) + TEXT(") ");
         sharedNewObject->Rename(GetData(str));
         
-        // Add a PoolMember component so we know what pool
-        // we belong to.
-        obj.AddComponent<ObjectPoolMember>().pool = this;
+        // Adds a PoolMember component so we know what pool we belong to.
+        Utils::AddNewComponentToActor<ActorPoolMember>(sharedNewObject)->pool = TSharedPtr<Pool>(this);
+
+        object = std::move(sharedNewObject);
     }
     else
     {
         // Grab the last object in the inactive array
-        obj = inactive.Pop();
+        object = m_inactive.top();
+        m_inactive.pop();
 
-        if (obj == null)
-            return Spawn(pos, rot);
+        if (object == nullptr)
+        {
+            return Spawn(position, rotation);
+        }
     }
 
-    obj.transform.position = pos;
-    obj.transform.rotation = rot;
-    obj.SetActive(true);
+    object->SetActorLocation(position);
+    object->SetActorRotation(rotation);
+
+    Utils::SetActorActive(object, true);
     
-    return obj;
+    return object;
 }
 
 void Pool::Despawn(GameObject object)
 {
-    
+    Utils::SetActorActive(object, false);
+    m_inactive.push(std::move(object));
 }

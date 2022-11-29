@@ -26,7 +26,7 @@ namespace AtomDestiny
     
     private:
         // We would append an id to the name of anything we instantiate.
-        uint64_t m_nextId = 1;
+        int32_t m_nextId = 1;
         
         std::stack<GameObject> m_inactive;
         GameObject m_gameObjectToSpawn;
