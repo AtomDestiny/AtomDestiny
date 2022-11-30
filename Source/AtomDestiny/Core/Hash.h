@@ -1,15 +1,15 @@
 ﻿#pragma once
 
-#include "AtomDestiny/Core/AtomDestinyCore.h"
+#include <Core/Public/Templates/SharedPointer.h>
 
 //
-// Make work std::unordered_map with GameObject entity
+// Possibility to work std::unordered_map with TSharedPtr<T> entity
 //
-template <>
-struct std::hash<AtomDestiny::GameObject>
+template <typename T>
+struct std::hash<TSharedPtr<T>>
 {
-    [[nodiscard]] size_t operator()(const AtomDestiny::GameObject& object) const noexcept
+    [[nodiscard]] size_t operator()(const TSharedPtr<T>& ptr) const noexcept
     {
-        return hash<AtomDestiny::GameObject::ElementType*>()(object.Get());
+        return hash<typename TSharedPtr<T>::ElementType*>()(ptr.Get());
     }
 };
