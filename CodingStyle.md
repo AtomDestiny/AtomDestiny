@@ -1,33 +1,37 @@
-# Credits C++ coding style guide
+# Atom destiny C++ coding style guide
 
-Glance coding style guide description.
+Glance coding style guide description.<br />
+For contribution you should use this codig rules.<br />
+This style guide specially differs from Unreal Engine core coding standards.
 
-### Base concept
+### Base concepts
 
-- C++17 standard
-- 4 spaces
-- only camelCase naming style
-- no exceptions
-
+- C++20 standard
+- 4 spaces, do not use Tabs
 ---
 
 ### Brackets and spaces
 
-- 1 space after if/else switch instructions
-- else operator use on the next line after closing bracket
-- if/else operator with one code line must be used with brackets
+- put brackets on a different lines
 
 >```cpp
 >
->void bracketsExample() {
->     foo();
+>void BracketsExample()
+>{
+>     Foo();
 >}
->
->if (transactions.empty()) {
->     foo();
->}
->else {
->     bar();
+
+- 1 space after if/else switch instructions
+- else operator use on the next line after closing bracket
+- if/else operator with one code line must be used without brackets
+
+>```cpp
+>if (transactions.empty())
+>     Foo();
+>else
+>{
+>     Foo();
+>     Bar();
 >}
 
 ### Types
@@ -51,51 +55,59 @@ Glance coding style guide description.
 >```cpp
 >auto exampleValue = 100;
 
-- class/struct names starts with upper case
+- class/struct names start with upper case and has an PascalCase style
 
 >```cpp
->class ExampleClass {
+>class ExampleClass
+>{
 >};
 
-- private fields starts with lower case and ends with symbol _
+- private fields starts with prefix m_ and then should have camelCase style
 
 >```cpp
->class A {
+>struct A
+>{
 >private:
->     int exampleField_;
+>     int m_exampleField;
 >};
 
-- public fields starts with lower case
+- public fields should have camelCase style
 
 >```cpp
->struct A {
+>struct A
+>{
 >     int demoField;
 >};
 
-- method and function starts with lower case
+- methods and functions should have PascalCase style
 
 >```cpp
->void runTransport() {
->     object->call();
+>void RunTransport()
+>{
+>     object->Call();
 >}
 
-- namespace name starts with lower case
+- namespace names should have PascalCase style
 
 >```cpp
->namespace cs {
->class A {
->};
+>namespace AtomDestiny::Utils
+>{
+>    class A
+>    {
+>    };
 >}
 
-- constant starts with 'k' symbol, or goes to enum
+- constants should have  PascalCase or should be used as enum
 
 >```cpp
->constexpr double kTransactionFee = 0.001;
+>constexpr double TransactionFee = 0.001;
 >
->class Transport {
+>class Transport
+>{
 >public:
->     enum Options {
->       Capacity = 100
+>     enum Options
+>     {
+>         Capacity = 100
 >     };
 >};
 
@@ -103,21 +115,3 @@ Glance coding style guide description.
 
 >```cpp
 >static int gPlatformStatus = 0;
-
-### Clang format settings
-
->```
->BasedOnStyle: Google
->IndentWidth: 4
->ColumnLimit: 180
->AccessModifierOffset: -4
->AllowShortFunctionsOnASingleLine: 'false'
->AllowShortIfStatementsOnASingleLine: 'false'
->AllowShortLoopsOnASingleLine: 'false'
->AlignTrailingComments: 'true'
->ConstructorInitializerAllOnOneLineOrOnePerLine: 'false'
->ConstructorInitializerIndentWidth: 0
->BreakConstructorInitializersBeforeComma: 'true'
->BreakBeforeBraces: 'Custom'
->BraceWrapping: { AfterEnum: true, BeforeElse: true, BeforeCatch: true }
->MaxEmptyLinesToKeep: 1
