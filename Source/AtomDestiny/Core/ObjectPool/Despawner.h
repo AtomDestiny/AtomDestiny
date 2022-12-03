@@ -2,21 +2,26 @@
 
 #include <Engine/Classes/Components/ActorComponent.h>
 
+#include "Despawner.generated.h"
+
+///
+/// Actor despawner by timer.
+/// Actor would be despawned to Actor's Pool
+///
+UCLASS()
+class ATOMDESTINY_API UDespawner final : public UActorComponent
+{
+    GENERATED_BODY()
+
+public:
+    void Despawn(double time);
+
+private:
+    FTimerHandle m_timerHandle;
+};
+    
 namespace AtomDestiny
 {
-    ///
-    /// Actor despawner by timer.
-    /// Actor would be despawned to Actor's Pool
-    ///
-    class ATOMDESTINY_API UDespawner final : public UActorComponent
-    {
-    public:
-        void Despawn(double time);
-
-    private:
-        FTimerHandle m_timerHandle;
-    };
-
     using Despawner = UDespawner;
     
 } // namespace AtomDestiny
