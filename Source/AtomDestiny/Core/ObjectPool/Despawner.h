@@ -8,7 +8,7 @@
 /// Actor despawner by timer.
 /// Actor would be despawned to Actor's Pool
 ///
-UCLASS()
+UCLASS(Blueprintable)
 class ATOMDESTINY_API UDespawner final : public UActorComponent
 {
     GENERATED_BODY()
@@ -19,9 +19,13 @@ public:
 private:
     FTimerHandle m_timerHandle;
 };
-    
+
 namespace AtomDestiny
 {
+    ///
+    /// Actor despawner by timer.
+    /// Actor would be despawned to Actor's Pool
+    ///
     using Despawner = UDespawner;
-    
+
 } // namespace AtomDestiny
