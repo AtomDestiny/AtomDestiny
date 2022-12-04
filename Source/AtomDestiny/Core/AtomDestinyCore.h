@@ -2,19 +2,14 @@
 
 #include <memory>
 
-#include <Core/Public/Templates/SharedPointer.h>
-
-#include <Engine/Classes/GameFramework/Actor.h>
+#include <Core/Public/Templates/UnrealTemplate.h>
 
 namespace AtomDestiny
 {
-    using GameObject = TSharedPtr<AActor>;
-    using GameObjectWeak = TWeakPtr<AActor>;
-
     ///
     /// Represents super base core class for AtomDestiny game.
-    /// It has Singleton realization, be aware to store some data.
-    /// To has a better compile time and scaling, stores data as pointer implementation.
+    /// It has Singleton realization, be aware to store some data at Core.
+    /// To has a better compile time and scaling it stores data as pointer implementation.
     ///
     class Core : public FNoncopyable
     {

@@ -1,5 +1,6 @@
 ﻿#include "AtomDestinyCore.h"
 
+// Place core data here
 struct AtomDestiny::Core::CoreData
 {
 };
