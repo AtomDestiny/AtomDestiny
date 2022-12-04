@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "GameObject.h"
+#include "AtomDestiny/Core/GameObject.h"
 
 namespace AtomDestiny
 {
@@ -53,9 +53,9 @@ namespace AtomDestiny
         bool status;
     };
 
-    /// 
+    ///
     /// Interface implementation can change Atom destiny object parameters
-    /// 
+    ///
     struct IParameterizable
     {
         virtual ~IParameterizable() = 0;
