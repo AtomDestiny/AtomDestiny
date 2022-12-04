@@ -43,5 +43,31 @@ namespace AtomDestiny
         float value;
         Modifier modifier;
     };
-    
+
+    ///
+    /// Stores data to understand how to zero parameters
+    ///
+    struct ParameterZeroPack
+    {
+        GameObject zeroObject;
+        bool status;
+    };
+
+    /// 
+    /// Interface implementation can change Atom destiny object parameters
+    /// 
+    struct IParameterizable
+    {
+        virtual ~IParameterizable() = 0;
+        
+        // Adds additional value to parameter
+        virtual void AddParameter(ObjectParameters parameter, const ParameterEnhancement& enhancement) = 0;
+        
+        // Removes additional value from parameter
+        virtual void RemoveParameter(ObjectParameters parameter, const GameObject& enhancementObject) = 0;
+        
+        // Sets parameter to zero or non zero
+        virtual void ZeroParameter(ObjectParameters parameter, const ParameterZeroPack& pack) = 0;
+    };
+
 } // namespace AtomDestiny
