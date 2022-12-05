@@ -14,8 +14,6 @@ namespace AtomDestiny
     ///
     class ATOMDESTINY_API ActorPool
     {
-        const uint32_t DefaultPoolSize = 3;
-
         // private for singleton
         ActorPool() = default;
         ~ActorPool() = default;
