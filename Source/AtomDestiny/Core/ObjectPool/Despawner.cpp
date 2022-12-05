@@ -1,12 +1,11 @@
 ﻿#include "Despawner.h"
-
 #include "ActorPool.h"
 
 using namespace AtomDestiny;
 
 void UDespawner::Despawn(double time)
 {
-    decltype(auto) timerManager = GetWorld()->GetTimerManager();
+    FTimerManager& timerManager = GetWorld()->GetTimerManager();
     const auto despawnHandler = [this] {
         ObjectPool::Instance().Despawn(MakeShareable(this->GetOwner()));
     };

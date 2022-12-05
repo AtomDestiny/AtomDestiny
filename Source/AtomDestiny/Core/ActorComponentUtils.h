@@ -16,7 +16,7 @@ namespace AtomDestiny::Utils
     /// Adds new component to actor as new instance
     /// 
     template<typename Component>
-    Component* AddNewComponentToActor(AActor* actor)
+    [[maybe_unused]] Component* AddNewComponentToActor(AActor* actor)
     {
         static_assert(IsActorComponent<Component>::value, "Component parameter is not an UActorComponent");
         
@@ -31,7 +31,7 @@ namespace AtomDestiny::Utils
     }
 
     template<typename Component>
-    Component* AddNewComponentToActor(const GameObject& object)
+    [[maybe_unused]] Component* AddNewComponentToActor(const GameObject& object)
     {
         return AddNewComponentToActor<Component>(object.Get());
     }

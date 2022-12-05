@@ -4,7 +4,7 @@
 
 #include "ActorPoolMember.h"
 
-#include "AtomDestiny/Core/AtomDestinyCore.h"
+#include "AtomDestiny/Core/GameObject.h"
 
 #include <Core/Public/Math/MathFwd.h>
 
