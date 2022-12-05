@@ -39,7 +39,7 @@ namespace AtomDestiny
             MinusCoefficient
         };
         
-        GameObject enhancementObject;
+        GameObjectWeak enhancementObject;
         float value;
         Modifier modifier;
     };
@@ -49,7 +49,7 @@ namespace AtomDestiny
     ///
     struct ParameterZeroPack
     {
-        GameObject zeroObject;
+        GameObjectWeak zeroObject;
         bool status;
     };
 

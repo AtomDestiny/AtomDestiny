@@ -6,7 +6,8 @@
 
 namespace AtomDestiny
 {
-    using GameObject = TSharedPtr<AActor>;
-    using GameObjectWeak = TWeakPtr<AActor>;
+    using GameObjectType = AActor;
+    using GameObject = TSharedPtr<GameObjectType>;
+    using GameObjectWeak = TWeakPtr<GameObjectType>;
     
 } // namespace AtomDestiny

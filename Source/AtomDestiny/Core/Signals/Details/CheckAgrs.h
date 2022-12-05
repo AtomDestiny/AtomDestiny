@@ -29,7 +29,7 @@ namespace AtomDestiny::Details
     struct CheckArgs
     {
         template <typename T, typename Slot>
-        void Connect(const T& slotObj, Slot&& slot); // specially not implemented
+        void Connect(const T& slotObj, Slot&& slot) = delete; // specially not implemented
     };
 
     template <>
