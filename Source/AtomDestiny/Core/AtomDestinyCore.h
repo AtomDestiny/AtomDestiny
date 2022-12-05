@@ -19,6 +19,16 @@ namespace AtomDestiny
 
     public:
 
+        UENUM(BlueprintType)
+        enum class GameSide : uint8
+        {
+            None,
+            Rebels,
+            Federation,
+            Neutral,
+            NeutralBuildings,
+        };
+        
         // Returns Core object as Meyers singleton
         static Core& Instance();
 
