@@ -22,7 +22,7 @@ GameObject Pool::Spawn(FVector position, FRotator rotation)
         spawnParams.Template = m_gameObjectToSpawn.Get();
         
         const auto newObject = world->SpawnActor<AActor>(m_gameObjectToSpawn->GetClass(), position, rotation, spawnParams);
-        GameObject sharedNewObject = MakeShareable(newObject);
+        GameObject sharedNewObject{ newObject };
 
         const FString str = m_gameObjectToSpawn->GetName() + TEXT(" (") + FString::FromInt(m_nextId++) + TEXT(") ");
         sharedNewObject->Rename(GetData(str));
@@ -38,10 +38,8 @@ GameObject Pool::Spawn(FVector position, FRotator rotation)
         object = m_inactive.top();
         m_inactive.pop();
 
-        if (object == nullptr)
-        {
+        if (!object.IsValid())
             return Spawn(position, rotation);
-        }
     }
 
     object->SetActorLocation(position);

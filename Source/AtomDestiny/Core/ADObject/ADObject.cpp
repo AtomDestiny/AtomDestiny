@@ -144,8 +144,7 @@ void ADObject::AddToParameter(ObjectParameters parameter, const ParameterEnhance
 
     std::vector<ParameterEnhancement>& enhancementList = GetParameterEnhancementList(parameter);
     const auto predicate = [&enhancement](const ParameterEnhancement& element) {
-        const GameObject ptr = enhancement.enhancementObject.Pin();
-        return element.enhancementObject.HasSameObject(ptr.Get());
+        return element.enhancementObject.Get() == enhancement.enhancementObject.Get();
     };
 
     if (const auto iter = std::find_if(std::cbegin(enhancementList), std::cend(enhancementList), predicate); iter == std::cend(enhancementList))
@@ -165,7 +164,7 @@ void ADObject::RemoveFromParameter(ObjectParameters parameter, const GameObject&
 
     std::vector<ParameterEnhancement>& enhancementList = GetParameterEnhancementList(parameter);
     const auto predicate = [&enhanceObject](const ParameterEnhancement& element) {
-        return element.enhancementObject.HasSameObject(enhanceObject.Get());
+        return element.enhancementObject.Get() == enhanceObject.Get();
     };
 
     if (const auto iter = std::find_if(std::begin(enhancementList), std::end(enhancementList), predicate); iter != std::cend(enhancementList))
