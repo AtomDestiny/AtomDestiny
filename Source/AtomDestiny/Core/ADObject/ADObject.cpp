@@ -1,22 +1,20 @@
 ﻿#include "ADObject.h"
 
-using namespace AtomDestiny;
-
 // IParameterizable
 
-void ADObject::AddParameter(ObjectParameters parameter, const ParameterEnhancement& enhancement)
+void UADObject::AddParameter(ObjectParameters parameter, const ParameterEnhancement& enhancement)
 {
     if (enhancement.enhancementObject.IsValid() && enhancement.value >= 0)
         AddToParameter(parameter, enhancement);
 }
 
-void ADObject::RemoveParameter(ObjectParameters parameter, const GameObject& enhancementObject)
+void UADObject::RemoveParameter(ObjectParameters parameter, const GameObject& enhancementObject)
 {
     if (enhancementObject.IsValid())
         RemoveFromParameter(parameter, enhancementObject);
 }
 
-void ADObject::ZeroParameter(ObjectParameters parameter, const ParameterZeroPack& pack)
+void UADObject::ZeroParameter(ObjectParameters parameter, const ParameterZeroPack& pack)
 {
     if (!pack.zeroObject.IsValid())
     {
@@ -45,7 +43,7 @@ void ADObject::ZeroParameter(ObjectParameters parameter, const ParameterZeroPack
     Recalculate(parameter);
 }
 
-float ADObject::InterpretParameterModifier(float baseValue, const ParameterEnhancement& enhancement)
+float UADObject::InterpretParameterModifier(float baseValue, const ParameterEnhancement& enhancement)
 {
     auto result = 0.0f;
     const auto value = std::abs(enhancement.value);
@@ -75,7 +73,7 @@ float ADObject::InterpretParameterModifier(float baseValue, const ParameterEnhan
     return result;
 }
 
-std::vector<ObjectParameters> ADObject::GetParameterTypes() const
+std::vector<ObjectParameters> UADObject::GetParameterTypes() const
 {
     std::vector<ObjectParameters> objectParameters;
     objectParameters.reserve(m_enhancementParameters.size());
@@ -86,7 +84,7 @@ std::vector<ObjectParameters> ADObject::GetParameterTypes() const
     return objectParameters;
 }
 
-std::vector<ParameterEnhancement>& ADObject::GetParameterEnhancementList(ObjectParameters parameter)
+std::vector<ParameterEnhancement>& UADObject::GetParameterEnhancementList(ObjectParameters parameter)
 {
     const auto iter = m_enhancementParameters.find(parameter);
 
@@ -96,7 +94,7 @@ std::vector<ParameterEnhancement>& ADObject::GetParameterEnhancementList(ObjectP
     return iter->second.second;
 }
 
-bool ADObject::GetParameterAvailable(ObjectParameters parameter)
+bool UADObject::GetParameterAvailable(ObjectParameters parameter)
 {
     if (const auto iter = m_enhancementParameters.find(parameter); iter != m_enhancementParameters.end())
     {
@@ -112,7 +110,7 @@ bool ADObject::GetParameterAvailable(ObjectParameters parameter)
     return false;
 }
 
-std::vector<GameObjectWeak>& ADObject::GetParameterZeroList(ObjectParameters parameter)
+std::vector<GameObjectWeak>& UADObject::GetParameterZeroList(ObjectParameters parameter)
 {
     const auto iter = m_enhancementParameters.find(parameter);
 
@@ -122,19 +120,19 @@ std::vector<GameObjectWeak>& ADObject::GetParameterZeroList(ObjectParameters par
     return iter->second.first;
 }
 
-void ADObject::AddNewParameter(ObjectParameters parameter)
+void UADObject::AddNewParameter(ObjectParameters parameter)
 {
     if (!m_enhancementParameters.count(parameter))
         m_enhancementParameters.emplace(parameter, GameObjectPairParameterList{});
 }
 
-void ADObject::AddNewParameters(const std::vector<ObjectParameters>& parameters)
+void UADObject::AddNewParameters(const std::vector<ObjectParameters>& parameters)
 {
     for (const auto parameter : parameters)
         AddNewParameter(parameter);
 }
 
-void ADObject::AddToParameter(ObjectParameters parameter, const ParameterEnhancement& enhancement)
+void UADObject::AddToParameter(ObjectParameters parameter, const ParameterEnhancement& enhancement)
 {
     if (!m_enhancementParameters.count(parameter))
     {
@@ -154,7 +152,7 @@ void ADObject::AddToParameter(ObjectParameters parameter, const ParameterEnhance
         Recalculate(parameter);
 }
 
-void ADObject::RemoveFromParameter(ObjectParameters parameter, const GameObject& enhanceObject)
+void UADObject::RemoveFromParameter(ObjectParameters parameter, const GameObject& enhanceObject)
 {
     if (!m_enhancementParameters.count(parameter))
     {
@@ -176,7 +174,7 @@ void ADObject::RemoveFromParameter(ObjectParameters parameter, const GameObject&
     }
 }
 
-void ADObject::RemoveNullParameters(ObjectParameters parameter)
+void UADObject::RemoveNullParameters(ObjectParameters parameter)
 {
     if (const auto iter = m_enhancementParameters.find(parameter); iter != m_enhancementParameters.cend())
     {
@@ -189,7 +187,7 @@ void ADObject::RemoveNullParameters(ObjectParameters parameter)
     }
 }
 
-void ADObject::Recalculate(ObjectParameters parameter)
+void UADObject::Recalculate(ObjectParameters parameter)
 {
     RemoveNullParameters(parameter);
 
