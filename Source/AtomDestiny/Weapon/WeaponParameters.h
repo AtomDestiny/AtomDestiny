@@ -32,8 +32,8 @@ struct FWeaponParameters
     float criticalRate;
     AtomDestiny::Weapon::WeaponType weaponType;
     float explosionRadius;
-    AtomDestiny::GameObjectWeak owner;
-    AtomDestiny::GameObjectWeak target;
+    GameObjectWeak owner;
+    GameObjectWeak target;
 };
 
 namespace AtomDestiny::Weapon

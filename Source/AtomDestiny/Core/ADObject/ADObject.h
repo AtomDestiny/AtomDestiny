@@ -7,6 +7,7 @@
 #include <Engine/Classes/Components/ActorComponent.h>
 
 #include "ObjectParameters.h"
+#include "Parameterizable.h"
 
 #include "ADObject.generated.h"
 
@@ -15,7 +16,7 @@
 /// Minimal entity for any Atom Destiny object.
 /// (Units, Buildings, Abilities).
 ///
-UCLASS(Abstract)
+UCLASS(Abstract, Blueprintable)
 class UADObject : public UActorComponent, public IParameterizable
 {
     GENERATED_BODY()
@@ -38,11 +39,12 @@ public:
     static float InterpretParameterModifier(float baseValue, const ParameterEnhancement& enhancement);
 
 protected:
+    
     // Recalculates parameter for implementor
-    virtual void RecalculateParameter(ObjectParameters parameter) = 0;
+    virtual void RecalculateParameter(ObjectParameters parameter) PURE_VIRTUAL_METHOD;
 
     // Set parameter to zero
-    virtual void ZeroizeParameter(ObjectParameters parameter) = 0;
+    virtual void ZeroizeParameter(ObjectParameters parameter) PURE_VIRTUAL_METHOD;
 
     // Returns current parameters key types
     std::vector<ObjectParameters> GetParameterTypes() const;
