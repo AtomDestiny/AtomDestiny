@@ -1,5 +1,7 @@
 ﻿#include "Pool.h"
 
+#include "ActorPoolMember.h"
+
 #include "AtomDestiny/Core/ActorUtils.h"
 #include "AtomDestiny/Core/ActorComponentUtils.h"
 

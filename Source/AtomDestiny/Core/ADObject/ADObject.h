@@ -17,7 +17,7 @@
 /// (Units, Buildings, Abilities).
 ///
 UCLASS(Abstract, Blueprintable)
-class UADObject : public UActorComponent, public IParameterizable
+class ATOMDESTINY_API UADObject : public UActorComponent, public IParameterizable
 {
     GENERATED_BODY()
 
@@ -65,6 +65,7 @@ protected:
     void RemoveFromParameter(ObjectParameters parameter, const GameObject& enhanceObject);
 
 private:
+    
     // Removes all parameters additional values which are null
     void RemoveNullParameters(ObjectParameters parameter);
 
