@@ -36,7 +36,7 @@ GameObject ActorPool::Spawn(GameObject object)
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-void ActorPool::Despawn(GameObject object)
+void ActorPool::Despawn(GameObject object) const
 {
     if (const auto poolMember = object->FindComponentByClass<ActorPoolMember>(); poolMember == nullptr)
     {

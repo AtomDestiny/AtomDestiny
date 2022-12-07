@@ -18,4 +18,10 @@
     #endif // __func__
 #endif // __FUNCTION_NAME__
 
-#define PURE_VIRTUAL_METHOD PURE_VIRTUAL(__FUNCTION_NAME__)
+#if CHECK_PUREVIRTUALS
+    #define PURE_VIRTUAL_METHOD =0;
+#else
+    #define PURE_VIRTUAL_METHOD { \
+        LowLevelFatalError(TEXT("Pure virtual not implemented (%s)"), TEXT(__FUNCTION_NAME__)); \
+    }
+#endif

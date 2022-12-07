@@ -31,7 +31,7 @@ namespace AtomDestiny
         GameObject Spawn(GameObject object);
         
         // Despawns the specified AActor back into its pool.
-        void Despawn(GameObject object);
+        void Despawn(GameObject object) const;
         
         // Despawns the specified AActor back into its pool after time
         void Despawn(GameObject object, double time) const;
@@ -51,5 +51,5 @@ namespace AtomDestiny
 
     // Redefinition to support classic pattern
     using ObjectPool = ActorPool;
-    
+
 } // namespace AtomDestiny
