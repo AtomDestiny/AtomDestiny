@@ -27,7 +27,7 @@ public:
     ///
 
     // Sets current target to weapon. Should be called before fire
-    virtual void SetTarget(const GameObjectWeak& gameObject) PURE_VIRTUAL_METHOD;
+    virtual void SetTarget(const GameObjectWeak& gameObject) PURE_VIRTUAL_METHOD
 
     // Weapon attack. Should be called after setTarget
     virtual void Fire() PURE_VIRTUAL_METHOD;
