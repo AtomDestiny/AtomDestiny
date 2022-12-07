@@ -1,7 +1,8 @@
 #include "ActorPool.h"
 #include "Despawner.h"
 
-#include "AtomDestiny/Core/ActorComponentUtils.h"
+#include <AtomDestiny/Core/ActorComponentUtils.h>
+#include <AtomDestiny/Core/ObjectPool/Detail/ActorPoolMember.h>
 
 using namespace AtomDestiny;
 
@@ -23,9 +24,7 @@ void ActorPool::Initialize(GameObject object)
 GameObject ActorPool::Spawn(GameObject object, FVector position, FRotator rotation)
 {
     if (!object)
-    {
         return nullptr;
-    }
 
     Initialize(object);
     return m_pools[std::move(object)]->Spawn(position, rotation);
@@ -41,13 +40,11 @@ void ActorPool::Despawn(GameObject object)
 {
     if (const auto poolMember = object->FindComponentByClass<ActorPoolMember>(); poolMember == nullptr)
     {
-        UE_LOG(LogTemp, Warning, TEXT("The Actor %s wasn't spawned from a pool. Destroying it instead."), *object->GetName());
+        UE_LOG(LogTemp, Warning, TEXT("The Actor %s wasn't spawned from a pool. Destroying it instead."), GetData(object->GetName()));
         object->SetLifeSpan(1);
     }
     else
-    {
         poolMember->pool->Despawn(object);
-    }
 }
 
 void ActorPool::Despawn(GameObject object, double time) const
@@ -55,9 +52,7 @@ void ActorPool::Despawn(GameObject object, double time) const
     auto despawner = object->FindComponentByClass<Despawner>();
 
     if (despawner == nullptr)
-    {
         despawner = Utils::AddNewComponentToActor<Despawner>(object);
-    }
 
     despawner->Despawn(time);
 }
