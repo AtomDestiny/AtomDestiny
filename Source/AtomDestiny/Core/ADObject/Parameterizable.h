@@ -2,8 +2,9 @@
 
 #include <Runtime/CoreUObject/Public/UObject/Interface.h>
 
-#include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/Core/ADObject/ObjectParameters.h>
+#include <AtomDestiny/Core/ADObject/ParameterEnhancement.h>
+#include <AtomDestiny/Core/ADObject/ParameterZeroPack.h>
 
 #include "Parameterizable.generated.h"
 
@@ -23,11 +24,14 @@ class IParameterizable
 public:
     
     // Adds additional value to parameter
-    virtual void AddParameter(ObjectParameters parameter, const ParameterEnhancement& enhancement) PURE_VIRTUAL_METHOD;
+    UFUNCTION(Meta = (AllowOverride = true))
+    virtual void AddParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement) = 0;
         
     // Removes additional value from parameter
-    virtual void RemoveParameter(ObjectParameters parameter, const GameObject& enhancementObject) PURE_VIRTUAL_METHOD;
+    UFUNCTION(Meta = (AllowOverride = true))
+    virtual void RemoveParameter(EObjectParameters parameter, AActor* enhancementObject) = 0;
         
     // Sets parameter to zero or non zero
-    virtual void ZeroParameter(ObjectParameters parameter, const ParameterZeroPack& pack) PURE_VIRTUAL_METHOD;
+    UFUNCTION(Meta = (AllowOverride = true))
+    virtual void ZeroParameter(EObjectParameters parameter, const FParameterZeroPack& pack) = 0;
 };

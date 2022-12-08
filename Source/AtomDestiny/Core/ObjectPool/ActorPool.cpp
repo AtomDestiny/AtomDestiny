@@ -12,7 +12,7 @@ ActorPool& ActorPool::Instance()
     return actorPool;
 }
 
-void ActorPool::Initialize(GameObject object)
+void ActorPool::Initialize(TStrongObjectPtr<AActor> object)
 {
     if (!m_pools.count(object))
     {
@@ -21,7 +21,7 @@ void ActorPool::Initialize(GameObject object)
     }
 }
 
-GameObject ActorPool::Spawn(GameObject object, FVector position, FRotator rotation)
+TStrongObjectPtr<AActor> ActorPool::Spawn(TStrongObjectPtr<AActor> object, FVector position, FRotator rotation)
 {
     if (!object)
         return nullptr;
@@ -30,13 +30,13 @@ GameObject ActorPool::Spawn(GameObject object, FVector position, FRotator rotati
     return m_pools[std::move(object)]->Spawn(position, rotation);
 }
 
-GameObject ActorPool::Spawn(GameObject object)
+TStrongObjectPtr<AActor> ActorPool::Spawn(TStrongObjectPtr<AActor> object)
 {
     return Spawn(std::move(object), FVector::ZeroVector, FRotator::ZeroRotator);
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-void ActorPool::Despawn(GameObject object) const
+void ActorPool::Despawn(TStrongObjectPtr<AActor> object) const
 {
     if (const auto poolMember = object->FindComponentByClass<ActorPoolMember>(); poolMember == nullptr)
     {
@@ -47,12 +47,12 @@ void ActorPool::Despawn(GameObject object) const
         poolMember->pool->Despawn(object);
 }
 
-void ActorPool::Despawn(GameObject object, double time) const
+void ActorPool::Despawn(TStrongObjectPtr<AActor> object, double time) const
 {
-    auto despawner = object->FindComponentByClass<Despawner>();
+    auto despawner = object->FindComponentByClass<UDespawner>();
 
     if (despawner == nullptr)
-        despawner = Utils::AddNewComponentToActor<Despawner>(object);
+        despawner = Utils::AddNewComponentToActor<UDespawner>(object);
 
     despawner->Despawn(time);
 }
@@ -62,12 +62,12 @@ void ActorPool::DestroyAll()
     m_pools.clear();
 }
 
-void ActorPool::Destroy(GameObject object)
+void ActorPool::Destroy(TStrongObjectPtr<AActor> object)
 {
     m_pools.erase(std::move(object));
 }
 
-bool ActorPool::Contains(GameObject object) const
+bool ActorPool::Contains(TStrongObjectPtr<AActor> object) const
 {
     return static_cast<bool>(m_pools.count(std::move(object)));
 }

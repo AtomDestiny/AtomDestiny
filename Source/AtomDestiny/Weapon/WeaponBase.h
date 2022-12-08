@@ -5,9 +5,6 @@
 
 // #include "WeaponBase.generated.h"
 
-using namespace AtomDestiny;
-using namespace Weapon;
-
 ///
 /// Represents base abstract weapon, any weapon realizations should use it as base class
 ///

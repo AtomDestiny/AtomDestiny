@@ -1,25 +1,21 @@
 ﻿#pragma once
 
-#include "AtomDestiny/Core/GameObject.h"
+#include <Engine/Classes/GameFramework/Actor.h>
 
 #include "WeaponParameters.generated.h"
 
-namespace AtomDestiny::Weapon
+///
+/// All weapons types at game.
+/// You should not add new types.
+///
+UENUM()
+enum class EWeaponType : uint8
 {
-    ///
-    /// All weapons types at game.
-    /// You should not add new types.
-    ///
-    UENUM()
-    enum class WeaponType : uint8
-    {
-        Ballistic,
-        Energy,
-        Explosive,
-        Elemental,
-    };
-
-} // namespace AtomDestiny::Weapon
+    Ballistic,
+    Energy,
+    Explosive,
+    Elemental,
+};
 
 // Data struct for weapon parameters
 USTRUCT()
@@ -30,14 +26,8 @@ struct FWeaponParameters
     float damage;
     float criticalChance;
     float criticalRate;
-    AtomDestiny::Weapon::WeaponType weaponType;
+    EWeaponType weaponType;
     float explosionRadius;
-    GameObjectWeak owner;
-    GameObjectWeak target;
+    TWeakObjectPtr<AActor> owner;
+    TWeakObjectPtr<AActor> target;
 };
-
-namespace AtomDestiny::Weapon
-{
-    using WeaponParameters = FWeaponParameters;
-
-} // namespace AtomDestiny::Weapon

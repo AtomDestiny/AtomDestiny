@@ -8,13 +8,24 @@
     #define __FUNC_NAME__ __PRETTY_FUNCTION__
 #endif
 
-constexpr bool IsVoid(const std::string_view function)
+namespace AtomDestiny
 {
-    return function.find_first_of("void") != std::string_view::npos;
+    constexpr bool IsReturnTypeVoid(const std::string_view function)
+    {
+        return function.find_first_of("void") != std::string_view::npos;
+    }
+    
+} // namespace AtomDestiny
+
+#define GENERATE_RETURN(name, func_name) { \
+    constexpr auto res##name = AtomDestiny::IsReturnTypeVoid(func_name); \
+    if constexpr (res##name) return {}; \
 }
 
 #define PURE_VIRTUAL_METHOD { \
-    constexpr auto res = IsVoid(__FUNC_NAME__); \
     PURE_VIRTUAL(__FUNC_NAME__) \
-    if constexpr (!res) return {}; \
+}
+
+#define PURE_VIRTUAL_RETURN_METHOD { \
+    PURE_VIRTUAL(__FUNC_NAME__, return {};) \
 }

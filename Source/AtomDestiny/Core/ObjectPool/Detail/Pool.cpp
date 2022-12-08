@@ -7,14 +7,14 @@
 
 using namespace AtomDestiny;
 
-Pool::Pool(GameObject object):
+Pool::Pool(TStrongObjectPtr<AActor> object):
     m_gameObjectToSpawn(std::move(object))
 {
 }
 
-GameObject Pool::Spawn(FVector position, FRotator rotation)
+TStrongObjectPtr<AActor> Pool::Spawn(FVector position, FRotator rotation)
 {
-    GameObject object;
+    TStrongObjectPtr<AActor> object;
 
     if (m_inactive.empty())
     {
@@ -24,7 +24,7 @@ GameObject Pool::Spawn(FVector position, FRotator rotation)
         spawnParams.Template = m_gameObjectToSpawn.Get();
         
         const auto newObject = world->SpawnActor<AActor>(m_gameObjectToSpawn->GetClass(), position, rotation, spawnParams);
-        GameObject sharedNewObject{ newObject };
+        TStrongObjectPtr sharedNewObject{ newObject };
 
         const FString str = m_gameObjectToSpawn->GetName() + TEXT(" (") + FString::FromInt(m_nextId++) + TEXT(") ");
         sharedNewObject->Rename(GetData(str));
@@ -52,7 +52,7 @@ GameObject Pool::Spawn(FVector position, FRotator rotation)
     return object;
 }
 
-void Pool::Despawn(GameObject object)
+void Pool::Despawn(TStrongObjectPtr<AActor> object)
 {
     Utils::SetActorActive(object, false);
     m_inactive.push(std::move(object));

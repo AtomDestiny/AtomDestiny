@@ -20,7 +20,7 @@ namespace AtomDestiny::Utils
     {
         static_assert(IsActorComponent<Component>::value, "Component parameter is not an UActorComponent");
         
-        assert(actor);
+        assert(actor != nullptr);
 
         const auto newComponent = NewObject<Component>(actor);
         newComponent->RegisterComponent();
@@ -31,7 +31,7 @@ namespace AtomDestiny::Utils
     }
 
     template<typename Component>
-    [[maybe_unused]] Component* AddNewComponentToActor(const GameObject& object)
+    [[maybe_unused]] Component* AddNewComponentToActor(const TStrongObjectPtr<AActor>& object)
     {
         return AddNewComponentToActor<Component>(object.Get());
     }

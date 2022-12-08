@@ -1,22 +1,33 @@
 ﻿#pragma once
 
-namespace AtomDestiny::Weapon
+#include <Runtime/CoreUObject/Public/UObject/Interface.h>
+
+#include "WeaponAnimation.generated.h"
+
+UINTERFACE(MinimalAPI, Blueprintable)
+class UWeaponAnimation : public UInterface
 {
-    ///
-    /// Base interface for weapon animation
-    ///
-    struct IWeaponAnimation
-    {
-        virtual ~IWeaponAnimation() = default;
+    GENERATED_BODY()
+};
 
-        // Returns weapon ready status
-        virtual bool IsReady() = 0;
+///
+/// Base interface for weapon animation
+///
+class IWeaponAnimation
+{
+    GENERATED_BODY()
+    
+public:
+    
+    // Returns weapon ready status
+    UFUNCTION(Meta = (AllowOverride = true))
+    virtual bool IsReady() = 0;
 
-        // Plays animation
-        virtual void Animate() = 0;
+    // Plays animation
+    UFUNCTION(Meta = (AllowOverride = true))
+    virtual void Animate() = 0;
 
-        // Sets default state of animation
-        virtual void SetDefaultState() = 0;
-    };
-
-} // namespace AtomDestiny
+    // Sets default state of animation
+    UFUNCTION(Meta = (AllowOverride = true))
+    virtual void SetDefaultState() = 0;
+};

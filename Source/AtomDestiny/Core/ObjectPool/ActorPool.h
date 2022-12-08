@@ -22,31 +22,31 @@ namespace AtomDestiny
         static ActorPool& Instance();
         
         // Initializes our dictionary
-        void Initialize(GameObject object);
+        void Initialize(TStrongObjectPtr<AActor> object);
         
         // Spawns a copy of the specified actor (instantiating one if required)
-        GameObject Spawn(GameObject object, FVector position, FRotator rotation);
+        TStrongObjectPtr<AActor> Spawn(TStrongObjectPtr<AActor> object, FVector position, FRotator rotation);
         
         // Spawns a copy of the specified prefab, with zero pos and identity rotation
-        GameObject Spawn(GameObject object);
+        TStrongObjectPtr<AActor> Spawn(TStrongObjectPtr<AActor> object);
         
         // Despawns the specified AActor back into its pool.
-        void Despawn(GameObject object) const;
+        void Despawn(TStrongObjectPtr<AActor> object) const;
         
         // Despawns the specified AActor back into its pool after time
-        void Despawn(GameObject object, double time) const;
+        void Despawn(TStrongObjectPtr<AActor> object, double time) const;
         
         // Cleans all pooled members
         void DestroyAll();
         
         // Destroys current object
-        void Destroy(GameObject object);
+        void Destroy(TStrongObjectPtr<AActor> object);
         
         // Returns true if Blueprint Actor is already in pool
-        bool Contains(GameObject object) const;
+        bool Contains(TStrongObjectPtr<AActor> object) const;
     
     private:
-        std::unordered_map<GameObject, TSharedPtr<Pool>> m_pools;
+        std::unordered_map<TStrongObjectPtr<AActor>, TSharedPtr<Pool>> m_pools;
     };
 
     // Redefinition to support classic pattern
