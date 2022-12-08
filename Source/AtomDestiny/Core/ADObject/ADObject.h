@@ -4,7 +4,7 @@
 #include <utility>
 #include <unordered_map>
 
-#include <Engine/Classes/Components/ActorComponent.h>
+#include <Engine/Classes/Components/SceneComponent.h>
 
 #include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/Core/ADObject/Parameterizable.h>
@@ -17,7 +17,7 @@
 /// (Units, Buildings, Abilities).
 ///
 UCLASS(Abstract, Blueprintable)
-class ATOMDESTINY_API UADObject : public UActorComponent, public IParameterizable
+class ATOMDESTINY_API UADObject : public USceneComponent, public IParameterizable
 {
     GENERATED_BODY()
 
