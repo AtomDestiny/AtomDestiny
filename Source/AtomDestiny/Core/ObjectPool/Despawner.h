@@ -19,13 +19,3 @@ public:
 private:
     FTimerHandle m_timerHandle;
 };
-
-namespace AtomDestiny
-{
-    ///
-    /// Actor despawner by timer.
-    /// Actor would be despawned to Actor's Pool
-    ///
-    using Despawner = UDespawner;
-
-} // namespace AtomDestiny

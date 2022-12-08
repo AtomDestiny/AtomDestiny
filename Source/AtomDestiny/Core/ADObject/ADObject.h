@@ -6,69 +6,74 @@
 
 #include <Engine/Classes/Components/ActorComponent.h>
 
-#include "ObjectParameters.h"
+#include <AtomDestiny/Core/Macros.h>
+#include <AtomDestiny/Core/ADObject/Parameterizable.h>
 
-namespace AtomDestiny
+#include "ADObject.generated.h"
+
+///
+/// Represents Parameterizable Atom Destiny object.
+/// Minimal entity for any Atom Destiny object.
+/// (Units, Buildings, Abilities).
+///
+UCLASS(Abstract, Blueprintable)
+class ATOMDESTINY_API UADObject : public UActorComponent, public IParameterizable
 {
+    GENERATED_BODY()
+
+    using GameObjectWeak = TWeakObjectPtr<AActor>;
+    using GameObjectPairParameterList = std::pair<std::vector<GameObjectWeak>, std::vector<FParameterEnhancement>>;
+
     ///
-    /// Represents Parameterizable Atom Destiny object.
-    /// Minimal entity for any Atom Destiny object.
-    /// (Units, Buildings, Abilities).
+    /// Type for any Atom Destiny parameters
     ///
-    class ADObject : public UActorComponent, public IParameterizable
-    {
-        using GameObjectPairParameterList = std::pair<std::vector<GameObjectWeak>, std::vector<ParameterEnhancement>>;
+    using ObjectEnhancementParameters = std::unordered_map<EObjectParameters, GameObjectPairParameterList>;
 
-        ///
-        /// Type for any Atom Destiny parameters
-        ///
-        using ObjectEnhancementParameters = std::unordered_map<ObjectParameters, GameObjectPairParameterList>;
+public:
+    using UActorComponent::UActorComponent;
 
-    public:
-        using UActorComponent::UActorComponent;
-        
-        virtual void AddParameter(ObjectParameters parameter, const ParameterEnhancement& enhancement) override;
-        virtual void RemoveParameter(ObjectParameters parameter, const GameObject& enhancementObject) override;
-        virtual void ZeroParameter(ObjectParameters parameter, const ParameterZeroPack& pack) override;
-        
-        /// Interprets ParameterEnhancement values and returns resulting value
-        static float InterpretParameterModifier(float baseValue, const ParameterEnhancement& enhancement);
+    virtual void AddParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement) override;
+    virtual void RemoveParameter(EObjectParameters parameter, AActor* enhancementObject) override;
+    virtual void ZeroParameter(EObjectParameters parameter, const FParameterZeroPack& pack) override;
 
-    protected:
-        
-        // Recalculates parameter for implementor
-        virtual void RecalculateParameter(ObjectParameters parameter) = 0;
-        
-        // Set parameter to zero
-        virtual void ZeroizeParameter(ObjectParameters parameter) = 0;
-        
-        // Returns current parameters key types
-        std::vector<ObjectParameters> GetParameterTypes() const;
-        std::vector<ParameterEnhancement>& GetParameterEnhancementList(ObjectParameters parameter);
-        
-        // Returns status of parameter
-        bool GetParameterAvailable(ObjectParameters parameter);
-        std::vector<GameObjectWeak>& GetParameterZeroList(ObjectParameters parameter);
-        
-        // Adds parameter to object parameters
-        void AddNewParameter(ObjectParameters parameter);
-        void AddNewParameters(const std::vector<ObjectParameters>& parameters);
-        
-        // Adds enhancement value to parameter
-        void AddToParameter(ObjectParameters parameter, const ParameterEnhancement& enhancement);
-        
-        // Removes enhancement value from parameter
-        void RemoveFromParameter(ObjectParameters parameter, const GameObject& enhanceObject);
+    /// Interprets ParameterEnhancement values and returns resulting value
+    static float InterpretParameterModifier(float baseValue, const FParameterEnhancement& enhancement);
 
-    private:
-        
-        // Removes all parameters additional values which are null
-        void RemoveNullParameters(ObjectParameters parameter);
-        
-        // Recalculates any parameter
-        void Recalculate(ObjectParameters parameter);
-        
-        ObjectEnhancementParameters m_enhancementParameters;
-    };
+protected:
+    
+    // Recalculates parameter for implementor
+    UFUNCTION(Meta = (AllowOverride = true))
+    virtual void RecalculateParameter(EObjectParameters parameter) PURE_VIRTUAL_METHOD
 
-} // namespace AtomDestiny
+    // Set parameter to zero
+    UFUNCTION(Meta = (AllowOverride = true))
+    virtual void ZeroizeParameter(EObjectParameters parameter) PURE_VIRTUAL_METHOD
+
+    // Returns current parameters key types
+    std::vector<EObjectParameters> GetParameterTypes() const;
+    std::vector<FParameterEnhancement>& GetParameterEnhancementList(EObjectParameters parameter);
+
+    // Returns status of parameter
+    bool GetParameterAvailable(EObjectParameters parameter);
+    std::vector<TWeakObjectPtr<AActor>>& GetParameterZeroList(EObjectParameters parameter);
+
+    // Adds parameter to object parameters
+    void AddNewParameter(EObjectParameters parameter);
+    void AddNewParameters(const std::vector<EObjectParameters>& parameters);
+
+    // Adds enhancement value to parameter
+    void AddToParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement);
+
+    // Removes enhancement value from parameter
+    void RemoveFromParameter(EObjectParameters parameter, const TWeakObjectPtr<AActor>& enhanceObject);
+
+private:
+    
+    // Removes all parameters additional values which are null
+    void RemoveNullParameters(EObjectParameters parameter);
+
+    // Recalculates any parameter
+    void Recalculate(EObjectParameters parameter);
+
+    ObjectEnhancementParameters m_enhancementParameters;
+};

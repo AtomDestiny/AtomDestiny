@@ -4,6 +4,16 @@
 
 #include <Core/Public/Templates/UnrealTemplate.h>
 
+UENUM(BlueprintType)
+enum class EGameSide : uint8
+{
+    None,
+    Rebels,
+    Federation,
+    Neutral,
+    NeutralBuildings,
+};
+
 namespace AtomDestiny
 {
     ///
@@ -18,16 +28,6 @@ namespace AtomDestiny
         ~Core();
 
     public:
-
-        UENUM(BlueprintType)
-        enum class GameSide : uint8
-        {
-            None,
-            Rebels,
-            Federation,
-            Neutral,
-            NeutralBuildings,
-        };
         
         // Returns Core object as Meyers singleton
         static Core& Instance();

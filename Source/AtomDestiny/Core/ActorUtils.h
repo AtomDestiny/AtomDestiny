@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "AtomDestiny/Core/AtomDestinyCore.h"
+#include <Engine/Classes/GameFramework/Actor.h>
 
 namespace AtomDestiny::Utils
 {
@@ -10,12 +10,14 @@ namespace AtomDestiny::Utils
     /// 
     inline void SetActorActive(AActor* actor, const bool status)
     {
+        assert(actor != nullptr);
+        
         actor->SetActorHiddenInGame(!status);
         actor->SetActorEnableCollision(status);
         actor->SetActorTickEnabled(status);
     }
 
-    inline void SetActorActive(const GameObject& object, const bool status)
+    inline void SetActorActive(const TStrongObjectPtr<AActor>& object, const bool status)
     {
         SetActorActive(object.Get(), status);
     }

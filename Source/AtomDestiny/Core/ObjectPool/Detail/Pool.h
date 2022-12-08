@@ -2,9 +2,7 @@
 
 #include <stack>
 
-#include "ActorPoolMember.h"
-
-#include "AtomDestiny/Core/GameObject.h"
+#include <Engine/Classes/GameFramework/Actor.h>
 
 #include <Core/Public/Math/MathFwd.h>
 
@@ -16,20 +14,21 @@ namespace AtomDestiny
     class ATOMDESTINY_API Pool
     {
     public:
-        explicit Pool(GameObject object);
+        explicit Pool(TStrongObjectPtr<AActor> object);
 
         // Spawns an object from our pool
-        GameObject Spawn(FVector position, FRotator rotation);
+        TStrongObjectPtr<AActor> Spawn(FVector position, FRotator rotation);
         
         // Returns an object to the inactive pool.
-        void Despawn(GameObject object);
+        void Despawn(TStrongObjectPtr<AActor> object);
     
     private:
+        
         // We would append an id to the name of anything we instantiate.
         int32_t m_nextId = 1;
         
-        std::stack<GameObject> m_inactive;
-        GameObject m_gameObjectToSpawn;
+        std::stack<TStrongObjectPtr<AActor>> m_inactive;
+        TStrongObjectPtr<AActor> m_gameObjectToSpawn;
     };
     
 } // namespace AtomDestiny
