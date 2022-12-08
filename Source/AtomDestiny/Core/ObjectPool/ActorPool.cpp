@@ -12,7 +12,7 @@ ActorPool& ActorPool::Instance()
     return actorPool;
 }
 
-void ActorPool::Initialize(TStrongObjectPtr<AActor> object)
+void ActorPool::Initialize(const TStrongObjectPtr<AActor>& object)
 {
     if (!m_pools.count(object))
     {
@@ -70,4 +70,26 @@ void ActorPool::Destroy(TStrongObjectPtr<AActor> object)
 bool ActorPool::Contains(TStrongObjectPtr<AActor> object) const
 {
     return static_cast<bool>(m_pools.count(std::move(object)));
+}
+
+void ActorPool::Preload(const TStrongObjectPtr<AActor>& object, uint32_t size)
+{
+    if (object.IsValid() && m_preloadingActive)
+    {
+        if (!m_pools.count(object))
+        {
+            Initialize(object);
+
+            // Make an array to grab the objects we're about to pre-spawn
+            std::vector<TStrongObjectPtr<AActor>> objects;
+            objects.reserve(size);
+
+            for (uint32_t i = 0; i < size; ++i)
+                objects.push_back(Spawn(object));
+
+            // Now despawn them all
+            for (const TStrongObjectPtr<AActor>& poolObject : objects)
+                Despawn(poolObject);
+        }
+    }
 }
