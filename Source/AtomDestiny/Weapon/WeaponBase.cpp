@@ -1,5 +1,7 @@
 ﻿#include "WeaponBase.h"
 
+#include <AtomDestiny/Core/MathUtils.h>
+
 void UWeaponBase::InitializeComponent()
 {
     Super::InitializeComponent();
@@ -163,7 +165,7 @@ double UWeaponBase::GetBaseCriticalRate() const
     return m_criticalRate;
 }
 
-void UWeaponBase::RotateToTarget()
+void UWeaponBase::RotateToTarget(float deltaTime)
 {
     if (!m_target.IsValid())
     {
@@ -177,14 +179,12 @@ void UWeaponBase::RotateToTarget()
     targetVector.Y = 0;
     
     // angle between unit and target
-    const auto angle = Vector3.Angle(target, weaponLocation.ForwardVector);
+    const auto angle = AtomDestiny::Vector::Angle(targetVector, weaponLocation.ForwardVector);
+    m_isRotatedOnTarget = (FMath::Abs(angle) < m_attackAngle);
 
-    // check angle
-    isRotatedOnTarget = (Mathf.Abs(angle) < attackAngle);
-
-    var lookVector = Vector3.RotateTowards(weaponTransform.forward, target, rotateSpeed * Time.deltaTime, 0.1f);
-
-    // rotate
-    weaponTransform.rotation = Quaternion.LookRotation(lookVector);
-
+    // TODO: check to swap last parameters
+    const auto lookVector = FMath::VInterpNormalRotationTo(weaponLocation.ForwardVector, targetVector, m_rotateSpeed * deltaTime, 0.1f);
+    const auto lookRotation = FQuat::FindBetween(lookVector, FVector::UpVector);
+    
+    m_weaponTransform->SetWorldRotation(lookRotation);
 }

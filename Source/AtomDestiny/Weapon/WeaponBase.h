@@ -235,7 +235,7 @@ public:
 protected:
     
     // Rotates weapon on target
-    void RotateToTarget();
+    void RotateToTarget(float deltaTime);
 
         /// <summary>
         /// Rotates weapon on root
