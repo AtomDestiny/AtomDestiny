@@ -22,10 +22,8 @@ namespace AtomDestiny
     if constexpr (res##name) return {}; \
 }
 
-#define PURE_VIRTUAL_METHOD { \
-    PURE_VIRTUAL(__FUNC_NAME__) \
-}
+#define PURE_VIRTUAL_METHOD PURE_VIRTUAL(__FUNC_NAME__)
+#define PURE_VIRTUAL_RETURN_METHOD PURE_VIRTUAL(__FUNC_NAME__, return {}; )
 
-#define PURE_VIRTUAL_RETURN_METHOD { \
-    PURE_VIRTUAL(__FUNC_NAME__, return {};) \
-}
+#define ABSTRACT_METHOD override PURE_VIRTUAL_METHOD
+#define ABSTRACT_RETURN_METHOD override PURE_VIRTUAL_RETURN_METHOD
