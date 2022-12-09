@@ -1,6 +1,9 @@
 ﻿#include "WeaponBase.h"
 
+#include <AtomDestiny/Logic/Logic.h>
+
 #include <AtomDestiny/Core/MathUtils.h>
+#include <AtomDestiny/Core/ActorComponentUtils.h>
 
 void UWeaponBase::InitializeComponent()
 {
@@ -19,7 +22,7 @@ void UWeaponBase::InitializeComponent()
 
     if (m_projectileBlueprint.IsValid())
     {
-        const TStrongObjectPtr ptr { m_projectileBlueprint };
+        const TStrongObjectPtr ptr { m_projectileBlueprint.Get() };
         AtomDestiny::ObjectPool::Instance().Preload(ptr, BlueprintPreloadCount);
     }
 
@@ -39,7 +42,7 @@ void UWeaponBase::BeginPlay()
 {
     Super::BeginPlay();
     
-    m_weaponAnimation = TObjectPtr<IWeaponAnimation> { GetOwner()->FindComponentByClass<IWeaponAnimation>() };
+    m_weaponAnimation = TObjectPtr<IWeaponAnimation> { AtomDestiny::Utils::GetInterface<IWeaponAnimation, UWeaponAnimation>(GetOwner()) };
 
     if (m_useRaycast && !m_useFriendlyFire)
         ExcludeSameLayer();
@@ -202,7 +205,7 @@ void UWeaponBase::RotateToTarget(float deltaTime)
     m_weaponTransform->SetWorldRotation(lookRotation);
 }
 
-void UWeaponBase::RotateToRoot(float deltaTime)
+void UWeaponBase::RotateToRoot(float deltaTime) const
 {
     if (!m_target.IsValid() && m_rotatedWeapon)
     {
@@ -242,3 +245,100 @@ void UWeaponBase::FiringDelay()
     m_firing = false;
 }
 
+void UWeaponBase::RecalculateParameter(EObjectParameters parameter)
+{
+    const std::vector<FParameterEnhancement>& parameters = GetParameterEnhancementList(parameter);
+
+    if (!GetParameterAvailable(parameter))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("U try to recalculate not available parameter"));
+        return;
+    }
+
+    const auto calculator = [&parameters](const double startValue) {
+        auto currentValue = startValue;
+
+        for (const auto p : parameters)
+            currentValue += InterpretParameterModifier(startValue, p);
+
+        return currentValue;
+    };
+    
+    switch (parameter)
+    {
+    case EObjectParameters::ExplosionRadius:
+        m_currentExplosionRadius = calculator(m_explosionRadius);
+        break;
+
+    case EObjectParameters::Reload:
+        m_currentReloadTime = calculator(m_reloadTime);
+        break;
+
+    case EObjectParameters::Damage:
+        m_currentDamage = calculator(m_damage);
+        break;
+
+    case EObjectParameters::CriticalChance:
+        m_currentCriticalChance = calculator(m_criticalChance);
+        break;
+
+    case EObjectParameters::CriticalRate:
+        m_currentCriticalRate = calculator(m_criticalRate);
+        break;
+
+    case EObjectParameters::Range:
+        {
+            if (ILogic* logic = { AtomDestiny::Utils::GetInterface<ILogic, ULogic>(GetOwner()) }; logic != nullptr)
+            {
+                m_currentAttackRange = calculator(m_attackRange);
+                logic->UpdateParameters();
+            }
+            
+            break;
+        }
+    default:
+        UE_LOG(LogTemp, Error, TEXT("Unavailable parameters to Recalculate"));
+        break;
+    }
+}
+
+void UWeaponBase::ZeroizeParameter(EObjectParameters parameter)
+{
+    switch (parameter)
+    {
+    case EObjectParameters::ExplosionRadius:
+        m_currentExplosionRadius = 0;
+        break;
+
+    case EObjectParameters::Reload:
+        m_currentReloadTime = 0;
+        break;
+
+    case EObjectParameters::Damage:
+        m_currentDamage = 0;
+        break;
+
+    case EObjectParameters::CriticalChance:
+        m_currentCriticalChance = 0;
+        break;
+
+    case EObjectParameters::CriticalRate:
+        m_currentCriticalRate = 1;
+        break;
+
+    case EObjectParameters::Range:
+        {
+            if (ILogic* logic = { AtomDestiny::Utils::GetInterface<ILogic, ULogic>(GetOwner()) }; logic != nullptr)
+            {
+                m_currentAttackRange = 0;
+                logic->UpdateParameters();
+            }
+            
+            break;
+        }
+
+    default:
+        UE_LOG(LogTemp, Error, TEXT("Unavailable parameters to Zeroize"));
+        break;
+    }
+}

@@ -63,7 +63,7 @@ protected:
     bool m_stopWhenAttack = true;
     
     // Weapon animator reference
-    TScriptInterface<IWeaponAnimation> m_weaponAnimation;
+    TObjectPtr<IWeaponAnimation> m_weaponAnimation;
     
     // Use weapon projectiles as a child
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Use projectile as child"))
@@ -151,6 +151,10 @@ public:
     // Main shot for weapon, called by Logic
     UFUNCTION(Meta = (AllowOverride = true))
     virtual void Fire() override PURE_VIRTUAL_METHOD
+
+    // Returns true if weapon can see target, called by Logic
+    UFUNCTION(Meta = (AllowOverride = true))
+    virtual bool IsSeeTarget() const override PURE_VIRTUAL_RETURN_METHOD
     
     // Returns weapon firing state
     UFUNCTION(Meta = (AllowOverride = true))
@@ -179,10 +183,6 @@ public:
     // Returns use friendly fire flag
     UFUNCTION(Meta = (AllowOverride = true))
     virtual bool IsFriendlyFireAvailable() const override;
-    
-    // Returns true if weapon can see target, called by Logic
-    UFUNCTION(Meta = (AllowOverride = true))
-    virtual bool IsSeeTarget() const override PURE_VIRTUAL_RETURN_METHOD
     
     // Returns reload time
     UFUNCTION(Meta = (AllowOverride = true))
@@ -246,7 +246,7 @@ protected:
     void RotateToTarget(float deltaTime);
     
     // Rotates weapon on root
-    void RotateToRoot(float deltaTime);
+    void RotateToRoot(float deltaTime) const;
     
     // Throws raycast to target by origin along direction and checks hit transform
     bool CheckRaycastToTarget(const FVector& origin, const FVector& direction) const;
@@ -254,153 +254,9 @@ protected:
     // Reload coroutine for reset fire
     void FiringDelay();
     
-        /// <summary>
-        /// Recalculates weapon parameter
-        /// </summary>
-        protected override void RecalculateParameter(Core.UnitParameters parameter)
-        {
-            var list = GetParameterEnhanceList(parameter);
-
-            switch (parameter)
-            {
-                case Core.UnitParameters.ExplosionRadius:
-                    {
-                        if (GetParameterAvailable(Core.UnitParameters.ExplosionRadius))
-                        {
-                            currentExplosionRadius = explosionRadius;
-
-                            for (int i = 0; i < list.Count; ++i)
-                            {
-                                currentExplosionRadius += InterpretParameterModifier(explosionRadius, list[i]);
-                            }
-                        }
-                    }
-                    break;
-
-                case Core.UnitParameters.Reload:
-                    {
-                        if (GetParameterAvailable(Core.UnitParameters.Reload))
-                        {
-                            currentReloadTime = reloadTime;
-
-                            for (int i = 0; i < list.Count; ++i)
-                            {
-                                currentReloadTime += InterpretParameterModifier(reloadTime, list[i]);
-                            }
-                        }
-                    }
-                    break;
-
-                case Core.UnitParameters.Damage:
-                    {
-                        if (GetParameterAvailable(Core.UnitParameters.Damage))
-                        {
-                            currentDamage = damage;
-
-                            for (int i = 0; i < list.Count; ++i)
-                            {
-                                currentDamage += InterpretParameterModifier(damage, list[i]);
-                            }
-                        }
-                    }
-                    break;
-
-                case Core.UnitParameters.CritChance:
-                    {
-                        if (GetParameterAvailable(Core.UnitParameters.CritChance))
-                        {
-                            currentCritChance = critChance;
-
-                            for (int i = 0; i < list.Count; ++i)
-                            {
-                                currentCritChance += InterpretParameterModifier(critChance, list[i]);
-                            }
-                        }
-                    }
-                    break;
-
-                case Core.UnitParameters.CritRate:
-                    {
-                        if (GetParameterAvailable(Core.UnitParameters.CritRate))
-                        {
-                            currentCritRate = critRate;
-
-                            for (int i = 0; i < list.Count; ++i)
-                            {
-                                currentCritRate += InterpretParameterModifier(critRate, list[i]);
-                            }
-                        }
-                    }
-                    break;
-
-                case Core.UnitParameters.Range:
-                    {
-                        var logic = transform.root.GetComponent<ILogic>();
-
-                        if (logic != null)
-                        {
-                            if (GetParameterAvailable(Core.UnitParameters.Range))
-                            {
-                                currentAttackRange = attackRange;
-
-                                for (int i = 0; i < list.Count; ++i)
-                                {
-                                    currentAttackRange += InterpretParameterModifier(attackRange, list[i]);
-                                }
-                            }
-
-                            logic.UpdateParameters();
-                        }
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// Sets parameter to zero value
-        /// </summary>
-        /// <param name="parameter"></param>
-        protected override void ZeroizeParameter(Core.UnitParameters parameter)
-        {
-            switch (parameter)
-            {
-                case Core.UnitParameters.ExplosionRadius:
-                    currentExplosionRadius = 0;
-                    break;
-
-                case Core.UnitParameters.Reload:
-                    currentReloadTime = Mathf.Infinity;
-                    break;
-
-                case Core.UnitParameters.Damage:
-                    currentDamage = 0;
-                    break;
-
-                case Core.UnitParameters.CritChance:
-                    currentCritChance = 0;
-                    break;
-
-                case Core.UnitParameters.CritRate:
-                    currentCritRate = 1;
-                    break;
-
-                case Core.UnitParameters.Range:
-                    {
-                        var logic = transform.root.GetComponent<ILogic>();
-
-                        if (logic != null)
-                        {
-                            currentAttackRange = 0;
-                            logic.UpdateParameters();
-                        }
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-        }
+    // Recalculates weapon parameter
+    virtual void RecalculateParameter(EObjectParameters parameter) override;
+    
+    // Sets parameter to zero value
+    virtual void ZeroizeParameter(EObjectParameters parameter) override;
 };
