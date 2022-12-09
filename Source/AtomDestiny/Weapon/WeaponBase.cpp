@@ -227,9 +227,7 @@ bool UWeaponBase::CheckRaycastToTarget(const FVector& origin, const FVector& dir
     params.AddIgnoredActor(GetOwner());
 
     // The hit result gets populated by the line trace
-    FHitResult hit;
-
-    if (GetWorld()->LineTraceSingleByChannel(hit, origin, direction, m_layerMask, params))
+    if (FHitResult hit; GetWorld()->LineTraceSingleByChannel(hit, origin, direction, m_layerMask, params))
         return hit.GetActor() == m_target;
     
     return false;
