@@ -73,7 +73,7 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Use raycast"))
     bool m_useRaycast = true;
     
-    /// Fire ability thought friendly units
+    // Fire ability thought friendly units
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Use friendly fire"))
     bool m_useFriendlyFire = true;
     
@@ -84,6 +84,10 @@ protected:
     // Minimal distance to shot
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Minimal distance to shot"))
     double m_minShotDistance = 0;
+
+    // Layer mask
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Layer mask to ignore raycast hits"))
+    TEnumAsByte<ECollisionChannel> m_layerMask;
     
     // Main weapon target, driven by ILogic
     TWeakObjectPtr<AActor> m_target = nullptr;
@@ -231,72 +235,25 @@ public:
     // Returns started critical rate
     UFUNCTION(Meta = (AllowOverride = true))
     virtual double GetBaseCriticalRate() const override;
+    
+    // Returns current weapon parameters
+    UFUNCTION(Meta = (AllowOverride = true))
+    virtual FWeaponParameters GetParameters() const override;
 
 protected:
     
     // Rotates weapon on target
     void RotateToTarget(float deltaTime);
-
-        /// <summary>
-        /// Rotates weapon on root
-        /// </summary>
-        protected void RotateToRoot()
-        {
-            if (!target && rotatedWeapon)
-            {
-                var lookVector = Vector3.RotateTowards(weaponTransform.forward, weaponTransform.root.forward, rotateSpeed * Time.deltaTime, 0.1f);
-                weaponTransform.rotation = Quaternion.LookRotation(lookVector);
-            }
-        }
-
-        /// <summary>
-        /// Throws raycast to target by origin along direction and checks hit transform
-        /// </summary>
-        /// <returns></returns>
-        protected bool CheckRaycastToTarget(Vector3 origin, Vector3 direction)
-        {
-            var ray = new Ray(origin, direction);
-
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, raycastMask))
-            {
-                return hit.transform == target;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Reload coroutine for reset fire
-        /// </summary>
-        /// <returns></returns>
-        protected IEnumerator FiringDelay()
-        {
-            yield return new WaitForSeconds(currentReloadTime);
-
-            weaponAnimation?.DefaultState();
-            firing = false;
-        }
-
-        /// <summary>
-        /// Returns current weapon parameters
-        /// </summary>
-        /// <returns></returns>
-        public Core.WeaponParameters GetParameters()
-        {
-            var param = new Core.WeaponParameters()
-            {
-                target = target,
-                damage = currentDamage,
-                weaponType = weaponType,
-                critRate = currentCritRate,
-                critChance = currentCritChance,
-                explosionRadius = currentExplosionRadius,
-                owner = transform.root.gameObject
-            };
-
-            return param;
-        }
-
+    
+    // Rotates weapon on root
+    void RotateToRoot(float deltaTime);
+    
+    // Throws raycast to target by origin along direction and checks hit transform
+    bool CheckRaycastToTarget(const FVector& origin, const FVector& direction) const;
+    
+    // Reload coroutine for reset fire
+    void FiringDelay();
+    
         /// <summary>
         /// Recalculates weapon parameter
         /// </summary>

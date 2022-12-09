@@ -165,6 +165,19 @@ double UWeaponBase::GetBaseCriticalRate() const
     return m_criticalRate;
 }
 
+FWeaponParameters UWeaponBase::GetParameters() const
+{
+    return FWeaponParameters {
+        m_currentDamage,
+        m_currentCriticalChance,
+        m_currentCriticalRate,
+        m_currentExplosionRadius,
+        m_weaponType,
+        this->GetOwner(),
+        m_target
+    };
+}
+
 void UWeaponBase::RotateToTarget(float deltaTime)
 {
     if (!m_target.IsValid())
@@ -174,7 +187,7 @@ void UWeaponBase::RotateToTarget(float deltaTime)
     }
 
     // calculate vector on target
-    const auto weaponLocation = m_weaponTransform->GetComponentTransform().GetLocation();
+    const FVector weaponLocation = m_weaponTransform->GetComponentTransform().GetLocation();
     FVector targetVector = m_target->GetTransform().GetLocation() - weaponLocation;
     targetVector.Y = 0;
     
@@ -183,8 +196,49 @@ void UWeaponBase::RotateToTarget(float deltaTime)
     m_isRotatedOnTarget = (FMath::Abs(angle) < m_attackAngle);
 
     // TODO: check to swap last parameters
-    const auto lookVector = FMath::VInterpNormalRotationTo(weaponLocation.ForwardVector, targetVector, m_rotateSpeed * deltaTime, 0.1f);
-    const auto lookRotation = FQuat::FindBetween(lookVector, FVector::UpVector);
+    const FVector lookVector = FMath::VInterpNormalRotationTo(weaponLocation.ForwardVector, targetVector, m_rotateSpeed * deltaTime, 0.1f);
+    const FQuat lookRotation = FQuat::FindBetween(lookVector, FVector::UpVector);
     
     m_weaponTransform->SetWorldRotation(lookRotation);
 }
+
+void UWeaponBase::RotateToRoot(float deltaTime)
+{
+    if (!m_target.IsValid() && m_rotatedWeapon)
+    {
+        const FVector weaponLocation = m_weaponTransform->GetComponentTransform().GetLocation();
+        const FVector rootLocation = GetOwner()->GetTransform().GetLocation();
+
+        // TODO: check to swap last parameters
+        const FVector lookVector = FMath::VInterpNormalRotationTo(weaponLocation.ForwardVector, rootLocation.ForwardVector, m_rotateSpeed * deltaTime, 0.1f);
+        const FQuat lookRotation = FQuat::FindBetween(lookVector, FVector::UpVector);
+
+        m_weaponTransform->SetWorldRotation(lookRotation);
+    }
+}
+
+bool UWeaponBase::CheckRaycastToTarget(const FVector& origin, const FVector& direction) const
+{
+    // You can use this to customize various properties about the trace
+    FCollisionQueryParams params;
+    params.AddIgnoredActor(GetOwner());
+
+    // The hit result gets populated by the line trace
+    FHitResult hit;
+
+    if (GetWorld()->LineTraceSingleByChannel(hit, origin, direction, m_layerMask, params))
+        return hit.GetActor() == m_target;
+    
+    return false;
+}
+
+void UWeaponBase::FiringDelay()
+{
+    // yield return new WaitForSeconds(currentReloadTime);
+
+    if (m_weaponTransform.IsValid())
+        m_weaponAnimation->SetDefaultState();
+        
+    m_firing = false;
+}
+
