@@ -18,38 +18,44 @@ namespace AtomDestiny
         ActorPool() = default;
         ~ActorPool() = default;
 
+        const uint32_t DefaultPreloadCount = 3;
+        
     public:
         static ActorPool& Instance();
         
         // Initializes our dictionary
-        void Initialize(GameObject object);
+        void Initialize(const TStrongObjectPtr<AActor>& object);
         
         // Spawns a copy of the specified actor (instantiating one if required)
-        GameObject Spawn(GameObject object, FVector position, FRotator rotation);
+        TStrongObjectPtr<AActor> Spawn(TStrongObjectPtr<AActor> object, FVector position, FRotator rotation);
         
         // Spawns a copy of the specified prefab, with zero pos and identity rotation
-        GameObject Spawn(GameObject object);
+        TStrongObjectPtr<AActor> Spawn(TStrongObjectPtr<AActor> object);
         
         // Despawns the specified AActor back into its pool.
-        void Despawn(GameObject object);
+        void Despawn(TStrongObjectPtr<AActor> object) const;
         
         // Despawns the specified AActor back into its pool after time
-        void Despawn(GameObject object, double time) const;
+        void Despawn(TStrongObjectPtr<AActor> object, double time) const;
         
         // Cleans all pooled members
         void DestroyAll();
         
         // Destroys current object
-        void Destroy(GameObject object);
+        void Destroy(TStrongObjectPtr<AActor> object);
         
         // Returns true if Blueprint Actor is already in pool
-        bool Contains(GameObject object) const;
-    
+        bool Contains(TStrongObjectPtr<AActor> object) const;
+
+        // Early objects preloading
+        void Preload(const TStrongObjectPtr<AActor>& object, uint32_t size = 1);
+        
     private:
-        std::unordered_map<GameObject, TSharedPtr<Pool>> m_pools;
+        bool m_preloadingActive = true;
+        std::unordered_map<TStrongObjectPtr<AActor>, TSharedPtr<Pool>> m_pools;
     };
 
     // Redefinition to support classic pattern
     using ObjectPool = ActorPool;
-    
+
 } // namespace AtomDestiny
