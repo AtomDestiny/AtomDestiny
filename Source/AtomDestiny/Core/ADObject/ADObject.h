@@ -4,7 +4,7 @@
 #include <utility>
 #include <unordered_map>
 
-#include <Engine/Classes/Components/ActorComponent.h>
+#include <Engine/Classes/Components/SceneComponent.h>
 
 #include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/Core/ADObject/Parameterizable.h>
@@ -17,7 +17,7 @@
 /// (Units, Buildings, Abilities).
 ///
 UCLASS(Abstract, Blueprintable)
-class ATOMDESTINY_API UADObject : public UActorComponent, public IParameterizable
+class ATOMDESTINY_API UADObject : public USceneComponent, public IParameterizable
 {
     GENERATED_BODY()
 
@@ -30,10 +30,15 @@ class ATOMDESTINY_API UADObject : public UActorComponent, public IParameterizabl
     using ObjectEnhancementParameters = std::unordered_map<EObjectParameters, GameObjectPairParameterList>;
 
 public:
-    using UActorComponent::UActorComponent;
+    using USceneComponent::USceneComponent;
 
+    UFUNCTION(Meta = (AllowOverride = true))
     virtual void AddParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement) override;
+    
+    UFUNCTION(Meta = (AllowOverride = true))
     virtual void RemoveParameter(EObjectParameters parameter, AActor* enhancementObject) override;
+    
+    UFUNCTION(Meta = (AllowOverride = true))
     virtual void ZeroParameter(EObjectParameters parameter, const FParameterZeroPack& pack) override;
 
     /// Interprets ParameterEnhancement values and returns resulting value

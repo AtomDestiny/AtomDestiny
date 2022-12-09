@@ -18,11 +18,13 @@ namespace AtomDestiny
         ActorPool() = default;
         ~ActorPool() = default;
 
+        const uint32_t DefaultPreloadCount = 3;
+        
     public:
         static ActorPool& Instance();
         
         // Initializes our dictionary
-        void Initialize(TStrongObjectPtr<AActor> object);
+        void Initialize(const TStrongObjectPtr<AActor>& object);
         
         // Spawns a copy of the specified actor (instantiating one if required)
         TStrongObjectPtr<AActor> Spawn(TStrongObjectPtr<AActor> object, FVector position, FRotator rotation);
@@ -44,8 +46,12 @@ namespace AtomDestiny
         
         // Returns true if Blueprint Actor is already in pool
         bool Contains(TStrongObjectPtr<AActor> object) const;
-    
+
+        // Early objects preloading
+        void Preload(const TStrongObjectPtr<AActor>& object, uint32_t size = 1);
+        
     private:
+        bool m_preloadingActive = true;
         std::unordered_map<TStrongObjectPtr<AActor>, TSharedPtr<Pool>> m_pools;
     };
 

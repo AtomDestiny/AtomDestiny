@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <cassert>
+
 #include <Engine/Classes/GameFramework/Actor.h>
 
 namespace AtomDestiny::Utils

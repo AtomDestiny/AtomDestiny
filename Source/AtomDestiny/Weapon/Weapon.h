@@ -82,23 +82,23 @@ public:
 
     // Returns started critical chance
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetBaseCriticalChance() const = 0;
+    virtual double GetBaseCriticalChance() const = 0;
 
     // Returns started critical rate
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetBaseCriticalRate() const = 0;
+    virtual double GetBaseCriticalRate() const = 0;
 
     // Returns base weapon damage
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetBaseDamage() const = 0;
+    virtual double GetBaseDamage() const = 0;
 
     // Returns base attack range
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetBaseAttackRange() const = 0;
+    virtual double GetBaseAttackRange() const = 0;
 
     /// Returns started base reload time
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetBaseReloadTime() const = 0;
+    virtual double GetBaseReloadTime() const = 0;
 
     ///
     /// Weapon current parameters
@@ -106,29 +106,29 @@ public:
 
     // Weapon max attack distance
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetAttackRange() const = 0;
+    virtual double GetAttackRange() const = 0;
 
     // Weapon min attack distance
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetMinAttackRange() const = 0;
+    virtual double GetMinAttackRange() const = 0;
 
     // Returns critical chance
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetCriticalChance() const = 0;
+    virtual double GetCriticalChance() const = 0;
 
     // Returns critical rate
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetCriticalRate() const = 0;
+    virtual double GetCriticalRate() const = 0;
 
     // Returns current weapon firing rate
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetFireRate() const = 0;
+    virtual double GetFireRate() const = 0;
 
     // Returns current weapon damage
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetDamage() const = 0;
+    virtual double GetDamage() const = 0;
 
     // Returns reload time
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetReloadTime() const = 0;
+    virtual double GetReloadTime() const = 0;
 };

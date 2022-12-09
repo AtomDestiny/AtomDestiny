@@ -36,4 +36,17 @@ namespace AtomDestiny::Utils
         return AddNewComponentToActor<Component>(object.Get());
     }
     
+    template<typename Interface, typename UEInterface>
+    [[nodiscard]] Interface* GetInterface(AActor* actor)
+    {
+        static_assert(std::is_base_of_v<UInterface, UEInterface>, "Component parameter is not an UInterface");
+
+        const auto interface = actor->FindComponentByInterface<UEInterface>();
+
+        if (interface != nullptr)
+            return Cast<Interface>(interface);
+
+        return nullptr;
+    }
+    
 } // namespace AtomDestiny::Utils
