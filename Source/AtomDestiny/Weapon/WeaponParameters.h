@@ -8,7 +8,7 @@
 /// All weapons types at game.
 /// You should not add new types.
 ///
-UENUM()
+UENUM(BlueprintType)
 enum class EWeaponType : uint8
 {
     Ballistic,
@@ -18,7 +18,7 @@ enum class EWeaponType : uint8
 };
 
 // Data struct for weapon parameters
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FWeaponParameters
 {
     GENERATED_BODY()

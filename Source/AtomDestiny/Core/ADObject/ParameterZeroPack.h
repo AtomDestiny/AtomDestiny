@@ -7,7 +7,7 @@
 ///
 /// Stores data to understand how to zero parameters
 ///
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FParameterZeroPack
 {
     GENERATED_BODY()

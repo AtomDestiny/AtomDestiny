@@ -4,7 +4,7 @@
 
 #include "ParameterEnhancement.generated.h"
 
-UENUM()
+UENUM(BlueprintType)
 enum class EParameterModifier : uint8
 {
     Plus,
@@ -17,7 +17,7 @@ enum class EParameterModifier : uint8
 /// Stores all params for parameters enhancement.
 /// And modifiers to increase/decrease some stats or params.
 ///
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FParameterEnhancement
 {
     GENERATED_BODY()
