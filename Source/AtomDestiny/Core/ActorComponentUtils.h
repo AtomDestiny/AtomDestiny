@@ -1,9 +1,6 @@
 ﻿#pragma once
 
-#include <assert.h>
 #include <type_traits>
-
-#include "AtomDestinyCore.h"
 
 #include <Engine/Classes/GameFramework/Actor.h>
 
@@ -20,7 +17,7 @@ namespace AtomDestiny::Utils
     {
         static_assert(IsActorComponent<Component>::value, "Component parameter is not an UActorComponent");
         
-        assert(actor != nullptr);
+        check(actor != nullptr);
 
         const auto newComponent = NewObject<Component>(actor);
         newComponent->RegisterComponent();
@@ -39,6 +36,8 @@ namespace AtomDestiny::Utils
     template<typename Interface, typename UEInterface>
     [[nodiscard]] Interface* GetInterface(AActor* actor)
     {
+        check(actor != nullptr);
+        
         static_assert(std::is_base_of_v<UInterface, UEInterface>, "Component parameter is not an UInterface");
         
         if (const auto interface = actor->FindComponentByInterface<UEInterface>(); interface != nullptr)
@@ -48,3 +47,6 @@ namespace AtomDestiny::Utils
     }
     
 } // namespace AtomDestiny::Utils
+
+// use name without I and U prefix
+#define GET_AD_INTERFACE(name, actor) AtomDestiny::Utils::GetInterface<I##name, U##name>(actor);

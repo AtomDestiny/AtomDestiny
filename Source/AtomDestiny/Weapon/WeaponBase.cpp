@@ -2,8 +2,11 @@
 
 #include <AtomDestiny/Logic/Logic.h>
 
+#include <AtomDestiny/Core/Utils.h>
 #include <AtomDestiny/Core/MathUtils.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
+
+#include "AssetRegistry/Private/AssetRegistryImpl.h"
 
 void UWeaponBase::InitializeComponent()
 {
@@ -19,13 +22,7 @@ void UWeaponBase::InitializeComponent()
     m_currentReloadTime = m_reloadTime;
 
     m_minShotSqrtDistance = m_minShotDistance * m_minShotDistance;
-
-    if (m_projectileBlueprint.IsValid())
-    {
-        const TStrongObjectPtr ptr { m_projectileBlueprint.Get() };
-        AtomDestiny::ObjectPool::Instance().Preload(ptr, BlueprintPreloadCount);
-    }
-
+    
     const std::vector params = {
         EObjectParameters::Reload,
         EObjectParameters::ExplosionRadius,
@@ -34,8 +31,10 @@ void UWeaponBase::InitializeComponent()
         EObjectParameters::CriticalChance,
         EObjectParameters::Range
     };
-        
+    
     AddNewParameters(params);
+
+    AtomDestiny::Utils::PreloadBlueprint(m_projectileBlueprint, BlueprintPreloadCount);
 }
 
 void UWeaponBase::BeginPlay()

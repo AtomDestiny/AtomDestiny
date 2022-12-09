@@ -32,7 +32,7 @@ public:
     
     // Returns projectile parameters
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual const FWeaponParameters GetParameters() const = 0;
+    virtual const FWeaponParameters& GetParameters() const = 0;
     
     // Returns projectile points
     UFUNCTION(Meta = (AllowOverride = true))
