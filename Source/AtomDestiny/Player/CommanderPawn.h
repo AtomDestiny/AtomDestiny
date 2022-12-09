@@ -7,44 +7,48 @@
 
 #include "CommanderPawn.generated.h"
 
-/*
-Class for player controllable simple pawn looking down to the ground
-*/
+///
+/// Class for player controllable simple pawn looking down to the ground
+///
 
-UCLASS()
+UCLASS(Blueprintable)
 class ATOMDESTINY_API ACommanderPawn : public APawn
 {
     GENERATED_BODY()
 
 public:
+    
     // Sets default values for this character's properties
     ACommanderPawn();
 
 protected:
+    
     // Called when the game starts or when spawned
     virtual void BeginPlay() override;
 
-public:	
+public:
     // Called every frame
-    virtual void Tick(float DeltaTime) override;
+    virtual void Tick(float deltaTime) override;
 
     void Move(const struct FInputActionValue& actionValue);
 
     // Called to bind functionality to input
-    virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+    virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
 
-    UPROPERTY(EditAnywhere)
-    class USphereComponent* sphere;
+protected:
+    
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Sphere"))
+    class USphereComponent* m_sphere;
 
-    UPROPERTY(EditAnywhere)
-    class USpringArmComponent* springArm;
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Spring Arm"))
+    class USpringArmComponent* m_springArm;
 
-    UPROPERTY(EditAnywhere)
-    class UCameraComponent* camera;
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Camera"))
+    class UCameraComponent* m_camera;
 
-    UPROPERTY(EditAnywhere)
-    class UFloatingPawnMovement* movement;
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Movement"))
+    class UFloatingPawnMovement* m_movement;
 
-    UPROPERTY(EditAnywhere)
-    float moveScale;
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Move scale"))
+    float m_moveScale;
 };

@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "CommanderPawn.h"
 
 #include "CommanderController.h"
@@ -11,31 +9,30 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 
-
 // Sets default values
 ACommanderPawn::ACommanderPawn()
 {
     // Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
     //PrimaryActorTick.bCanEverTick = true;
 
-    sphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
-    SetRootComponent(sphere);
+    m_sphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
+    SetRootComponent(m_sphere);
 
-    springArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
-    springArm->SetupAttachment(sphere);
+    m_springArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+    m_springArm->SetupAttachment(m_sphere);
 
-    springArm->TargetArmLength = 100;
+    m_springArm->TargetArmLength = 100;
 
     FRotator rotator;
     rotator.Pitch = -90;
-    springArm->SetRelativeRotation(rotator);
+    m_springArm->SetRelativeRotation(rotator);
 
-    camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-    camera->SetupAttachment(springArm, USpringArmComponent::SocketName);
+    m_camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+    m_camera->SetupAttachment(m_springArm, USpringArmComponent::SocketName);
     
-    movement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("Movement"));
+    m_movement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("Movement"));
 
-    moveScale = 1.0f;
+    m_moveScale = 1.0f;
 }
 
 // Called when the game starts or when spawned
@@ -46,10 +43,9 @@ void ACommanderPawn::BeginPlay()
 }
 
 // Called every frame
-void ACommanderPawn::Tick(float DeltaTime)
+void ACommanderPawn::Tick(float deltaTime)
 {
-    Super::Tick(DeltaTime);
-
+    Super::Tick(deltaTime);
 }
 
 void ACommanderPawn::Move(const FInputActionValue& actionValue)
@@ -57,28 +53,28 @@ void ACommanderPawn::Move(const FInputActionValue& actionValue)
     FVector2D input = actionValue.Get<FInputActionValue::Axis2D>();
 
     //AddMovementInput(GetActorRotation().RotateVector(input), moveScale);
-    AddMovementInput(FVector(input.X, input.Y, 0), moveScale);
+    AddMovementInput(FVector(input.X, input.Y, 0), m_moveScale);
 }
 
 // Called to bind functionality to input
-void ACommanderPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ACommanderPawn::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
 {
-    Super::SetupPlayerInputComponent(PlayerInputComponent);
+    Super::SetupPlayerInputComponent(playerInputComponent);
 
-    UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent);
-    ACommanderController* CmdC = Cast<ACommanderController>(Controller);
+    UEnhancedInputComponent* enhancedInputComponent = Cast<UEnhancedInputComponent>(playerInputComponent);
+    const ACommanderController* commanderController = Cast<ACommanderController>(Controller);
 
-    check(EIC && CmdC)
+    check(enhancedInputComponent && commanderController)
 
-    EIC->BindAction(CmdC->actionMove, ETriggerEvent::Triggered, this, &ACommanderPawn::Move);
+    enhancedInputComponent->BindAction(commanderController->GetActionMove(), ETriggerEvent::Triggered, this, &ACommanderPawn::Move);
 
-    ULocalPlayer* localPlayer = CmdC->GetLocalPlayer();
+    const ULocalPlayer* localPlayer = commanderController->GetLocalPlayer();
     check(localPlayer)
 
     UEnhancedInputLocalPlayerSubsystem* subSys = localPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
     check(subSys)
 
     subSys->ClearAllMappings();
-    subSys->AddMappingContext(CmdC->pawnMappingContext, 0);
+    subSys->AddMappingContext(commanderController->GetPawnMappingContext(), 0);
 }
 

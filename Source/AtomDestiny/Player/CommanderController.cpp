@@ -7,19 +7,19 @@
 #include "InputMappingContext.h"
 
 static void mapKey(UInputMappingContext* context, UInputAction* action, FKey key,
-    bool bNegate = false, bool bSwizzle = false, EInputAxisSwizzle swizzleOrder = EInputAxisSwizzle::YXZ)
+    bool isNegate = false, bool isSwizzle = false, EInputAxisSwizzle swizzleOrder = EInputAxisSwizzle::YXZ)
 {
     auto& mapping = context->MapKey(action, key);
 
     UObject* outer = context->GetOuter();
 
-    if (bNegate)
+    if (isNegate)
     {
         auto* negate = NewObject<UInputModifierNegate>(outer);
         mapping.Modifiers.Add(negate);
     }
 
-    if (bSwizzle)
+    if (isSwizzle)
     {
         auto* swizzle = NewObject<UInputModifierSwizzleAxis>(outer);
         swizzle->Order = swizzleOrder;
@@ -31,15 +31,15 @@ void ACommanderController::SetupInputComponent()
 {
     Super::SetupInputComponent();
 
-    pawnMappingContext = NewObject<UInputMappingContext>(this);
+    m_pawnMappingContext = NewObject<UInputMappingContext>(this);
 
-    actionMove = NewObject<UInputAction>(this);
-    actionMove->ValueType = EInputActionValueType::Axis2D;
+    m_actionMove = NewObject<UInputAction>(this);
+    m_actionMove->ValueType = EInputActionValueType::Axis2D;
 
-    mapKey(pawnMappingContext, actionMove, EKeys::W);
-    mapKey(pawnMappingContext, actionMove, EKeys::S, true);
-    mapKey(pawnMappingContext, actionMove, EKeys::A, true, true);
-    mapKey(pawnMappingContext, actionMove, EKeys::D, false, true);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::W);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::S, true);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::A, true, true);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::D, false, true);
 
     /*pawnMappingContext->MapKey(actionMove, EKeys::W);
     auto& mapping = pawnMappingContext->MapKey(actionMove, EKeys::S);

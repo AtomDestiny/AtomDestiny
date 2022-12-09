@@ -16,9 +16,14 @@ class ATOMDESTINY_API ACommanderController : public APlayerController
 public:
     virtual void SetupInputComponent() override;
 
-    UPROPERTY()
-    class UInputMappingContext* pawnMappingContext;
+    class UInputMappingContext* GetPawnMappingContext() const { return m_pawnMappingContext; }
+    class UInputAction* GetActionMove() const { return m_actionMove; }
+    
+protected:
+    
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Pawn mapping context"))
+    UInputMappingContext* m_pawnMappingContext;
 
-    UPROPERTY()
-    class UInputAction* actionMove;
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Action move"))
+    UInputAction* m_actionMove;
 };
