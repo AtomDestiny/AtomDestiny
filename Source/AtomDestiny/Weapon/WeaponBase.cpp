@@ -174,7 +174,7 @@ void UWeaponBase::RotateToTarget(float deltaTime)
     }
 
     // calculate vector on target
-    const auto& weaponLocation = m_weaponTransform->GetComponentTransform().GetLocation();
+    const auto weaponLocation = m_weaponTransform->GetComponentTransform().GetLocation();
     FVector targetVector = m_target->GetTransform().GetLocation() - weaponLocation;
     targetVector.Y = 0;
     
