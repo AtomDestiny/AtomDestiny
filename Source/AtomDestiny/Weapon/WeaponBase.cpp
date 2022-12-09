@@ -41,7 +41,7 @@ void UWeaponBase::BeginPlay()
 {
     Super::BeginPlay();
     
-    m_weaponAnimation = AtomDestiny::Utils::GetInterface<IWeaponAnimation, UWeaponAnimation>(GetOwner());
+    m_weaponAnimation = GET_AD_INTERFACE(WeaponAnimation);
 
     if (m_useRaycast && !m_useFriendlyFire)
         ExcludeSameLayer();
@@ -285,7 +285,7 @@ void UWeaponBase::RecalculateParameter(EObjectParameters parameter)
 
     case EObjectParameters::Range:
         {
-            if (ILogic* logic = AtomDestiny::Utils::GetInterface<ILogic, ULogic>(GetOwner()); logic != nullptr)
+            if (ILogic* logic = GET_AD_INTERFACE(Logic); logic != nullptr)
             {
                 m_currentAttackRange = calculator(m_attackRange);
                 logic->UpdateParameters();
@@ -325,7 +325,7 @@ void UWeaponBase::ZeroizeParameter(EObjectParameters parameter)
 
     case EObjectParameters::Range:
         {
-            if (ILogic* logic = AtomDestiny::Utils::GetInterface<ILogic, ULogic>(GetOwner()); logic != nullptr)
+            if (ILogic* logic = GET_AD_INTERFACE(Logic); logic != nullptr)
             {
                 m_currentAttackRange = 0;
                 logic->UpdateParameters();

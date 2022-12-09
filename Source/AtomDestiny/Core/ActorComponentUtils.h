@@ -49,4 +49,4 @@ namespace AtomDestiny::Utils
 } // namespace AtomDestiny::Utils
 
 // use name without I and U prefix
-#define GET_AD_INTERFACE(name, actor) AtomDestiny::Utils::GetInterface<I##name, U##name>(actor);
+#define GET_AD_INTERFACE(name) AtomDestiny::Utils::GetInterface<I##name, U##name>(GetOwner())
