@@ -13,8 +13,8 @@
 
 ///
 /// Represents Parameterizable Atom Destiny object.
-/// Minimal entity for any Atom Destiny object.
-/// (Units, Buildings, Abilities).
+/// Minimal entity for any Parameterizable Atom Destiny object.
+/// (Units, Buildings, Abilities, Weapons and so on).
 ///
 UCLASS(Abstract, Blueprintable)
 class ATOMDESTINY_API UADObject : public USceneComponent, public IParameterizable
