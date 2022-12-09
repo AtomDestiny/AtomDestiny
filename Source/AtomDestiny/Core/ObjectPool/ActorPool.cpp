@@ -1,6 +1,8 @@
 #include "ActorPool.h"
 #include "Despawner.h"
 
+#include <vector>
+
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/ObjectPool/Detail/ActorPoolMember.h>
 
