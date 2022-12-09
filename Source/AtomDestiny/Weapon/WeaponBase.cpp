@@ -42,7 +42,7 @@ void UWeaponBase::BeginPlay()
 {
     Super::BeginPlay();
     
-    m_weaponAnimation = TObjectPtr<IWeaponAnimation> { AtomDestiny::Utils::GetInterface<IWeaponAnimation, UWeaponAnimation>(GetOwner()) };
+    m_weaponAnimation = AtomDestiny::Utils::GetInterface<IWeaponAnimation, UWeaponAnimation>(GetOwner());
 
     if (m_useRaycast && !m_useFriendlyFire)
         ExcludeSameLayer();
