@@ -286,7 +286,7 @@ void UWeaponBase::RecalculateParameter(EObjectParameters parameter)
 
     case EObjectParameters::Range:
         {
-            if (ILogic* logic = { AtomDestiny::Utils::GetInterface<ILogic, ULogic>(GetOwner()) }; logic != nullptr)
+            if (ILogic* logic = AtomDestiny::Utils::GetInterface<ILogic, ULogic>(GetOwner()); logic != nullptr)
             {
                 m_currentAttackRange = calculator(m_attackRange);
                 logic->UpdateParameters();
@@ -326,7 +326,7 @@ void UWeaponBase::ZeroizeParameter(EObjectParameters parameter)
 
     case EObjectParameters::Range:
         {
-            if (ILogic* logic = { AtomDestiny::Utils::GetInterface<ILogic, ULogic>(GetOwner()) }; logic != nullptr)
+            if (ILogic* logic = AtomDestiny::Utils::GetInterface<ILogic, ULogic>(GetOwner()); logic != nullptr)
             {
                 m_currentAttackRange = 0;
                 logic->UpdateParameters();

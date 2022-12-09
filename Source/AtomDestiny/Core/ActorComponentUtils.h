@@ -40,10 +40,8 @@ namespace AtomDestiny::Utils
     [[nodiscard]] Interface* GetInterface(AActor* actor)
     {
         static_assert(std::is_base_of_v<UInterface, UEInterface>, "Component parameter is not an UInterface");
-
-        const auto interface = actor->FindComponentByInterface<UEInterface>();
-
-        if (interface != nullptr)
+        
+        if (const auto interface = actor->FindComponentByInterface<UEInterface>(); interface != nullptr)
             return Cast<Interface>(interface);
 
         return nullptr;
