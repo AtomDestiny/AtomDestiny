@@ -45,8 +45,31 @@ namespace AtomDestiny::Utils
 
         return nullptr;
     }
+
+    template<typename Interface, typename UEInterface>
+    [[nodiscard]] TArray<TScriptInterface<Interface>> GetInterfaces(AActor* actor)
+    {
+        check(actor != nullptr);
+        
+        TArray<TScriptInterface<Interface>> interfaces;
+
+        for (const UActorComponent* component : actor->GetComponents())
+        {
+            if (component && component->GetClass()->ImplementsInterface(UEInterface::StaticClass()))
+            {
+                TScriptInterface<Interface> interface;
+                interface.SetObject(component);
+                interface.SetInterface(Cast<Interface>(component));
+
+                interfaces.Add(std::move(interface));
+            }
+        }
+        
+        return interfaces;
+    }
     
 } // namespace AtomDestiny::Utils
 
 // use name without I and U prefix
 #define GET_AD_INTERFACE(name) AtomDestiny::Utils::GetInterface<I##name, U##name>(GetOwner())
+#define GET_AD_ALL_INTERFACES(name) AtomDestiny::Utils::GetInterface<I##name, U##name>(GetOwner())
