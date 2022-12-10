@@ -24,3 +24,15 @@ enum class EUnitSize : uint8
     Medium = 2,
     Huge = 3
 };
+
+///
+/// Defines to unit what to do.
+/// Means work for navigation.
+///
+UENUM(BlueprintType)
+enum class EUnitBehaviour : uint8
+{
+    MoveToPoint,
+    MoveToTransform,
+    Standing
+};
