@@ -6,7 +6,7 @@
 
 // Unit parameters event
 UENUM(BlueprintType)
-enum EEventType
+enum class EEventType : uint8
 {
     OnHealth,
     OnShield

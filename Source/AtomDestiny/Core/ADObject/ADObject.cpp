@@ -1,5 +1,10 @@
 ﻿#include "ADObject.h"
 
+UADObject::UADObject()
+{
+    PrimaryComponentTick.bCanEverTick = true;
+}
+
 // IParameterizable
 
 void UADObject::AddParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement)

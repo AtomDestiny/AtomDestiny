@@ -20,6 +20,11 @@ struct FBalanceParameters
 // Represents balance values
 namespace AtomDestiny::Balance
 {
+    /// 
+    /// Min damage value that can be added to unit
+    /// 
+    inline static constexpr double MinDamageValue = 1.0f;
+    
     // ballistic vs defence
     inline static constexpr double BallisticVsLightCoefficient = 1.1;
     inline static constexpr double BallisticVsMediumCoefficient = 1.0;

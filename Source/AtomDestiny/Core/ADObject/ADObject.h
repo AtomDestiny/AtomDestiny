@@ -30,7 +30,7 @@ class ATOMDESTINY_API UADObject : public USceneComponent, public IParameterizabl
     using ObjectEnhancementParameters = std::unordered_map<EObjectParameters, GameObjectPairParameterList>;
 
 public:
-    using USceneComponent::USceneComponent;
+    explicit UADObject();
 
     UFUNCTION(Meta = (AllowOverride = true))
     virtual void AddParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement) override;
