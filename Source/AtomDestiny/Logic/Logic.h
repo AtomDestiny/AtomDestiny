@@ -37,15 +37,15 @@ public:
 
     // Returns current unit cost
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual int GetCost() const = 0;
+    virtual int32 GetCost() const = 0;
 
     // Returns logic binded weapon collections
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual TArray<TScriptInterface<IWeapon>>& GetAllWeapon() = 0;
+    virtual const TArray<TScriptInterface<IWeapon>>& GetAllWeapon() const = 0;
 
     // Returns max base unit velocity
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetVelocity() const = 0;
+    virtual double GetVelocity() const = 0;
 
     // Sets side to unit
     UFUNCTION(Meta = (AllowOverride = true))
