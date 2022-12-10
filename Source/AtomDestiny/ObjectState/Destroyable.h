@@ -1,4 +1,5 @@
 ﻿#pragma once
+
 #include <Runtime/CoreUObject/Public/UObject/Interface.h>
 
 #include "Destroyable.generated.h"
