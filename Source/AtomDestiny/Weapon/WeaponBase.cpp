@@ -244,50 +244,39 @@ void UWeaponBase::FiringDelay()
 
 void UWeaponBase::RecalculateParameter(EObjectParameters parameter)
 {
-    const std::vector<FParameterEnhancement>& parameters = GetParameterEnhancementList(parameter);
-
     if (!GetParameterAvailable(parameter))
     {
         UE_LOG(LogTemp, Warning, TEXT("U try to recalculate not available parameter"));
         return;
     }
-
-    const auto calculator = [&parameters](const double startValue) {
-        auto currentValue = startValue;
-
-        for (const auto p : parameters)
-            currentValue += InterpretParameterModifier(startValue, p);
-
-        return currentValue;
-    };
     
     switch (parameter)
     {
     case EObjectParameters::ExplosionRadius:
-        m_currentExplosionRadius = calculator(m_explosionRadius);
+        m_currentExplosionRadius = CalculateParametersFromAll(m_explosionRadius, parameter);
         break;
 
     case EObjectParameters::Reload:
-        m_currentReloadTime = calculator(m_reloadTime);
+        m_currentReloadTime = CalculateParametersFromAll(m_reloadTime, parameter);
         break;
 
     case EObjectParameters::Damage:
-        m_currentDamage = calculator(m_damage);
+        m_currentDamage = CalculateParametersFromAll(m_damage, parameter);
         break;
 
     case EObjectParameters::CriticalChance:
-        m_currentCriticalChance = calculator(m_criticalChance);
+        m_currentCriticalChance = CalculateParametersFromAll(m_criticalChance, parameter);
         break;
 
     case EObjectParameters::CriticalRate:
-        m_currentCriticalRate = calculator(m_criticalRate);
+        m_currentCriticalRate = CalculateParametersFromAll(m_criticalRate, parameter);
         break;
 
     case EObjectParameters::Range:
         {
             if (ILogic* logic = GET_AD_INTERFACE(Logic); logic != nullptr)
             {
-                m_currentAttackRange = calculator(m_attackRange);
+                m_currentAttackRange = CalculateParametersFromAll(m_attackRange, parameter);
                 logic->UpdateParameters();
             }
             

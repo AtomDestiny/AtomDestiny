@@ -43,7 +43,7 @@ void UADObject::ZeroParameter(EObjectParameters parameter, const FParameterZeroP
     Recalculate(parameter);
 }
 
-float UADObject::InterpretParameterModifier(float baseValue, const FParameterEnhancement& enhancement)
+double UADObject::InterpretParameterModifier(double baseValue, const FParameterEnhancement& enhancement)
 {
     auto result = 0.0f;
     const auto value = std::abs(enhancement.value);
@@ -172,6 +172,21 @@ void UADObject::RemoveFromParameter(EObjectParameters parameter, const TWeakObje
         if (GetParameterAvailable(parameter))
             Recalculate(parameter);
     }
+}
+
+double UADObject::CalculateParametersFromAll(const double startValue, EObjectParameters parameter) const
+{
+    const std::vector<FParameterEnhancement>& parameters = const_cast<UADObject*>(this)->GetParameterEnhancementList(parameter);
+    const auto calculator = [&parameters, startValue]() {
+        auto currentValue = startValue;
+
+        for (const FParameterEnhancement p : parameters)
+            currentValue += InterpretParameterModifier(startValue, p);
+
+        return currentValue;
+    };
+
+    return calculator();
 }
 
 void UADObject::RemoveNullParameters(EObjectParameters parameter)

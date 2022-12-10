@@ -6,7 +6,7 @@
 /// Data struct for defence additional parameters.
 /// You can setup them later to 'balance' unit by weapon type.
 ///
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FBalanceParameters
 {
     GENERATED_BODY()
