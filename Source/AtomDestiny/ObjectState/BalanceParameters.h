@@ -11,9 +11,16 @@ struct FBalanceParameters
 {
     GENERATED_BODY()
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ballistic resistance"))
     double ballisticResistance;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Energy resistance"))
     double energyResistance;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Explosive resistance"))
     double explosiveResistance;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Elemental resistance"))
     double elementalResistance;
 };
 
