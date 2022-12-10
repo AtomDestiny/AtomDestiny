@@ -3,6 +3,9 @@
 #include <algorithm>
 
 #include <AtomDestiny/Core/MathUtils.h>
+#include <AtomDestiny/Core/ActorUtils.h>
+
+#include "AtomDestiny/Core/ActorComponentUtils.h"
 
 const TArray<TScriptInterface<IWeapon>>& UUnitLogicBase::GetAllWeapon() const
 {
@@ -39,6 +42,56 @@ void UUnitLogicBase::SetSide(EGameSide side)
     m_side = side;
 }
 
+void UUnitLogicBase::InitializeComponent()
+{
+    Super::InitializeComponent();
+    
+    // get all weapons
+    m_weapons = GET_AD_ALL_INTERFACES(Weapon);
+
+    // get navigation
+    // navigation = GetComponent<UnityEngine.AI.NavMeshAgent>();
+
+    // resave speed
+    // m_speed = navigation.speed;
+    m_currentSpeed = m_speed;
+
+    CalculateDistances();
+
+    AddNewParameter(EObjectParameters::Velocity);
+}
+
+void UUnitLogicBase::BeginPlay()
+{
+    Super::BeginPlay();
+    
+    // navigation setup
+    // navigation.enabled = true;
+    // m_defaultStopDistance = navigation.stoppingDistance;
+
+    // get animation
+    // m_animation = GET_AD_INTERFACE(Animation);
+
+    // adding yourself to different lists
+    // Core.AddObject(gameObject, side);
+
+    // priority setup
+    // m_priority = navigation.avoidancePriority;
+
+    // setup scan delay
+    m_scanDelay += FMath::RandRange(AtomDestiny::Unit::MinRandomScan, AtomDestiny::Unit::MaxRandomScan);
+
+    // new layer
+    // Utils.SetLayerRecursively(gameObject, LayerMask.NameToLayer(Core.GetLayerNameFromSide(side)));
+    CreateMessage();
+}
+
+void UUnitLogicBase::EndPlay(const EEndPlayReason::Type endPlayReason)
+{
+    Super::EndPlay(endPlayReason);
+    DestroyMessage();
+}
+
 void UUnitLogicBase::RotateToTarget(float deltaTime)
 {
     if (!m_currentDestination.IsValid())
@@ -51,15 +104,16 @@ void UUnitLogicBase::RotateToTarget(float deltaTime)
     const FVector weaponLocation = GetOwner()->GetTransform().GetLocation();
     FVector targetVector = m_currentDestination->GetTransform().GetLocation() - weaponLocation;
     targetVector.Y = 0;
-    
+
     // angle between unit and target
     const auto angle = AtomDestiny::Vector::Angle(targetVector, weaponLocation.ForwardVector);
     m_isRotatedOnTarget = (FMath::Abs(angle) < m_attackAngle);
 
     // TODO: check to swap last parameters
-    const FVector lookVector = FMath::VInterpNormalRotationTo(weaponLocation.ForwardVector, targetVector, m_rotateSpeed * deltaTime, 0.1f);
+    const FVector lookVector = FMath::VInterpNormalRotationTo(weaponLocation.ForwardVector, targetVector,
+                                                              m_rotateSpeed * deltaTime, 0.1f);
     const FQuat lookRotation = FQuat::FindBetween(lookVector, FVector::UpVector);
-    
+
     GetOwner()->SetActorRotation(lookRotation);
 }
 
@@ -95,15 +149,15 @@ void UUnitLogicBase::CalculateDistances()
 
     std::vector<double> attackRanges;
     attackRanges.reserve(m_weapons.Num());
-    
+
     for (const TScriptInterface<IWeapon>& weapon : m_weapons)
         attackRanges.push_back(weapon->GetBaseAttackRange());
-    
+
     // scan setup
     const auto maxIter = std::max_element(std::begin(attackRanges), std::end(attackRanges));
     const double maxRange = maxIter != std::end(attackRanges) ? *maxIter : 0;
     m_scanDistance = maxRange + m_attackDeltaRange;
-    
+
     attackRanges.clear();
 
     for (const TScriptInterface<IWeapon>& weapon : m_weapons)
@@ -121,7 +175,7 @@ void UUnitLogicBase::RecalculateParameter(EObjectParameters parameter)
         UE_LOG(LogTemp, Warning, TEXT("You try to recalculate invalid paramter at UnitLogic"));
         return;
     }
-    
+
     switch (parameter)
     {
     case EObjectParameters::Velocity:
@@ -129,7 +183,7 @@ void UUnitLogicBase::RecalculateParameter(EObjectParameters parameter)
             // TODO: setup navigation speed
             const auto calculatedSpeed = CalculateParametersFromAll(m_speed, parameter);
             // navigation.speed = currentSpeed;
-            
+
             break;
         }
 
@@ -144,7 +198,7 @@ void UUnitLogicBase::ZeroizeParameter(EObjectParameters parameter)
     {
     case EObjectParameters::Velocity:
         m_currentSpeed = 0;
-        // navigation.speed = currentSpeed; // TODO: zeroize navigation speed
+    // navigation.speed = currentSpeed; // TODO: zeroize navigation speed
         break;
 
     default:
@@ -154,12 +208,12 @@ void UUnitLogicBase::ZeroizeParameter(EObjectParameters parameter)
 
 void UUnitLogicBase::CreateMessage() const
 {
-    const TWeakObjectPtr<AActor> ownerPtr { GetOwner() };
+    const TWeakObjectPtr<AActor> ownerPtr{GetOwner()};
     emit unitCreated(ownerPtr, m_side, m_unitType);
 }
 
 void UUnitLogicBase::DestroyMessage() const
 {
-    const TWeakObjectPtr<AActor> ownerPtr { GetOwner() };
+    const TWeakObjectPtr<AActor> ownerPtr{GetOwner()};
     emit unitDestroyed(ownerPtr, m_side, m_unitType);
 }

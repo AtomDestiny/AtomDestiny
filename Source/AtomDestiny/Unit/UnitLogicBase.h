@@ -10,6 +10,8 @@
 #include "UnitLogicBase.generated.h"
 
 
+// TODO: navigation
+
 ///
 /// Represents abstract unit logic with common values.
 /// Should be derived by concrete logic.
@@ -55,6 +57,10 @@ public:
     virtual void SetDestinationByPoint(FVector destination) ABSTRACT_METHOD;
 
 protected:
+
+    virtual void InitializeComponent() override;
+    virtual void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type endPlayReason) override;
     
     // Checks and rotates actor to target
     void RotateToTarget(float deltaTime);
@@ -159,7 +165,7 @@ protected:
     TScriptInterface<IAnimation> m_animation;
     
     // Default navigation priority
-    uint32_t priority = 0;
+    uint32_t m_priority = 0;
     
     // Stores hashed scan delay time
     double m_scanDelayCounter = 0;

@@ -36,3 +36,10 @@ enum class EUnitBehaviour : uint8
     MoveToTransform,
     Standing
 };
+
+namespace AtomDestiny::Unit
+{
+    constexpr static double MinRandomScan = 0.020;
+    constexpr static double MaxRandomScan = 0.180;
+    
+} // namespace AtomDestiny::Unit
