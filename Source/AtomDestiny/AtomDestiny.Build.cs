@@ -12,7 +12,8 @@ public class AtomDestiny : ModuleRules
             "Engine", 
             "InputCore", 
             "EnhancedInput",
-            "UMG"
+            "UMG",
+            "AIModule"
         });
         
         PrivateDependencyModuleNames.AddRange(new string[] {  });
