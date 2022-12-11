@@ -274,7 +274,7 @@ void UWeaponBase::RecalculateParameter(EObjectParameters parameter)
 
     case EObjectParameters::Range:
         {
-            if (ILogic* logic = GET_AD_INTERFACE(Logic); logic != nullptr)
+            if (const TScriptInterface<ILogic> logic = GET_AD_INTERFACE(Logic); logic != nullptr)
             {
                 m_currentAttackRange = CalculateParametersFromAll(m_attackRange, parameter);
                 logic->UpdateParameters();
@@ -314,7 +314,7 @@ void UWeaponBase::ZeroizeParameter(EObjectParameters parameter)
 
     case EObjectParameters::Range:
         {
-            if (ILogic* logic = GET_AD_INTERFACE(Logic); logic != nullptr)
+            if (const TScriptInterface<ILogic> logic = GET_AD_INTERFACE(Logic); logic != nullptr)
             {
                 m_currentAttackRange = 0;
                 logic->UpdateParameters();

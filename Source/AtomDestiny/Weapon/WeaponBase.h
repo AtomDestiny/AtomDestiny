@@ -195,7 +195,7 @@ protected:
     bool m_stopWhenAttack = true;
     
     // Weapon animator reference
-    TObjectPtr<IWeaponAnimation> m_weaponAnimation;
+    TScriptInterface<IWeaponAnimation> m_weaponAnimation;
     
     // Use weapon projectiles as a child
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Use projectile as child"))
