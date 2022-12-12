@@ -6,8 +6,6 @@
 #include <AtomDestiny/Core/MathUtils.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
-#include "AssetRegistry/Private/AssetRegistryImpl.h"
-
 void UWeaponBase::InitializeComponent()
 {
     Super::InitializeComponent();

@@ -3,6 +3,11 @@
 #include "MyTestNavagation.h"
 #include "AIController.h"
 
+#include "Actions/PawnAction_Move.h"
+
+#include <Runtime/NavigationSystem/Public/NavigationPath.h>
+#include <Runtime/NavigationSystem/Public/NavigationSystem.h>
+
 #include "Kismet/GameplayStatics.h"
 
 // Sets default values for this component's properties
@@ -24,25 +29,32 @@ void UMyTestNavagation::BeginPlay()
 	TArray<AActor*> actors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AActor::StaticClass(), actors);
 
-	AActor* actor = nullptr;
+	AActor* target = nullptr;
 	
 	for (const auto a : actors)
 	{
 		if (a->GetActorLabel() == TEXT("TargetPoint"))
-			actor = a;
+			target = a;
 	}
 
 	APawn* pawn = CastChecked<APawn>(GetOwner());
 	AController* ai = pawn->Controller;
 	AAIController* controller = CastChecked<AAIController>(ai);
 
-	if (actor)
+	if (target)
 	{
-		controller->SetPawn(pawn);
+		UNavigationPath* path = UNavigationSystemV1::FindPathToLocationSynchronously(this, pawn->GetActorLocation(), target->GetActorLocation());
 
-		if (const auto res = controller->MoveToActor(actor); res == EPathFollowingRequestResult::Type::Failed)
+		if (path && path->IsValid())
 		{
-			UE_LOG(LogTemp, Error, TEXT("Failed to move actor"));
+			FAIMoveRequest req(target);
+			req.SetAcceptanceRadius(50);
+			req.SetUsePathfinding(true);
+			
+			if (controller)
+			{
+				controller->RequestMove(req, path->GetPath());
+			}
 		}
 	}
 }
