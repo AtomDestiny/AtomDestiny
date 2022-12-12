@@ -1,10 +1,9 @@
 ﻿#pragma once
 
+#include <Runtime/Core/Public/Delegates/Delegate.h>
+
 #include <AtomDestiny/Logic/Logic.h>
-
-#include <AtomDestiny/Core/Signals/Signals.h>
 #include <AtomDestiny/Core/ADObject/ADObject.h>
-
 #include <AtomDestiny/Unit/Animation.h>
 
 #include "UnitLogicBase.generated.h"
@@ -22,7 +21,8 @@ class ATOMDESTINY_API UUnitLogicBase : public UADObject, public ILogic
     GENERATED_BODY()
     
     // Any unit actions
-    using UnitAction = AtomDestiny::Signal<void(const TWeakObjectPtr<AActor>&, EGameSide, EUnitType)>;
+    UDELEGATE()
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FUnitAction, const TWeakObjectPtr<AActor>&, actor, EGameSide, side, EUnitType, unitType);
     
 public:
     
@@ -178,8 +178,8 @@ protected:
     ///
     
     // Emits when unit created
-    inline static UnitAction unitCreated;
+    inline static FUnitAction unitCreated;
 
     // Emits when unit destroyed
-    inline static UnitAction unitDestroyed;
+    inline static FUnitAction unitDestroyed;
 };

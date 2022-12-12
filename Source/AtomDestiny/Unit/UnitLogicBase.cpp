@@ -208,12 +208,12 @@ void UUnitLogicBase::ZeroizeParameter(EObjectParameters parameter)
 
 void UUnitLogicBase::CreateMessage() const
 {
-    const TWeakObjectPtr<AActor> ownerPtr{GetOwner()};
-    emit unitCreated(ownerPtr, m_side, m_unitType);
+    const TWeakObjectPtr<AActor> ownerPtr{ GetOwner() };
+    unitCreated.Broadcast(ownerPtr, m_side, m_unitType);
 }
 
 void UUnitLogicBase::DestroyMessage() const
 {
     const TWeakObjectPtr<AActor> ownerPtr{GetOwner()};
-    emit unitDestroyed(ownerPtr, m_side, m_unitType);
+    unitDestroyed.Broadcast(ownerPtr, m_side, m_unitType);
 }
