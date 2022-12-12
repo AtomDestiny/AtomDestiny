@@ -8,6 +8,7 @@
 #include <Runtime/NavigationSystem/Public/NavigationPath.h>
 #include <Runtime/NavigationSystem/Public/NavigationSystem.h>
 
+#include "Engine/TargetPoint.h"
 #include "Kismet/GameplayStatics.h"
 
 // Sets default values for this component's properties
@@ -28,7 +29,7 @@ void UMyTestNavagation::BeginPlay()
 
 	TArray<AActor*> actors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AActor::StaticClass(), actors);
-
+	
 	AActor* target = nullptr;
 	
 	for (const auto a : actors)
@@ -36,26 +37,14 @@ void UMyTestNavagation::BeginPlay()
 		if (a->GetActorLabel() == TEXT("TargetPoint"))
 			target = a;
 	}
-
+	
 	APawn* pawn = CastChecked<APawn>(GetOwner());
 	AController* ai = pawn->Controller;
 	AAIController* controller = CastChecked<AAIController>(ai);
-
+	
 	if (target)
 	{
-		UNavigationPath* path = UNavigationSystemV1::FindPathToLocationSynchronously(this, pawn->GetActorLocation(), target->GetActorLocation());
-
-		if (path && path->IsValid())
-		{
-			FAIMoveRequest req(target);
-			req.SetAcceptanceRadius(50);
-			req.SetUsePathfinding(true);
-			
-			if (controller)
-			{
-				controller->RequestMove(req, path->GetPath());
-			}
-		}
+		controller->MoveToActor(target, 5000);
 	}
 }
 
@@ -64,5 +53,25 @@ void UMyTestNavagation::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	// TArray<AActor*> actors;
+	// UGameplayStatics::GetAllActorsOfClass(GetWorld(), AActor::StaticClass(), actors);
+	//
+	// AActor* target = nullptr;
+	//
+	// for (const auto a : actors)
+	// {
+	// 	if (a->GetActorLabel() == TEXT("TargetPoint"))
+	// 		target = a;
+	// }
+	//
+	// APawn* pawn = CastChecked<APawn>(GetOwner());
+	// AController* ai = pawn->Controller;
+	// AAIController* controller = CastChecked<AAIController>(ai);
+	//
+	// if (target)
+	// {
+	// 	controller->UpdateControlRotation(DeltaTime);
+	// 	controller->MoveToActor(target, 10);
+	// }
 	// ...
 }
