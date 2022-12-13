@@ -1,7 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MyTestNavagation.h"
+
 #include "AIController.h"
+#include "DetourCrowdAIController.h"
 
 #include "Actions/PawnAction_Move.h"
 
@@ -25,6 +27,8 @@ UMyTestNavagation::UMyTestNavagation()
 // Called when the game starts
 void UMyTestNavagation::BeginPlay()
 {
+	static size_t counter = 0;
+	
 	Super::BeginPlay();
 
 	TArray<AActor*> actors;
@@ -46,6 +50,16 @@ void UMyTestNavagation::BeginPlay()
 	{
 		controller->MoveToActor(target, 5000);
 	}
+	
+		UE_LOG(LogTemp, Log, TEXT("Setup timer for second unit"));
+		
+		FTimerManager& timerManager = GetWorld()->GetTimerManager();
+		FTimerHandle handler;
+		timerManager.SetTimer(handler, [controller = controller]()
+		{
+			controller->StopMovement();
+			UE_LOG(LogTemp, Log, TEXT("Movement should be stopped"));
+		}, 2.0f, false);
 }
 
 // Called every frame
