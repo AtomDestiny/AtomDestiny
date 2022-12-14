@@ -7,10 +7,12 @@ ANavigator::ANavigator(const FObjectInitializer& objectInitializer)
 {
 }
 
-void ANavigator::Move(TWeakObjectPtr<AActor> target)
+void ANavigator::Move(AActor* target)
 {
-    m_target = std::move(target);
-    AAIController::MoveToActor(m_target.Get());
+    check(target != nullptr)
+    
+    m_target = TWeakObjectPtr<AActor>{target};
+    MoveToActor(m_target.Get());
 }
 
 void ANavigator::Stop()

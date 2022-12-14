@@ -17,7 +17,10 @@ class ATOMDESTINY_API ANavigator : public AAIController
 public:
     explicit ANavigator(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
-    void Move(TWeakObjectPtr<AActor> target);
+    UFUNCTION()
+    void Move(AActor* target);
+
+    UFUNCTION()
     void Stop();
 
 private:
