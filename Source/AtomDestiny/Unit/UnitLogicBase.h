@@ -54,6 +54,16 @@ public:
     /// Sets destination to vector point
     virtual void SetDestinationByPoint(FVector destination) ABSTRACT_METHOD;
 
+    ///
+    /// events
+    ///
+    
+    // Emits when unit created
+    inline static FUnitAction unitCreated;
+
+    // Emits when unit destroyed
+    inline static FUnitAction unitDestroyed;
+
 protected:
 
     virtual void InitializeComponent() override;
@@ -167,14 +177,4 @@ protected:
     
     // Defines unit logic behaviour type
     EUnitBehaviour m_behaviour = EUnitBehaviour::MoveToTransform;
-    
-    ///
-    /// events
-    ///
-    
-    // Emits when unit created
-    inline static FUnitAction unitCreated;
-
-    // Emits when unit destroyed
-    inline static FUnitAction unitDestroyed;
 };

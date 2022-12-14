@@ -4,6 +4,8 @@
 
 #include <Core/Public/Templates/UnrealTemplate.h>
 
+#include <AtomDestiny/Unit/Unit.h>
+
 UENUM(BlueprintType)
 enum class EGameSide : uint8
 {
@@ -31,6 +33,18 @@ namespace AtomDestiny
         
         // Returns Core object as Meyers singleton
         static Core& Instance();
+
+        void AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
+        void RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
+
+    private:
+        
+        ///
+        /// Event callbacks
+        ///
+        
+        void OnUnitCreated(const TWeakObjectPtr<AActor>& actor, EGameSide side, EUnitType);
+        void OnUnitDestroyed(const TWeakObjectPtr<AActor>& actor, EGameSide side, EUnitType);
 
     private:
         struct CoreData;
