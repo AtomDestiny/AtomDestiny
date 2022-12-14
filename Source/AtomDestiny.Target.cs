@@ -10,6 +10,7 @@ public class AtomDestinyTarget : TargetRules
 		Type = TargetType.Game;
 		DefaultBuildSettings = BuildSettingsVersion.V2;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_1;
+		CppStandard = CppStandardVersion.Cpp20;
 		ExtraModuleNames.Add("AtomDestiny");
 	}
 }
