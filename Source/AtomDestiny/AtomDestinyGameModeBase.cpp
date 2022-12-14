@@ -25,7 +25,8 @@ struct AAtomDestinyGameModeBase::GameModeBasePrivateData
 AAtomDestinyGameModeBase::AAtomDestinyGameModeBase() :
     m_impl(new GameModeBasePrivateData{})
 {
-    // UUnitLogicBase::unitCreated.Add(BindDynamic(this, &Core::OnUnitCreated));
+    UUnitLogicBase::unitCreated.AddDynamic(this, &AAtomDestinyGameModeBase::OnUnitCreated);
+    UUnitLogicBase::unitDestroyed.AddDynamic(this, &AAtomDestinyGameModeBase::OnUnitDestroyed);
 }
 
 AAtomDestinyGameModeBase::~AAtomDestinyGameModeBase()

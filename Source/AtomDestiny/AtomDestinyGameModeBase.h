@@ -26,7 +26,7 @@ public:
     void AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
     void RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
 
-protected:
+// protected:
     
     ///
     /// Event callbacks
