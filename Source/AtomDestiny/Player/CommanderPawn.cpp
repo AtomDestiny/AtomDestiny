@@ -9,6 +9,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 
+#include "Kismet/KismetMathLibrary.h"
+
 // Sets default values
 ACommanderPawn::ACommanderPawn()
 {
@@ -32,7 +34,19 @@ ACommanderPawn::ACommanderPawn()
     
     m_movement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("Movement"));
 
-    m_moveScale = 1.0f;
+    m_moveScale = 0.7f;
+    m_rotateScale = 50.f;
+    m_minHeight = 500;
+    m_maxHeight = 10000;
+    m_absHorizDist = 10000;
+
+    m_worldBox = FBox(
+        FVector(-m_absHorizDist, -m_absHorizDist, m_minHeight),
+        FVector(m_absHorizDist, m_absHorizDist, m_maxHeight)
+    );
+
+    m_startPos = FVector(3000, 0, 10000);
+    m_startRot = FRotator(0, 0, 180);
 }
 
 // Called when the game starts or when spawned
@@ -40,6 +54,8 @@ void ACommanderPawn::BeginPlay()
 {
     Super::BeginPlay();
     
+    ACommanderController* cmdController = Cast<ACommanderController>(Controller);
+    cmdController->EnableMouseLook = false;
 }
 
 // Called every frame
@@ -50,10 +66,37 @@ void ACommanderPawn::Tick(float deltaTime)
 
 void ACommanderPawn::Move(const FInputActionValue& actionValue)
 {
-    FVector2D input = actionValue.Get<FInputActionValue::Axis2D>();
+    FVector&& input = actionValue.Get<FInputActionValue::Axis3D>();
+    FVector vec(input);
 
-    //AddMovementInput(GetActorRotation().RotateVector(input), moveScale);
-    AddMovementInput(FVector(input.X, input.Y, 0), m_moveScale);
+    vec = GetActorRotation().RotateVector(vec);
+   // if (UKismetMathLibrary::IsPointInBox_Box(vec, worldBox))
+        AddMovementInput(vec, m_moveScale);
+   /* else
+    {
+        auto&& loc = ClampVector(GetActorLocation(),
+            FVector(-m_absHorizDist, -m_absHorizDist, m_minHeight),
+            FVector(m_absHorizDist, m_absHorizDist, m_maxHeight)
+        );
+
+        SetActorLocation(loc);
+    }*/
+}
+
+void ACommanderPawn::Rotate(const FInputActionValue& actionValue)
+{
+    FRotator rot = FRotator(actionValue[0], actionValue[1], actionValue[2]);
+
+    rot *= GetWorld()->GetDeltaSeconds() * m_rotateScale;
+    rot += GetActorRotation();
+    //rot.Pitch = FMath::ClampAngle(rot.Pitch, -89.9f, 89.9f);
+    SetActorRotation(rot);
+}
+
+void ACommanderPawn::Reset(const FInputActionValue& actionValue)
+{
+    SetActorLocation(m_startPos);
+    SetActorRotation(m_startRot);
 }
 
 // Called to bind functionality to input
@@ -67,6 +110,8 @@ void ACommanderPawn::SetupPlayerInputComponent(UInputComponent* playerInputCompo
     check(enhancedInputComponent && commanderController)
 
     enhancedInputComponent->BindAction(commanderController->GetActionMove(), ETriggerEvent::Triggered, this, &ACommanderPawn::Move);
+    enhancedInputComponent->BindAction(commanderController->GetActionRotate(), ETriggerEvent::Triggered, this, &ACommanderPawn::Rotate);
+    enhancedInputComponent->BindAction(commanderController->GetActionReset(), ETriggerEvent::Triggered, this, &ACommanderPawn::Reset);
 
     const ULocalPlayer* localPlayer = commanderController->GetLocalPlayer();
     check(localPlayer)

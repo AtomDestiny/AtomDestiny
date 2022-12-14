@@ -31,6 +31,8 @@ public:
     virtual void Tick(float deltaTime) override;
 
     void Move(const struct FInputActionValue& actionValue);
+    void Rotate(const struct FInputActionValue& actionValue);
+    void Reset(const struct FInputActionValue& actionValue);
 
     // Called to bind functionality to input
     virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
@@ -51,4 +53,21 @@ protected:
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Move scale"))
     float m_moveScale;
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Rotate scale"))
+    float m_rotateScale;
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Min height"))
+    float m_minHeight;
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Max height"))
+    float m_maxHeight;
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Max horizontal distance"))
+    float m_absHorizDist;
+
+private:
+    FBox m_worldBox;
+    FVector m_startPos;
+    FRotator m_startRot;
 };

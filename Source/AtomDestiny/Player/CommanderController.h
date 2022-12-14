@@ -17,8 +17,14 @@ public:
     virtual void SetupInputComponent() override;
 
     class UInputMappingContext* GetPawnMappingContext() const { return m_pawnMappingContext; }
+
     class UInputAction* GetActionMove() const { return m_actionMove; }
-    
+    class UInputAction* GetActionRotate() const { return m_actionRotate; }
+    class UInputAction* GetActionReset() const { return m_actionReset; }
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Enable mouse look"))
+    bool EnableMouseLook = true;
+
 protected:
     
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Pawn mapping context"))
@@ -26,4 +32,10 @@ protected:
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Action move"))
     UInputAction* m_actionMove;
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Action rotate"))
+    UInputAction* m_actionRotate;
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Action reset"))
+    UInputAction* m_actionReset;
 };

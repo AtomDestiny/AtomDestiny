@@ -34,15 +34,31 @@ void ACommanderController::SetupInputComponent()
     m_pawnMappingContext = NewObject<UInputMappingContext>(this);
 
     m_actionMove = NewObject<UInputAction>(this);
-    m_actionMove->ValueType = EInputActionValueType::Axis2D;
+    m_actionMove->ValueType = EInputActionValueType::Axis3D;
+
+    m_actionRotate = NewObject<UInputAction>(this);
+    m_actionRotate->ValueType = EInputActionValueType::Axis3D;
+
+    m_actionReset = NewObject<UInputAction>(this);
+    m_actionReset->ValueType = EInputActionValueType::Boolean;
+
+    mapKey(m_pawnMappingContext, m_actionReset, EKeys::R);
 
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::W);
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::S, true);
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::A, true, true);
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::D, false, true);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::A, false, true);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::D, true, true);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::SpaceBar, false, true, EInputAxisSwizzle::ZYX);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::LeftControl, true, true, EInputAxisSwizzle::ZYX);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::MouseScrollUp, false, true, EInputAxisSwizzle::ZYX);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::MouseScrollDown, true, true, EInputAxisSwizzle::ZYX);
 
-    /*pawnMappingContext->MapKey(actionMove, EKeys::W);
-    auto& mapping = pawnMappingContext->MapKey(actionMove, EKeys::S);
-    UInputModifierNegate* negate = NewObject<UInputModifierNegate>(this);
-    mapping.Modifiers.Add(negate);*/
+    if (EnableMouseLook)
+    {
+        mapKey(m_pawnMappingContext, m_actionRotate, EKeys::MouseY);
+        mapKey(m_pawnMappingContext, m_actionRotate, EKeys::MouseX, true, true, EInputAxisSwizzle::ZYX);
+    }
+
+    mapKey(m_pawnMappingContext, m_actionRotate, EKeys::Q, false, true);
+    mapKey(m_pawnMappingContext, m_actionRotate, EKeys::E, true, true);
 }
