@@ -20,7 +20,7 @@ class ATOMDESTINY_API UUnitLogicBase : public UADObject, public ILogic
     
     // Any unit actions
     UDELEGATE()
-    DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FUnitAction, const TWeakObjectPtr<AActor>&, actor, EGameSide, side, EUnitType, unitType);
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FUnitAction, AActor*, actor, EGameSide, side, EUnitType, unitType);
     
 public:
     

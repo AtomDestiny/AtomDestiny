@@ -4,7 +4,7 @@
 
 #include <AtomDestiny/Unit/Unit.h>
 #include <AtomDestiny/Weapon/Weapon.h>
-#include <AtomDestiny/Core/AtomDestinyCore.h>
+#include <AtomDestiny/AtomDestiny.h>
 
 #include "Logic.generated.h"
 
