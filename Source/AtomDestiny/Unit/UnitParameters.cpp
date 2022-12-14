@@ -33,7 +33,7 @@ void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActo
     {
         if (!m_isDead)
         {
-            const TScriptInterface<IDestroyable> destroyable = GET_AD_INTERFACE(Destroyable);
+            const TScriptInterface<IDestroyable> destroyable = GET_INTERFACE(Destroyable);
 
             if (destroyable == nullptr)
             {

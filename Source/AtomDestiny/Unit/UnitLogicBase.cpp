@@ -47,7 +47,7 @@ void UUnitLogicBase::InitializeComponent()
     Super::InitializeComponent();
     
     // get all weapons
-    m_weapons = GET_AD_ALL_INTERFACES(Weapon);
+    m_weapons = GET_INTERFACES(Weapon);
 
     // get navigation
     APawn* pawn = CastChecked<APawn>(GetOwner());
@@ -72,7 +72,7 @@ void UUnitLogicBase::BeginPlay()
     m_defaultStopDistance = m_navigation->GetStopDistance();
 
     // get animation
-    m_animation = GET_AD_INTERFACE(Animation);
+    m_animation = GET_INTERFACE(Animation);
 
     // adding yourself to different lists
     // Core.AddObject(gameObject, side);
