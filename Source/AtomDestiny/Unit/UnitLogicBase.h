@@ -5,11 +5,9 @@
 #include <AtomDestiny/Logic/Logic.h>
 #include <AtomDestiny/Core/ADObject/ADObject.h>
 #include <AtomDestiny/Unit/Animation.h>
+#include <AtomDestiny/Navigation/Navigator.h>
 
 #include "UnitLogicBase.generated.h"
-
-
-// TODO: navigation
 
 ///
 /// Represents abstract unit logic with common values.
@@ -143,8 +141,8 @@ protected:
     // Stores current destination reference
     TWeakObjectPtr<AActor> m_currentDestination;
     
-    /// NavMeshAgent reference
-    // UnityEngine.AI.NavMeshAgent navigation;
+    // NavMeshAgent reference
+    TWeakObjectPtr<ANavigator> m_navigation;
     
     // Target found state flag
     bool m_isTargetFound = false;
@@ -163,9 +161,6 @@ protected:
     
     // Animation controller (unit animation interface)
     TScriptInterface<IAnimation> m_animation;
-    
-    // Default navigation priority
-    uint32_t m_priority = 0;
     
     // Stores hashed scan delay time
     double m_scanDelayCounter = 0;
