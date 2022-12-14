@@ -41,12 +41,6 @@ public:
     // Returns current max health
     virtual double GetMaxHealth() const override;
     
-    // Adds event to parameters
-    virtual void AddEvent(TScriptInterface<IEvent> e) override;
-    
-    // Returns current event
-    virtual TScriptInterface<IEvent> GetEvent() const override;
-    
     // Returns start max health
     virtual double GetBaseMaxHealth() const override;
     
@@ -100,9 +94,6 @@ protected:
     // Additional parameters for unit defence balance, values should represent percents
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Balance parameters"))
     FBalanceParameters m_balanceParameters;
-    
-    // Parameter's action
-    TScriptInterface<IEvent> m_action = nullptr;
     
     // Dead state
     bool m_isDead = false;
