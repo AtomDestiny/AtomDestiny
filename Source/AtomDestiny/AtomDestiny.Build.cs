@@ -17,6 +17,12 @@ public class AtomDestiny : ModuleRules
             "GameplayTags",
             "GameplayTasks", "AIModule", "NavigationSystem"
         });
+
+        PublicIncludePaths.AddRange(new string[] {
+            "AtomDestiny"
+        });
+
+        PrivateDependencyModuleNames.AddRange(new string[] { });
         
          PrivateDependencyModuleNames.AddRange(new string[] {  /*"AIModule", "NavigationSystem"*/ });
 
