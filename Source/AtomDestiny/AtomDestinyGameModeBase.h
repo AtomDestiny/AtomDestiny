@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 #include <AtomDestiny/Unit/Unit.h>
 
 #include <Runtime/Engine/Classes/GameFramework/GameModeBase.h>
@@ -26,7 +24,7 @@ public:
     void AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
     void RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
 
-// protected:
+protected:
     
     ///
     /// Event callbacks

@@ -52,10 +52,10 @@ void AAtomDestinyGameModeBase::RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSid
 
 void AAtomDestinyGameModeBase::OnUnitCreated(AActor* actor, EGameSide side, EUnitType)
 {
-    AddUnit(TWeakObjectPtr<AActor>{ actor }, side);
+    AddUnit(MakeWeakObjectPtr(actor), side);
 }
 
 void AAtomDestinyGameModeBase::OnUnitDestroyed(AActor* actor, EGameSide side, EUnitType)
 {
-    RemoveUnit(TWeakObjectPtr<AActor>{ actor }, side);
+    RemoveUnit(MakeWeakObjectPtr(actor), side);
 }
