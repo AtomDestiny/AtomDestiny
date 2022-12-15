@@ -1,16 +1,13 @@
 ﻿#pragma once
 
+#include <Runtime/Core/Public/Delegates/Delegate.h>
+
 #include <AtomDestiny/Logic/Logic.h>
-
-#include <AtomDestiny/Core/Signals/Signals.h>
 #include <AtomDestiny/Core/ADObject/ADObject.h>
-
 #include <AtomDestiny/Unit/Animation.h>
+#include <AtomDestiny/Navigation/Navigator.h>
 
 #include "UnitLogicBase.generated.h"
-
-
-// TODO: navigation
 
 ///
 /// Represents abstract unit logic with common values.
@@ -22,7 +19,8 @@ class ATOMDESTINY_API UUnitLogicBase : public UADObject, public ILogic
     GENERATED_BODY()
     
     // Any unit actions
-    using UnitAction = AtomDestiny::Signal<void(const TWeakObjectPtr<AActor>&, EGameSide, EUnitType)>;
+    UDELEGATE()
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FUnitAction, AActor*, actor, EGameSide, side, EUnitType, unitType);
     
 public:
     
@@ -55,6 +53,16 @@ public:
     
     /// Sets destination to vector point
     virtual void SetDestinationByPoint(FVector destination) ABSTRACT_METHOD;
+
+    ///
+    /// events
+    ///
+    
+    // Emits when unit created
+    inline static FUnitAction unitCreated;
+
+    // Emits when unit destroyed
+    inline static FUnitAction unitDestroyed;
 
 protected:
 
@@ -143,8 +151,8 @@ protected:
     // Stores current destination reference
     TWeakObjectPtr<AActor> m_currentDestination;
     
-    /// NavMeshAgent reference
-    // UnityEngine.AI.NavMeshAgent navigation;
+    // NavMeshAgent reference
+    TWeakObjectPtr<ANavigator> m_navigation;
     
     // Target found state flag
     bool m_isTargetFound = false;
@@ -164,22 +172,9 @@ protected:
     // Animation controller (unit animation interface)
     TScriptInterface<IAnimation> m_animation;
     
-    // Default navigation priority
-    uint32_t m_priority = 0;
-    
     // Stores hashed scan delay time
     double m_scanDelayCounter = 0;
     
     // Defines unit logic behaviour type
     EUnitBehaviour m_behaviour = EUnitBehaviour::MoveToTransform;
-    
-    ///
-    /// events
-    ///
-    
-    // Emits when unit created
-    inline static UnitAction unitCreated;
-
-    // Emits when unit destroyed
-    inline static UnitAction unitDestroyed;
 };

@@ -64,7 +64,7 @@ void ACommanderPawn::Tick(float deltaTime)
     Super::Tick(deltaTime);
 }
 
-void ACommanderPawn::Move(const FInputActionValue& actionValue)
+void ACommanderPawn::OnMoveAction(const FInputActionValue& actionValue)
 {
     FVector&& input = actionValue.Get<FInputActionValue::Axis3D>();
     FVector vec(input);
@@ -83,7 +83,7 @@ void ACommanderPawn::Move(const FInputActionValue& actionValue)
     }*/
 }
 
-void ACommanderPawn::Rotate(const FInputActionValue& actionValue)
+void ACommanderPawn::OnRotateAction(const FInputActionValue& actionValue)
 {
     FRotator rot = FRotator(actionValue[0], actionValue[1], actionValue[2]);
 
@@ -93,7 +93,7 @@ void ACommanderPawn::Rotate(const FInputActionValue& actionValue)
     SetActorRotation(rot);
 }
 
-void ACommanderPawn::Reset(const FInputActionValue& actionValue)
+void ACommanderPawn::OnResetAction(const FInputActionValue& actionValue)
 {
     SetActorLocation(m_startPos);
     SetActorRotation(m_startRot);
@@ -109,9 +109,9 @@ void ACommanderPawn::SetupPlayerInputComponent(UInputComponent* playerInputCompo
 
     check(enhancedInputComponent && commanderController)
 
-    enhancedInputComponent->BindAction(commanderController->GetActionMove(), ETriggerEvent::Triggered, this, &ACommanderPawn::Move);
-    enhancedInputComponent->BindAction(commanderController->GetActionRotate(), ETriggerEvent::Triggered, this, &ACommanderPawn::Rotate);
-    enhancedInputComponent->BindAction(commanderController->GetActionReset(), ETriggerEvent::Triggered, this, &ACommanderPawn::Reset);
+    enhancedInputComponent->BindAction(commanderController->GetActionMove(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnMoveAction);
+    enhancedInputComponent->BindAction(commanderController->GetActionRotate(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnRotateAction);
+    enhancedInputComponent->BindAction(commanderController->GetActionReset(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnResetAction);
 
     const ULocalPlayer* localPlayer = commanderController->GetLocalPlayer();
     check(localPlayer)

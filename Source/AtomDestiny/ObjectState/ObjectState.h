@@ -5,8 +5,6 @@
 #include <AtomDestiny/Weapon/WeaponParameters.h>
 #include <AtomDestiny/ObjectState/BalanceParameters.h>
 
-#include <AtomDestiny/Event/Event.h>
-
 #include "ObjectState.generated.h"
 
 ///
@@ -78,12 +76,4 @@ public:
     // Returns additional defence params
     UFUNCTION(Meta = (AllowOverride = true))
     virtual const FBalanceParameters& GetDefenceAdditionalParameters() const = 0;
-    
-    // Add event to unit parameters
-    UFUNCTION(Meta = (AllowOverride = true))
-    virtual void AddEvent(TScriptInterface<IEvent> e) = 0;
-    
-    // Returns reference to unit event
-    UFUNCTION(Meta = (AllowOverride = true))
-    virtual TScriptInterface<IEvent> GetEvent() const = 0;
 };

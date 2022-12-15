@@ -10,11 +10,7 @@ void UUnitParameters::AddDamage(double damage, EWeaponType type, AActor* owner)
     resultDamage = std::max(resultDamage, AtomDestiny::Balance::MinDamageValue);
     resultDamage = GetDamageAfterDefenceType(resultDamage);
     resultDamage = GetDamageAfterDefenceParameters(type, resultDamage);
-
-    // event
-    if (m_action != nullptr)
-        resultDamage = m_action->Invoke(resultDamage, EEventType::OnHealth);
-
+    
     // change current health
     m_currentHealth -= resultDamage;
 }
@@ -33,7 +29,7 @@ void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActo
     {
         if (!m_isDead)
         {
-            IDestroyable* destroyable = GET_AD_INTERFACE(Destroyable);
+            const TScriptInterface<IDestroyable> destroyable = GET_INTERFACE(Destroyable);
 
             if (destroyable == nullptr)
             {

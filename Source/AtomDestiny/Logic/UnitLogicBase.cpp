@@ -47,13 +47,16 @@ void UUnitLogicBase::InitializeComponent()
     Super::InitializeComponent();
     
     // get all weapons
-    m_weapons = GET_AD_ALL_INTERFACES(Weapon);
+    m_weapons = GET_INTERFACES(Weapon);
 
     // get navigation
-    // navigation = GetComponent<UnityEngine.AI.NavMeshAgent>();
-
-    // resave speed
-    // m_speed = navigation.speed;
+    APawn* pawn = CastChecked<APawn>(GetOwner());
+    check(pawn->AIControllerClass != nullptr);
+    
+    m_navigation = CastChecked<ANavigator>(pawn->AIControllerClass);
+    m_navigation->SetMovementComponent(pawn->FindComponentByClass<UFloatingPawnMovement>());
+    
+    m_speed = m_navigation->GetSpeed();
     m_currentSpeed = m_speed;
 
     CalculateDistances();
@@ -66,18 +69,14 @@ void UUnitLogicBase::BeginPlay()
     Super::BeginPlay();
     
     // navigation setup
-    // navigation.enabled = true;
-    // m_defaultStopDistance = navigation.stoppingDistance;
+    m_defaultStopDistance = m_navigation->GetStopDistance();
 
     // get animation
-    // m_animation = GET_AD_INTERFACE(Animation);
+    m_animation = GET_INTERFACE(Animation);
 
     // adding yourself to different lists
     // Core.AddObject(gameObject, side);
-
-    // priority setup
-    // m_priority = navigation.avoidancePriority;
-
+    
     // setup scan delay
     m_scanDelay += FMath::RandRange(AtomDestiny::Unit::MinRandomScan, AtomDestiny::Unit::MaxRandomScan);
 
@@ -180,9 +179,8 @@ void UUnitLogicBase::RecalculateParameter(EObjectParameters parameter)
     {
     case EObjectParameters::Velocity:
         {
-            // TODO: setup navigation speed
-            const auto calculatedSpeed = CalculateParametersFromAll(m_speed, parameter);
-            // navigation.speed = currentSpeed;
+            m_currentSpeed = CalculateParametersFromAll(m_speed, parameter);
+            m_navigation->SetSpeed(m_currentSpeed);
 
             break;
         }
@@ -198,7 +196,7 @@ void UUnitLogicBase::ZeroizeParameter(EObjectParameters parameter)
     {
     case EObjectParameters::Velocity:
         m_currentSpeed = 0;
-    // navigation.speed = currentSpeed; // TODO: zeroize navigation speed
+        m_navigation->SetSpeed(m_currentSpeed);
         break;
 
     default:
@@ -208,12 +206,10 @@ void UUnitLogicBase::ZeroizeParameter(EObjectParameters parameter)
 
 void UUnitLogicBase::CreateMessage() const
 {
-    const TWeakObjectPtr<AActor> ownerPtr{GetOwner()};
-    emit unitCreated(ownerPtr, m_side, m_unitType);
+    unitCreated.Broadcast(GetOwner(), m_side, m_unitType);
 }
 
 void UUnitLogicBase::DestroyMessage() const
 {
-    const TWeakObjectPtr<AActor> ownerPtr{GetOwner()};
-    emit unitDestroyed(ownerPtr, m_side, m_unitType);
+    unitDestroyed.Broadcast(GetOwner(), m_side, m_unitType);
 }

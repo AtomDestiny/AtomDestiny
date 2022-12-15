@@ -35,16 +35,6 @@ double UObjectStateBase::GetMaxHealth() const
     return m_currentMaxHealth;
 }
 
-void UObjectStateBase::AddEvent(TScriptInterface<IEvent> e)
-{
-    m_action = std::move(e);
-}
-
-TScriptInterface<IEvent> UObjectStateBase::GetEvent() const
-{
-    return m_action;
-}
-
 double UObjectStateBase::GetBaseMaxHealth() const
 {
     return m_maxHealth;

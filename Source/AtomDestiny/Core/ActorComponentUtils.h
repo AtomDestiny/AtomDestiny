@@ -32,17 +32,27 @@ namespace AtomDestiny::Utils
     {
         return AddNewComponentToActor<Component>(object.Get());
     }
+
+    template<typename Interface, typename UEInterface>
+    TScriptInterface<Interface> CreateInterface(UEInterface* object)
+    {
+        TScriptInterface<Interface> script;
+        script.SetObject(object);
+        script.SetInterface(Cast<Interface>(object));
+
+        return script;
+    }
     
     template<typename Interface, typename UEInterface>
-    [[nodiscard]] Interface* GetInterface(AActor* actor)
+    [[nodiscard]] TScriptInterface<Interface> GetInterface(AActor* actor)
     {
         check(actor != nullptr);
         
         static_assert(std::is_base_of_v<UInterface, UEInterface>, "Component parameter is not an UInterface");
         
         if (const auto interface = actor->FindComponentByInterface<UEInterface>(); interface != nullptr)
-            return Cast<Interface>(interface);
-
+            return CreateInterface<Interface>(interface);
+        
         return nullptr;
     }
 
@@ -56,13 +66,7 @@ namespace AtomDestiny::Utils
         for (UActorComponent* component : actor->GetComponents())
         {
             if (component && component->GetClass()->ImplementsInterface(UEInterface::StaticClass()))
-            {
-                TScriptInterface<Interface> interface;
-                interface.SetObject(component);
-                interface.SetInterface(Cast<Interface>(component));
-
-                interfaces.Add(std::move(interface));
-            }
+                interfaces.Add(CreateInterface<Interface>(component));
         }
         
         return interfaces;
@@ -71,5 +75,8 @@ namespace AtomDestiny::Utils
 } // namespace AtomDestiny::Utils
 
 // use name without I and U prefix
-#define GET_AD_INTERFACE(name) AtomDestiny::Utils::GetInterface<I##name, U##name>(GetOwner())
-#define GET_AD_ALL_INTERFACES(name) AtomDestiny::Utils::GetInterfaces<I##name, U##name>(GetOwner())
+#define GET_INTERFACE(name) AtomDestiny::Utils::GetInterface<I##name, U##name>(GetOwner())
+#define GET_INTERFACES(name) AtomDestiny::Utils::GetInterfaces<I##name, U##name>(GetOwner())
+
+#define GET_ACTOR_INTERFACE(name, actor) AtomDestiny::Utils::GetInterface<I##name, U##name>(actor)
+#define GET_ACTOR_INTERFACES(name, actor) AtomDestiny::Utils::GetInterfaces<I##name, U##name>(actor)

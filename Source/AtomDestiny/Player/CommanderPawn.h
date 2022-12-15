@@ -7,6 +7,8 @@
 
 #include "CommanderPawn.generated.h"
 
+struct FInputActionValue;
+
 ///
 /// Class for player controllable simple pawn looking down to the ground
 ///
@@ -30,9 +32,9 @@ public:
     // Called every frame
     virtual void Tick(float deltaTime) override;
 
-    void Move(const struct FInputActionValue& actionValue);
-    void Rotate(const struct FInputActionValue& actionValue);
-    void Reset(const struct FInputActionValue& actionValue);
+    void OnMoveAction(const FInputActionValue& actionValue);
+    void OnRotateAction(const FInputActionValue& actionValue);
+    void OnResetAction(const FInputActionValue& actionValue);
 
     // Called to bind functionality to input
     virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;

@@ -6,8 +6,6 @@
 #include <AtomDestiny/Core/MathUtils.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
-#include "AssetRegistry/Private/AssetRegistryImpl.h"
-
 void UWeaponBase::InitializeComponent()
 {
     Super::InitializeComponent();
@@ -41,7 +39,7 @@ void UWeaponBase::BeginPlay()
 {
     Super::BeginPlay();
     
-    m_weaponAnimation = GET_AD_INTERFACE(WeaponAnimation);
+    m_weaponAnimation = GET_INTERFACE(WeaponAnimation);
 
     if (m_useRaycast && !m_useFriendlyFire)
         ExcludeSameLayer();
@@ -274,7 +272,7 @@ void UWeaponBase::RecalculateParameter(EObjectParameters parameter)
 
     case EObjectParameters::Range:
         {
-            if (ILogic* logic = GET_AD_INTERFACE(Logic); logic != nullptr)
+            if (const TScriptInterface<ILogic> logic = GET_INTERFACE(Logic); logic != nullptr)
             {
                 m_currentAttackRange = CalculateParametersFromAll(m_attackRange, parameter);
                 logic->UpdateParameters();
@@ -314,7 +312,7 @@ void UWeaponBase::ZeroizeParameter(EObjectParameters parameter)
 
     case EObjectParameters::Range:
         {
-            if (ILogic* logic = GET_AD_INTERFACE(Logic); logic != nullptr)
+            if (const TScriptInterface<ILogic> logic = GET_INTERFACE(Logic); logic != nullptr)
             {
                 m_currentAttackRange = 0;
                 logic->UpdateParameters();
