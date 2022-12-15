@@ -116,10 +116,10 @@ void UUnitLogicBase::RotateToTarget(float deltaTime)
     GetOwner()->SetActorRotation(lookRotation);
 }
 
-void UUnitLogicBase::StartScanDelay()
+FAsyncCoroutine UUnitLogicBase::StartScanDelay()
 {
     m_canScan = false;
-    // yield return new WaitForSeconds(m_scanDelay);
+    co_await UE5Coro::Latent::Seconds(m_scanDelay);
     m_canScan = true;
 }
 

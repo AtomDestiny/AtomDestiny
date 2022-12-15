@@ -39,7 +39,6 @@ public class UE5Coro : ModuleRules
 	{
 		CppStandard = CppStandardVersion.Cpp20;
 		bUseUnity = false;
-		bDeterministic = true;
 
 		PublicDependencyModuleNames.AddRange(new[]
 		{

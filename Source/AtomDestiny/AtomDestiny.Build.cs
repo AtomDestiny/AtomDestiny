@@ -5,7 +5,8 @@ public class AtomDestiny : ModuleRules
     public AtomDestiny(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-    
+        CppStandard = CppStandardVersion.Latest;
+
         PublicDependencyModuleNames.AddRange(new string[] {
             "Core", 
             "CoreUObject", 

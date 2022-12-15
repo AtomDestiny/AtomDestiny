@@ -7,6 +7,8 @@
 #include <AtomDestiny/Unit/Animation.h>
 #include <AtomDestiny/Navigation/Navigator.h>
 
+#include <UE5Coro/Public/UE5Coro.h>
+
 #include "UnitLogicBase.generated.h"
 
 ///
@@ -74,7 +76,7 @@ protected:
     void RotateToTarget(float deltaTime);
     
     // Scan helper
-    void StartScanDelay();
+    FAsyncCoroutine StartScanDelay();
     
     // Checks hashed scan delay
     void CheckScanDelay(float deltaTime);
