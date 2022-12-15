@@ -9,7 +9,9 @@
 /Content/__ExternalActors__
 /Plugins/Developer/RiderLink/Intermediate/Build
 /Plugins/Developer/RiderLink/Intermediate
+/Plugins/Developer/RiderLink
+/Plugins/UE5Coro/Intermediate
+/Plugins/UE5Coro/Binaries
 /AtomDestiny.uproject.DotSettings.user
-/Plugins
 /Binaries
 /CMakeLists.txt.user

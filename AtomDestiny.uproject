@@ -1,46 +1,47 @@
 {
-	"FileVersion": 3,
-	"EngineAssociation": "5.1",
-	"Category": "",
-	"Description": "",
-	"Modules": [
-		{
-			"Name": "AtomDestiny",
-			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"AdditionalDependencies": [
-				"Engine",
-				"Slate",
-				"SlateCore",
-				"UMG"
-			]
-		}
-	],
-	"Plugins": [
-		{
-			"Name": "EnhancedInput",
-			"Enabled": true
-		},
-		{
-			"Name": "ModelingToolsEditorMode",
-			"Enabled": true,
-			"TargetAllowList": [
-				"Editor"
-			]
-		},
-		{
-			"Name": "GameplayAbilities",
-			"Enabled": true
-		}
-	],
-	"TargetPlatforms": [
-		"Android",
-		"HoloLens",
-		"IOS",
-		"Linux",
-		"LinuxArm64",
-		"Mac",
-		"TVOS",
-		"Windows"
-	]
+    "FileVersion": 3,
+    "EngineAssociation": "5.1",
+    "Category": "",
+    "Description": "",
+    "Modules": [
+        {
+            "Name": "AtomDestiny",
+            "Type": "Runtime",
+            "LoadingPhase": "Default",
+            "AdditionalDependencies": [
+                "Engine",
+                "Slate",
+                "SlateCore",
+                "UMG",
+                "UE5Coro"
+            ]
+        }
+    ],
+    "Plugins": [
+        {
+            "Name": "EnhancedInput",
+            "Enabled": true
+        },
+        {
+            "Name": "ModelingToolsEditorMode",
+            "Enabled": true,
+            "TargetAllowList": [
+                "Editor"
+            ]
+        },
+        {
+            "Name": "GameplayAbilities",
+            "Enabled": true
+        }
+    ],
+    "TargetPlatforms": [
+        "Android",
+        "HoloLens",
+        "IOS",
+        "Linux",
+        "LinuxArm64",
+        "Mac",
+        "TVOS",
+        "Windows"
+    ]
 }
