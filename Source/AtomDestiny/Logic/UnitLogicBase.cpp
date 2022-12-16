@@ -73,9 +73,6 @@ void UUnitLogicBase::BeginPlay()
 
     // get animation
     m_animation = GET_INTERFACE(Animation);
-
-    // adding yourself to different lists
-    // Core.AddObject(gameObject, side);
     
     // setup scan delay
     m_scanDelay += FMath::RandRange(AtomDestiny::Unit::MinRandomScan, AtomDestiny::Unit::MaxRandomScan);

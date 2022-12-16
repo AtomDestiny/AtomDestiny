@@ -39,8 +39,6 @@
 #include "Engine/LatentActionManager.h"
 #include "AsyncCoroutine.generated.h"
 
-using namespace coro;
-
 namespace UE5Coro::Private
 {
 enum class ELatentExitReason : uint8;
@@ -63,9 +61,9 @@ using FOptionalHandleVariant = std::variant<std::monostate,
 template<typename P, typename A>
 struct TAwaitTransform
 {
-	// Default passthrough
-	A& operator()(A& Awaitable) { return Awaitable; }
-	A&& operator()(A&& Awaitable) { return std::move(Awaitable); }
+    // Default passthrough
+    A& operator()(A& Awaitable) { return Awaitable; }
+    A&& operator()(A&& Awaitable) { return std::move(Awaitable); }
 };
 }
 
@@ -81,41 +79,41 @@ struct TAwaitTransform
 USTRUCT(BlueprintInternalUseOnly, Meta=(HiddenByDefault))
 struct UE5CORO_API FAsyncCoroutine
 {
-	GENERATED_BODY()
-	template<typename, typename>
-	friend struct UE5Coro::Private::TAwaitTransform;
-	friend UE5Coro::Private::Test::FTestHelper;
+    GENERATED_BODY()
+    template<typename, typename>
+    friend struct UE5Coro::Private::TAwaitTransform;
+    friend UE5Coro::Private::Test::FTestHelper;
 
 private:
-	UE5Coro::Private::FHandle Handle;
+    UE5Coro::Private::FHandle Handle;
 
 public:
-	/** This constructor is public to placate the reflection system and BP,
-	 *  do not use directly. */
-	explicit FAsyncCoroutine(UE5Coro::Private::FHandle Handle = nullptr)
-		: Handle(Handle) { }
+    /** This constructor is public to placate the reflection system and BP,
+     *  do not use directly. */
+    explicit FAsyncCoroutine(UE5Coro::Private::FHandle Handle = nullptr)
+        : Handle(Handle) { }
 
-	/** Returns a delegate broadcasting this coroutine's completion for any
-	 *  reason, including being unsuccessful or canceled.
-	 *  This will be Broadcast() on the same thread where the coroutine is
-	 *	destroyed. */
-	TMulticastDelegate<void()>& OnCompletion();
+    /** Returns a delegate broadcasting this coroutine's completion for any
+     *  reason, including being unsuccessful or canceled.
+     *  This will be Broadcast() on the same thread where the coroutine is
+     *	destroyed. */
+    TMulticastDelegate<void()>& OnCompletion();
 
-	/** Sets a debug name for the currently-executing coroutine.
-	 *  Only valid to call from within a coroutine returning FAsyncCoroutine. */
-	static void SetDebugName(const TCHAR* Name);
+    /** Sets a debug name for the currently-executing coroutine.
+     *  Only valid to call from within a coroutine returning FAsyncCoroutine. */
+    static void SetDebugName(const TCHAR* Name);
 };
 
 template<typename... Args>
-struct coroutine_traits<FAsyncCoroutine, Args...>
+struct coro::coroutine_traits<FAsyncCoroutine, Args...>
 {
-	static constexpr int LatentInfoCount =
-		(0 + ... + std::is_convertible_v<Args, FLatentActionInfo>);
-	static_assert(LatentInfoCount <= 1,
-		"Multiple FLatentActionInfo parameters found in coroutine");
-	using promise_type = std::conditional_t<LatentInfoCount,
-	                                        UE5Coro::Private::FLatentPromise,
-	                                        UE5Coro::Private::FAsyncPromise>;
+        static constexpr int LatentInfoCount =
+            (0 + ... + std::is_convertible_v<Args, FLatentActionInfo>);
+        static_assert(LatentInfoCount <= 1,
+            "Multiple FLatentActionInfo parameters found in coroutine");
+        using promise_type = std::conditional_t<LatentInfoCount,
+                                                UE5Coro::Private::FLatentPromise,
+                                                UE5Coro::Private::FAsyncPromise>;
 };
 
 namespace UE5Coro
@@ -123,10 +121,10 @@ namespace UE5Coro
 template<typename T>
 concept TAwaitable = requires
 {
-	[](T& Awaiter) -> FAsyncCoroutine
-	{
-		co_await Awaiter;
-	};
+    [](T& Awaiter) -> FAsyncCoroutine
+    {
+        co_await Awaiter;
+    };
 };
 }
 
@@ -135,181 +133,181 @@ namespace UE5Coro::Private
 template<>
 struct UE5CORO_API TAwaitTransform<FAsyncPromise, FAsyncCoroutine>
 {
-	FAsyncAwaiter operator()(FAsyncCoroutine);
+    FAsyncAwaiter operator()(FAsyncCoroutine);
 };
 
 template<>
 struct UE5CORO_API TAwaitTransform<FLatentPromise, FAsyncCoroutine>
 {
-	FLatentAwaiter operator()(FAsyncCoroutine);
+    FLatentAwaiter operator()(FAsyncCoroutine);
 };
 
 struct FInitialSuspend
 {
-	enum EAction
-	{
-		Resume,
-		Destroy,
-	} Action;
+    enum EAction
+    {
+        Resume,
+        Destroy,
+    } Action;
 
-	bool await_ready() noexcept { return false; }
-	void await_resume() noexcept { }
-	template<typename P>
-	void await_suspend(std::coroutine_handle<P> Handle) noexcept
-	{
-		switch (Action)
-		{
-			case Resume: Handle.promise().Resume(); break;
-			case Destroy: Handle.destroy(); break;
-		}
-	}
+    bool await_ready() noexcept { return false; }
+    void await_resume() noexcept { }
+    template<typename P>
+    void await_suspend(coro::coroutine_handle<P> Handle) noexcept
+    {
+        switch (Action)
+        {
+            case Resume: Handle.promise().Resume(); break;
+            case Destroy: Handle.destroy(); break;
+        }
+    }
 };
 
 class [[nodiscard]] FPromise
 {
 #if UE5CORO_DEBUG
-	static thread_local TArray<FPromise*> ResumeStack;
+    static thread_local TArray<FPromise*> ResumeStack;
 
-	static constexpr uint32 Expected = U'♪' << 16 | U'♫';
-	uint32 Alive = Expected;
+    static constexpr uint32 Expected = U'♪' << 16 | U'♫';
+    uint32 Alive = Expected;
 
-	const TCHAR* DebugPromiseType;
-	const TCHAR* DebugName = nullptr;
-	friend void FAsyncCoroutine::SetDebugName(const TCHAR*);
+    const TCHAR* DebugPromiseType;
+    const TCHAR* DebugName = nullptr;
+    friend void FAsyncCoroutine::SetDebugName(const TCHAR*);
 #endif
 
-	TMulticastDelegate<void()> Continuations;
+    TMulticastDelegate<void()> Continuations;
 
-	void Resume();
-	void EndResume();
+    void Resume();
+    void EndResume();
 
 protected:
-	UE5CORO_API explicit FPromise(const TCHAR* PromiseType);
-	UE_NONCOPYABLE(FPromise);
+    UE5CORO_API explicit FPromise(const TCHAR* PromiseType);
+    UE_NONCOPYABLE(FPromise);
 
-	void CheckAlive();
+    void CheckAlive();
 
-	struct FResumeScope final
-	{
-		FPromise* This;
-		explicit FResumeScope(FPromise* This) : This(This) { This->Resume(); }
-		~FResumeScope() { This->EndResume(); }
-	};
+    struct FResumeScope final
+    {
+        FPromise* This;
+        explicit FResumeScope(FPromise* This) : This(This) { This->Resume(); }
+        ~FResumeScope() { This->EndResume(); }
+    };
 
 public:
-	UE5CORO_API ~FPromise();
+    UE5CORO_API ~FPromise();
 
-	UE5CORO_API TMulticastDelegate<void()>& OnCompletion();
+    UE5CORO_API TMulticastDelegate<void()>& OnCompletion();
 
-	UE5CORO_API FAsyncCoroutine get_return_object();
-	UE5CORO_API void unhandled_exception();
+    UE5CORO_API FAsyncCoroutine get_return_object();
+    UE5CORO_API void unhandled_exception();
 
-	// co_yield is not allowed in async coroutines
-	std::suspend_never yield_value(auto&&) = delete;
+    // co_yield is not allowed in async coroutines
+    std::suspend_never yield_value(auto&&) = delete;
 };
 
 class [[nodiscard]] UE5CORO_API FAsyncPromise : public FPromise
 {
 public:
-	FAsyncPromise() : FPromise(TEXT("Async")) { }
-	void Resume();
+    FAsyncPromise() : FPromise(TEXT("Async")) { }
+    void Resume();
 
-	FInitialSuspend initial_suspend() { return {FInitialSuspend::Resume}; }
-	std::suspend_never final_suspend() noexcept { return {}; }
-	void return_void() { }
+    FInitialSuspend initial_suspend() { return {FInitialSuspend::Resume}; }
+    std::suspend_never final_suspend() noexcept { return {}; }
+    void return_void() { }
 
-	template<typename T>
-	decltype(auto) await_transform(T&& Awaitable)
-	{
-		return TAwaitTransform<FAsyncPromise, std::remove_reference_t<T>>()
-			(std::forward<T>(Awaitable));
-	}
+    template<typename T>
+    decltype(auto) await_transform(T&& Awaitable)
+    {
+        return TAwaitTransform<FAsyncPromise, std::remove_reference_t<T>>()
+            (std::forward<T>(Awaitable));
+    }
 };
 
 class [[nodiscard]] UE5CORO_API FLatentPromise : public FPromise
 {
 public:
-	enum ELatentState
-	{
-		LatentRunning,
-		AsyncRunning,
-		DeferredDestroy,
-		Canceled,
-		Done,
-	};
+    enum ELatentState
+    {
+        LatentRunning,
+        AsyncRunning,
+        DeferredDestroy,
+        Canceled,
+        Done,
+    };
 
 private:
-	UWorld* World = nullptr;
-	void* PendingLatentCoroutine = nullptr;
-	std::atomic<ELatentState> LatentState = LatentRunning;
-	ELatentExitReason ExitReason = static_cast<ELatentExitReason>(0);
+    UWorld* World = nullptr;
+    void* PendingLatentCoroutine = nullptr;
+    std::atomic<ELatentState> LatentState = LatentRunning;
+    ELatentExitReason ExitReason = static_cast<ELatentExitReason>(0);
 
-	void CreateLatentAction(FLatentActionInfo&&);
-	void Init();
-	void Init(const UObject*, auto&...);
-	void Init(FLatentActionInfo, auto&...);
-	void Init(auto&, auto&...);
+    void CreateLatentAction(FLatentActionInfo&&);
+    void Init();
+    void Init(const UObject*, auto&...);
+    void Init(FLatentActionInfo, auto&...);
+    void Init(auto&, auto&...);
 
 public:
-	explicit FLatentPromise(auto&&...);
-	~FLatentPromise();
-	void Resume();
-	void ThreadSafeDestroy();
+    explicit FLatentPromise(auto&&...);
+    ~FLatentPromise();
+    void Resume();
+    void ThreadSafeDestroy();
 
-	ELatentState GetLatentState() const { return LatentState.load(); }
-	void AttachToGameThread(); // AsyncRunning -> LatentRunning
-	void DetachFromGameThread(); // LatentRunning -> AsyncRunning
-	void LatentCancel(); // LatentRunning -> Canceled
+    ELatentState GetLatentState() const { return LatentState.load(); }
+    void AttachToGameThread(); // AsyncRunning -> LatentRunning
+    void DetachFromGameThread(); // LatentRunning -> AsyncRunning
+    void LatentCancel(); // LatentRunning -> Canceled
 
-	ELatentExitReason GetExitReason() const { return ExitReason; }
-	void SetExitReason(ELatentExitReason Reason);
-	void SetCurrentAwaiter(FLatentAwaiter*);
+    ELatentExitReason GetExitReason() const { return ExitReason; }
+    void SetExitReason(ELatentExitReason Reason);
+    void SetCurrentAwaiter(FLatentAwaiter*);
 
-	FInitialSuspend initial_suspend();
-	std::suspend_always final_suspend() noexcept { return {}; }
-	void return_void();
+    FInitialSuspend initial_suspend();
+    std::suspend_always final_suspend() noexcept { return {}; }
+    void return_void();
 
-	template<typename T>
-	decltype(auto) await_transform(T&& Awaitable)
-	{
-		return TAwaitTransform<FLatentPromise, std::remove_reference_t<T>>()
-			(std::forward<T>(Awaitable));
-	}
+    template<typename T>
+    decltype(auto) await_transform(T&& Awaitable)
+    {
+        return TAwaitTransform<FLatentPromise, std::remove_reference_t<T>>()
+            (std::forward<T>(Awaitable));
+    }
 };
 
 FLatentPromise::FLatentPromise(auto&&... Args)
-	: FPromise(TEXT("Latent"))
+    : FPromise(TEXT("Latent"))
 {
-	checkf(IsInGameThread(),
-	       TEXT("Latent coroutines may only be started on the game thread"));
+    checkf(IsInGameThread(),
+           TEXT("Latent coroutines may only be started on the game thread"));
 
-	Init(Args...); // Deliberately not forwarding to force lvalue references
+    Init(Args...); // Deliberately not forwarding to force lvalue references
 }
 
 void FLatentPromise::Init(const UObject* WorldContext, auto&... Args)
 {
-	// Keep trying to find a world from the UObjects passed in
-	if (!World && WorldContext)
-		World = WorldContext->GetWorld(); // null is fine
+    // Keep trying to find a world from the UObjects passed in
+    if (!World && WorldContext)
+        World = WorldContext->GetWorld(); // null is fine
 
-	Init(Args...);
+    Init(Args...);
 }
 
 void FLatentPromise::Init(FLatentActionInfo LatentInfo, auto&... Args)
 {
-	// The static_assert on coroutine_traits prevents this
-	check(!PendingLatentCoroutine);
-	CreateLatentAction(std::move(LatentInfo));
+    // The static_assert on coroutine_traits prevents this
+    check(!PendingLatentCoroutine);
+    CreateLatentAction(std::move(LatentInfo));
 
-	Init(Args...);
+    Init(Args...);
 }
 
 void FLatentPromise::Init(auto& First, auto&... Args)
 {
-	// Convert UObject& to UObject* for world context
-	if constexpr (std::is_convertible_v<decltype(First), const UObject&>)
-		Init(static_cast<const UObject*>(std::addressof(First)), Args...);
-	else
-		Init(Args...);
+    // Convert UObject& to UObject* for world context
+    if constexpr (std::is_convertible_v<decltype(First), const UObject&>)
+        Init(static_cast<const UObject*>(std::addressof(First)), Args...);
+    else
+        Init(Args...);
 }
 }
