@@ -230,9 +230,9 @@ bool UWeaponBase::CheckRaycastToTarget(const FVector& origin, const FVector& dir
     return false;
 }
 
-void UWeaponBase::FiringDelay()
+FAsyncCoroutine UWeaponBase::FiringDelay()
 {
-    // yield return new WaitForSeconds(currentReloadTime);
+    co_await Coroutines::Latent::Seconds(m_reloadTime);
 
     if (m_weaponTransform.IsValid())
         m_weaponAnimation->SetDefaultState();

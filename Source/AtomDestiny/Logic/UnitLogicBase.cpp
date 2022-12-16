@@ -116,7 +116,7 @@ void UUnitLogicBase::RotateToTarget(float deltaTime)
 FAsyncCoroutine UUnitLogicBase::StartScanDelay()
 {
     m_canScan = false;
-    co_await UE5Coro::Latent::Seconds(m_scanDelay);
+    co_await Coroutines::Latent::Seconds(m_scanDelay);
     m_canScan = true;
 }
 

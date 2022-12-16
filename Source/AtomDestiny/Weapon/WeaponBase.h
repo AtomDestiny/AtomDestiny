@@ -6,6 +6,8 @@
 #include <AtomDestiny/Core/ADObject/ADObject.h>
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 
+#include <UE5Coro/Public/UE5Coro.h>
+
 #include "WeaponBase.generated.h"
 
 ///
@@ -138,7 +140,7 @@ protected:
     bool CheckRaycastToTarget(const FVector& origin, const FVector& direction) const;
     
     // Reload coroutine for reset fire
-    void FiringDelay();
+    FAsyncCoroutine FiringDelay();
     
     // Recalculates weapon parameter
     virtual void RecalculateParameter(EObjectParameters parameter) override;
