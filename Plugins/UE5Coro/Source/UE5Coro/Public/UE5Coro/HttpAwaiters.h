@@ -33,7 +33,7 @@
 
 #include "CoreMinimal.h"
 #include "UE5Coro/Definitions.h"
-#include <coroutine>
+#include "Coroutines.h"
 #include <optional>
 #include "Interfaces/IHttpRequest.h"
 #include "Misc/SpinLock.h"

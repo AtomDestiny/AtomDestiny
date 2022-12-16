@@ -34,20 +34,18 @@ using UnrealBuildTool;
 
 public class UE5Coro : ModuleRules
 {
-	public UE5Coro(ReadOnlyTargetRules Target)
-		: base(Target)
-	{
-		CppStandard = CppStandardVersion.Cpp20;
-		bUseUnity = false;
+    public UE5Coro(ReadOnlyTargetRules Target)
+        : base(Target)
+    {
+        CppStandard = CppStandardVersion.Cpp20;
+        bUseUnity = false;
 
-		PublicDependencyModuleNames.AddRange(new[]
-		{
-			"Core",
-			"CoreUObject",
-			"Engine",
-			"HTTP",
-		});
-		
-		// PublicDefinitions.Add("_SILENCE_ALL_CXX20_DEPRECATION_WARNINGS");
-	}
+        PublicDependencyModuleNames.AddRange(new[]
+        {
+            "Core",
+            "CoreUObject",
+            "Engine",
+            "HTTP",
+        });
+    }
 }

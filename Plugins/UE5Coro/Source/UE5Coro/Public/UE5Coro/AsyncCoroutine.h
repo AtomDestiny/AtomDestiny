@@ -34,14 +34,12 @@
 #include "CoreMinimal.h"
 #include "UE5Coro/Definitions.h"
 #include <atomic>
-#include <coroutine>
+#include "Coroutines.h"
 #include <variant>
 #include "Engine/LatentActionManager.h"
 #include "AsyncCoroutine.generated.h"
 
-#ifndef __cpp_lib_coroutine
-#error UE5Coro requires C++20.
-#endif
+using namespace coro;
 
 namespace UE5Coro::Private
 {
@@ -109,7 +107,7 @@ public:
 };
 
 template<typename... Args>
-struct std::coroutine_traits<FAsyncCoroutine, Args...>
+struct coroutine_traits<FAsyncCoroutine, Args...>
 {
 	static constexpr int LatentInfoCount =
 		(0 + ... + std::is_convertible_v<Args, FLatentActionInfo>);

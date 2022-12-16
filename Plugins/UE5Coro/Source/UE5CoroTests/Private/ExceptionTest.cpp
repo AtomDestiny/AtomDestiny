@@ -48,10 +48,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExceptionTest, "UE5Coro.Exceptions",
 
 namespace
 {
-struct FTestException : std::exception
+struct FTestException : std::runtime_error
 {
 	explicit FTestException(const char* What)
-		: exception(What)
+		: runtime_error(What)
 	{
 	}
 };

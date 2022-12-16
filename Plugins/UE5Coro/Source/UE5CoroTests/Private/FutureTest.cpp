@@ -35,6 +35,7 @@
 
 using namespace UE5Coro;
 using namespace UE5Coro::Private::Test;
+using namespace coro;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFutureAsync, "UE5Coro.Future.Async",
                                  EAutomationTestFlags::ApplicationContextMask |
@@ -48,7 +49,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFutureLatent, "UE5Coro.Future.Latent",
 
 // MSVC workaround - DoTest is not a coroutine but it won't compile without this
 template<>
-struct std::coroutine_traits<void, FAutomationTestBase&>
+struct coroutine_traits<void, FAutomationTestBase&>
 {
 	using promise_type = UE5Coro::Private::FAsyncPromise;
 };

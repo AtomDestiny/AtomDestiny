@@ -34,6 +34,7 @@
 
 using namespace UE5Coro;
 using namespace UE5Coro::Private;
+using namespace coro;
 
 FHttpAwaiter Http::ProcessAsync(FHttpRequestRef Request)
 {
@@ -53,7 +54,7 @@ bool FHttpAwaiter::await_ready()
 {
 	Lock.Lock();
 
-	checkCode(std::visit([](std::coroutine_handle<> Handle)
+	checkCode(std::visit([](coroutine_handle<> Handle)
 	{
 		checkf(!Handle, TEXT("Attempting to reuse HTTP awaiter"));
 	}, Handle));
