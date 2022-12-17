@@ -6,9 +6,8 @@
 UENUM(BlueprintType)
 enum class EGameSide : uint8
 {
-    None,
     Rebels,
     Federation,
     Neutral,
-    NeutralBuildings,
+    None,
 };

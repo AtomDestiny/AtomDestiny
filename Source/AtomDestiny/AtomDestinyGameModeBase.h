@@ -37,6 +37,9 @@ protected:
     void OnUnitDestroyed(AActor* actor, EGameSide side, EUnitType unitType);
 
 private:
+    void InitializeSides();
+    void InitializeEnemies();
+    
     struct GameModeBasePrivateData;
     GameModeBasePrivateData* m_impl = nullptr; // not std::unique_ptr because of virtual destructor
 };
