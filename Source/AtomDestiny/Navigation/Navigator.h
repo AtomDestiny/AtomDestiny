@@ -23,6 +23,7 @@ public:
 
     // move pawn to actor
     void Move(AActor* target);
+    void Move(const FVector& point);
     void Stop();
     
     void SetSpeed(double speed);

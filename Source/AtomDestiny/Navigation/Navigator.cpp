@@ -16,9 +16,15 @@ void ANavigator::SetMovementComponent(UFloatingPawnMovement* component)
 void ANavigator::Move(AActor* target)
 {
     check(target != nullptr)
-    m_target = TWeakObjectPtr<AActor>{target};
+    m_target = MakeWeakObjectPtr(target);
     
     MoveToActor(m_target.Get());
+}
+
+void ANavigator::Move(const FVector& point)
+{
+    m_target = nullptr;
+    MoveToLocation(point);
 }
 
 void ANavigator::Stop()
