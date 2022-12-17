@@ -2,9 +2,10 @@
 
 #include <vector>
 #include <unordered_map>
+#include <ranges>
+#include <memory>
 
 // ReSharper disable once CppUnusedIncludeDirective
-#include <ranges>
 #include <AtomDestiny/Core/Hash.h>
 #include <AtomDestiny/Logic/UnitLogicBase.h>
 
@@ -16,6 +17,7 @@
 //
 using UnitList = std::vector<TWeakObjectPtr<AActor>>;
 using SharedUnitList = std::shared_ptr<UnitList>;
+using SharedEnemiesList = std::shared_ptr<std::vector<SharedUnitList>>;
 
 // Place core data here
 struct AAtomDestinyGameStateBase::GameStateBasePrivateData
@@ -24,7 +26,7 @@ struct AAtomDestinyGameStateBase::GameStateBasePrivateData
     std::unordered_map<EGameSide, SharedUnitList> activeUnits;
 
     // represents 
-    std::unordered_map<EGameSide, std::vector<SharedUnitList>> enemies;
+    std::unordered_map<EGameSide, SharedEnemiesList> enemies;
 };
 
 AAtomDestinyGameStateBase::AAtomDestinyGameStateBase() :
@@ -101,12 +103,12 @@ void AAtomDestinyGameStateBase::InitializeEnemies()
 {
     for (const EGameSide side : m_impl->activeUnits | std::views::keys)
     {
-        m_impl->enemies.insert(std::make_pair(side, std::vector<SharedUnitList>{}));
+        m_impl->enemies.insert(std::make_pair(side, SharedEnemiesList{}));
 
         for (const EGameSide s : m_impl->activeUnits | std::views::keys)
         {
             if (side != s && side != EGameSide::None)
-                m_impl->enemies[side].push_back(m_impl->activeUnits[s]);
+                m_impl->enemies[side]->push_back(m_impl->activeUnits[s]);
         }
     }
 }
