@@ -1,11 +1,11 @@
 ﻿#include "UnitState.h"
 
 #include <AtomDestiny/Core/ActorComponentUtils.h>
-
-#include "Core/ADObject/Parameterizable.h"
+#include <AtomDestiny/Core/ADObject/Parameterizable.h>
 
 double UUnitState::GetVelocity() const
 {
+    // TODO: when we should have an animator, change speed of animator
     // if (unitAnimation != null)
     //     speed = GetComponent<Animator>().speed;
     // else
@@ -281,6 +281,9 @@ void UUnitState::InitializeComponent()
         UE_LOG(LogTemp, Error, TEXT("Unit logic is invalid"));
         throw std::runtime_error("Unit logic is invalid");
     }
+
+    UActorComponent* component = AtomDestiny::Utils::FindComponentByName(GetOwner(), "GroundPoint");
+    m_groundPoint = MakeWeakObjectPtr(CastChecked<USceneComponent>(component));
 }
 
 void UUnitState::SetEnabled(bool enabled)

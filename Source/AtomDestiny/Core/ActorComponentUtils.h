@@ -33,6 +33,18 @@ namespace AtomDestiny::Utils
         return AddNewComponentToActor<Component>(object.Get());
     }
 
+    // Searches component by Name
+    [[nodiscard]] inline UActorComponent* FindComponentByName(const AActor* actor, const char* name)
+    {
+        for (UActorComponent* const component : actor->GetComponents())
+        {
+            if (component->GetName() == name)
+                return component;
+        }
+
+        return nullptr;
+    }
+
     template<typename Interface, typename UEInterface>
     TScriptInterface<Interface> CreateInterface(UEInterface* object)
     {
