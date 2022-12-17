@@ -2,10 +2,10 @@
 
 #include "GameDestination.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FGameDestination
 {
-    GENERATED_BODY(BlueprintType)
+    GENERATED_BODY()
 
     TWeakObjectPtr<AActor> playerDestination;
     TWeakObjectPtr<AActor> enemyDestination;

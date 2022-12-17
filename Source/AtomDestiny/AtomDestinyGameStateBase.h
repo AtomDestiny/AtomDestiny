@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <AtomDestiny/AtomDestiny.h>
+
 #include <AtomDestiny/Unit/Unit.h>
 #include <AtomDestiny/Gameplay/GameDestination.h>
 
@@ -26,6 +28,7 @@ public:
     void RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
 
     TWeakObjectPtr<AActor> GetDestination(EGameSide side) const;
+    FSharedEnemiesList GetEnemies(EGameSide side) const;
 
 protected:
     
@@ -39,7 +42,7 @@ protected:
     UFUNCTION()
     void OnUnitDestroyed(AActor* actor, EGameSide side, EUnitType unitType);
 
-private:
+    
     void InitializeSides();
     void InitializeEnemies();
 

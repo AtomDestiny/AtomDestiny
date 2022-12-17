@@ -1,9 +1,7 @@
 ﻿#include "AtomDestinyGameStateBase.h"
 
-#include <vector>
 #include <unordered_map>
 #include <ranges>
-#include <memory>
 
 // ReSharper disable once CppUnusedIncludeDirective
 #include <AtomDestiny/Core/Hash.h>
@@ -11,22 +9,14 @@
 
 #include <Engine/Classes/GameFramework/Actor.h>
 
-//
-// We should use vector instead of hash because units would mostly iterate through this list.
-// Search, addition and removing is not a super frequency operation.
-//
-using UnitList = std::vector<TWeakObjectPtr<AActor>>;
-using SharedUnitList = std::shared_ptr<UnitList>;
-using SharedEnemiesList = std::shared_ptr<std::vector<SharedUnitList>>;
-
 // Place core data here
 struct AAtomDestinyGameStateBase::GameStateBasePrivateData
 {
     // represents active units at overall battle
-    std::unordered_map<EGameSide, SharedUnitList> activeUnits;
+    std::unordered_map<EGameSide, FSharedGameStateUnitList> activeUnits;
 
     // represents 
-    std::unordered_map<EGameSide, SharedEnemiesList> enemies;
+    std::unordered_map<EGameSide, FSharedEnemiesList> enemies;
 };
 
 AAtomDestinyGameStateBase::AAtomDestinyGameStateBase() :
@@ -46,18 +36,18 @@ AAtomDestinyGameStateBase::~AAtomDestinyGameStateBase()
 
 void AAtomDestinyGameStateBase::AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side)
 {
-    UnitList& unitList = *(m_impl->activeUnits[side]);
+    FGameStateUnitList& unitList = *(m_impl->activeUnits[side]);
 
-    if (const auto iter = std::find(std::begin(unitList), std::end(unitList), actor); iter == std::end(unitList))
-        unitList.push_back(std::move(actor));
+    if (const auto index = unitList.Find(actor); index == INDEX_NONE)
+        unitList.Add(std::move(actor));
 }
 
 void AAtomDestinyGameStateBase::RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side)
 {
-    UnitList& unitList = *(m_impl->activeUnits[side]);
+    FGameStateUnitList& unitList = *(m_impl->activeUnits[side]);
 
-    if (const auto iter = std::find(std::begin(unitList), std::end(unitList), actor); iter != std::end(unitList))
-        unitList.erase(iter);
+    if (const auto index = unitList.Find(actor); index == INDEX_NONE)
+        unitList.RemoveAt(index);
 }
 
 TWeakObjectPtr<AActor> AAtomDestinyGameStateBase::GetDestination(EGameSide side) const
@@ -78,6 +68,11 @@ TWeakObjectPtr<AActor> AAtomDestinyGameStateBase::GetDestination(EGameSide side)
     }
 }
 
+FSharedEnemiesList AAtomDestinyGameStateBase::GetEnemies(EGameSide side) const
+{
+    return m_impl->enemies[side];
+}
+
 void AAtomDestinyGameStateBase::OnUnitCreated(AActor* actor, EGameSide side, EUnitType)
 {
     AddUnit(MakeWeakObjectPtr(actor), side);
@@ -95,7 +90,7 @@ void AAtomDestinyGameStateBase::InitializeSides()
     for (uint8 side = 0; side < lastSide; ++side)
     {
         if (const EGameSide currentSide = static_cast<EGameSide>(side); !m_impl->activeUnits.contains(currentSide))
-            m_impl->activeUnits.insert(std::make_pair(currentSide, std::make_shared<UnitList>()));
+            m_impl->activeUnits.insert(std::make_pair(currentSide, MakeShared<FGameStateUnitList>()));
     }
 }
 
@@ -103,12 +98,12 @@ void AAtomDestinyGameStateBase::InitializeEnemies()
 {
     for (const EGameSide side : m_impl->activeUnits | std::views::keys)
     {
-        m_impl->enemies.insert(std::make_pair(side, SharedEnemiesList{}));
+        m_impl->enemies.insert(std::make_pair(side, FSharedEnemiesList{}));
 
         for (const EGameSide s : m_impl->activeUnits | std::views::keys)
         {
             if (side != s && side != EGameSide::None)
-                m_impl->enemies[side]->push_back(m_impl->activeUnits[s]);
+                m_impl->enemies[side]->Add(m_impl->activeUnits[s]);
         }
     }
 }

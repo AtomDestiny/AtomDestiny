@@ -11,3 +11,12 @@ enum class EGameSide : uint8
     Neutral,
     None,
 };
+
+
+//
+// We should use vector instead of hash because units would mostly iterate through this list.
+// Search, addition and removing is not a super frequency operation.
+//
+using FGameStateUnitList = TArray<TWeakObjectPtr<AActor>>;
+using FSharedGameStateUnitList = TSharedRef<FGameStateUnitList>;
+using FSharedEnemiesList = TSharedRef<TArray<FSharedGameStateUnitList>>;
