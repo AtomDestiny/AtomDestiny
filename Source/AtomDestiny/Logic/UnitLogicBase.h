@@ -7,8 +7,6 @@
 #include <AtomDestiny/Unit/Animation.h>
 #include <AtomDestiny/Navigation/Navigator.h>
 
-#include <UE5Coro/Public/UE5Coro.h>
-
 #include "UnitLogicBase.generated.h"
 
 ///
@@ -54,7 +52,7 @@ public:
     virtual void SetDestination(AActor* destination) ABSTRACT_METHOD;
     
     /// Sets destination to vector point
-    virtual void SetDestinationByPoint(FVector destination) ABSTRACT_METHOD;
+    virtual void SetDestinationByPoint(const FVector& destination) ABSTRACT_METHOD;
 
     ///
     /// events
@@ -74,9 +72,6 @@ protected:
     
     // Checks and rotates actor to target
     void RotateToTarget(float deltaTime);
-    
-    // Scan helper
-    FAsyncCoroutine StartScanDelay();
     
     // Checks hashed scan delay
     void CheckScanDelay(float deltaTime);

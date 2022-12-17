@@ -57,7 +57,7 @@ public:
 
     // Overloaded setting destination to logic as point
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual void SetDestinationByPoint(FVector destination) = 0;
+    virtual void SetDestinationByPoint(const FVector& destination) = 0;
 
     // Recalculates base unit parameters
     UFUNCTION(Meta = (AllowOverride = true))

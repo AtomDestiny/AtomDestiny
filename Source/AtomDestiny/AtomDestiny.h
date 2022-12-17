@@ -12,7 +12,6 @@ enum class EGameSide : uint8
     None,
 };
 
-
 //
 // We should use vector instead of hash because units would mostly iterate through this list.
 // Search, addition and removing is not a super frequency operation.

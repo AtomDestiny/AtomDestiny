@@ -111,18 +111,11 @@ void UUnitLogicBase::RotateToTarget(float deltaTime)
     GetOwner()->SetActorRotation(lookRotation);
 }
 
-FAsyncCoroutine UUnitLogicBase::StartScanDelay()
-{
-    m_canScan = false;
-    co_await Coroutines::Latent::Seconds(m_scanDelay);
-    m_canScan = true;
-}
-
 void UUnitLogicBase::CheckScanDelay(float deltaTime)
 {
     if (!m_canScan)
     {
-        m_scanDelayCounter += deltaTime;
+        m_scanDelayCounter += static_cast<double>(deltaTime);
 
         if (m_scanDelayCounter >= m_scanDelay)
         {
