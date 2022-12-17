@@ -17,7 +17,7 @@ struct FUnitStateParameters
     GENERATED_BODY()
 
     double velocity = 0;
-    double weaponCount = 0;
+    int32 weaponCount = 0;
     double currentHealth = 0;
     double maxHealth = 0;
     double currentShieldValue = 0;
@@ -27,12 +27,12 @@ struct FUnitStateParameters
     EDefenceType defenceType;
     EUnitType unitType;
     bool hasShield = false;
-    const TArray<TScriptInterface<IWeapon>>& weaponList;
+    TArray<TScriptInterface<IWeapon>> weaponList;
     double maxDamage = 0;
     double minDamage = 0;
     double maxRange = 0;
     double minRange = 0;
     bool isAnyWeaponCritical = false;
     bool isAnyWeaponAoe = false;
-    uint32_t minerals = 0;
+    int32 minerals = 0;
 };
