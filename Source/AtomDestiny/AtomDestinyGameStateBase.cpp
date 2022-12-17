@@ -1,13 +1,50 @@
 ﻿#include "AtomDestinyGameStateBase.h"
 
-#include <unordered_map>
 #include <ranges>
+#include <unordered_set>
+#include <unordered_map>
 
 // ReSharper disable once CppUnusedIncludeDirective
 #include <AtomDestiny/Core/Hash.h>
 #include <AtomDestiny/Logic/UnitLogicBase.h>
 
 #include <Engine/Classes/GameFramework/Actor.h>
+
+#include "Core/ActorComponentUtils.h"
+
+namespace 
+{
+    constexpr double MinimalCriticalRange = 0;
+    constexpr double MaximumCriticalRange = 100;
+    
+    FVector GetImpactPoint(const TScriptInterface<IProjectile>& projectile, EProjectileDamageOptions options)
+    {
+        switch (options)
+        {
+        case EProjectileDamageOptions::ProjectilePoint:
+            return CastChecked<AActor>(projectile.GetInterface())->GetActorLocation();
+
+        case EProjectileDamageOptions::ImpactPoint:
+            return projectile->GetPoints().impactPosition;
+
+        case EProjectileDamageOptions::TargetPoint:
+            return projectile->GetParameters().target->GetActorLocation();
+            
+        default:
+            return FVector{};
+        }
+    }
+
+    // calculates critical damage if it is possible
+    double CalculatePossibleCriticalDamage(double criticalChance, double criticalRate, double damage)
+    {
+        if (const double generatedValue = FMath::RandRange(MinimalCriticalRange, MaximumCriticalRange); generatedValue < criticalChance)
+            damage *= criticalRate;
+
+        return damage;
+    }
+    
+} // namespace
 
 // Place core data here
 struct AAtomDestinyGameStateBase::GameStateBasePrivateData
@@ -71,6 +108,60 @@ TWeakObjectPtr<AActor> AAtomDestinyGameStateBase::GetDestination(EGameSide side)
 FSharedEnemiesList AAtomDestinyGameStateBase::GetEnemies(EGameSide side) const
 {
     return m_impl->enemies[side];
+}
+
+void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& projectile, EProjectileDamageOptions options)
+{
+    if (projectile == nullptr)
+        return;
+    
+    const FWeaponParameters& weaponParameters = projectile->GetParameters();
+
+    if (weaponParameters.explosionRadius > 0)
+    {
+        const FVector impactPoint = GetImpactPoint(projectile, options);
+        const UWorld* world = projectile->GetParameters().owner->GetWorld();
+
+        TArray<FOverlapResult> collisionResult;
+        FCollisionShape sphere;
+        sphere.SetSphere(weaponParameters.explosionRadius);
+        
+        if (world->OverlapMultiByObjectType(collisionResult, impactPoint, FQuat::Identity, FCollisionObjectQueryParams::DefaultObjectQueryParam, sphere))
+        {
+            std::unordered_set<AActor*> filteredActors;
+
+            for (const FOverlapResult& overlapResult : collisionResult)
+            {
+                AActor* actor = overlapResult.GetActor();
+                
+                if (!filteredActors.contains(actor))
+                {
+                    filteredActors.insert(actor);
+
+                    if (const TScriptInterface<IObjectState> objectState = GET_ACTOR_INTERFACE(ObjectState, actor); objectState != nullptr)
+                        AddDamageToState(objectState, weaponParameters);
+                }
+            }
+        }
+    }
+    else
+    {
+        if (const TScriptInterface<IObjectState> objectState = GET_ACTOR_INTERFACE(ObjectState, weaponParameters.target.Get()); objectState != nullptr)
+            AddDamageToState(objectState, weaponParameters);
+    }
+}
+
+void AAtomDestinyGameStateBase::AddDamageToState(const TScriptInterface<IObjectState>& objectState, const FWeaponParameters& parameters)
+{
+    double resultDamage = parameters.damage;
+
+    if (parameters.criticalChance > 0 && parameters.criticalRate > 1)
+    {
+        resultDamage = CalculatePossibleCriticalDamage(parameters.criticalChance, parameters.criticalRate, resultDamage);
+    }
+
+    if (objectState != nullptr)
+        objectState->AddDamage(resultDamage, parameters.weaponType, parameters.owner.Get());
 }
 
 void AAtomDestinyGameStateBase::OnUnitCreated(AActor* actor, EGameSide side, EUnitType)

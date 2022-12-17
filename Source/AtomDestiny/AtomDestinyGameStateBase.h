@@ -5,6 +5,9 @@
 #include <AtomDestiny/Unit/Unit.h>
 #include <AtomDestiny/Gameplay/GameDestination.h>
 
+#include <AtomDestiny/Weapon/Projectile.h>
+#include <AtomDestiny/ObjectState/ObjectState.h>
+
 #include <Runtime/Engine/Classes/GameFramework/GameStateBase.h>
 #include <Core/Public/Templates/UnrealTemplate.h>
 
@@ -30,6 +33,14 @@ public:
 
     TWeakObjectPtr<AActor> GetDestination(EGameSide side) const;
     FSharedEnemiesList GetEnemies(EGameSide side) const;
+    
+    // Adds damage from projectile to object with explosion point parameters
+    UFUNCTION()
+    static void AddDamage(const TScriptInterface<IProjectile>& projectile, EProjectileDamageOptions options = EProjectileDamageOptions::ProjectilePoint);
+
+    // Adds damage to ObjectState directly
+    UFUNCTION()
+    static void AddDamageToState(const TScriptInterface<IObjectState>& objectState, const FWeaponParameters& parameters);
 
 protected:
     
