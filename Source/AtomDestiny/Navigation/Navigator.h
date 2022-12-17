@@ -28,12 +28,17 @@ public:
     
     void SetSpeed(double speed);
     double GetSpeed() const;
-    
+
+    void SetStopDistance(double distance);
     double GetStopDistance() const;
+
+    double GetRemainingDistance() const;
 
 private:
     double m_stopDistance = 1.0f;
     
     TWeakObjectPtr<AActor> m_target;
     TWeakObjectPtr<UFloatingPawnMovement> m_pawnMovement;
+
+    FVector m_targetPoint;
 };
