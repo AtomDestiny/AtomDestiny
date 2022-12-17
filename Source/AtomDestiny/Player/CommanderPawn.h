@@ -7,6 +7,8 @@
 
 #include "CommanderPawn.generated.h"
 
+struct FInputActionValue;
+
 ///
 /// Class for player controllable simple pawn looking down to the ground
 ///
@@ -30,7 +32,9 @@ public:
     // Called every frame
     virtual void Tick(float deltaTime) override;
 
-    void Move(const struct FInputActionValue& actionValue);
+    void OnMoveAction(const FInputActionValue& actionValue);
+    void OnRotateAction(const FInputActionValue& actionValue);
+    void OnResetAction(const FInputActionValue& actionValue);
 
     // Called to bind functionality to input
     virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
@@ -51,4 +55,21 @@ protected:
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Move scale"))
     float m_moveScale;
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Rotate scale"))
+    float m_rotateScale;
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Min height"))
+    float m_minHeight;
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Max height"))
+    float m_maxHeight;
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Max horizontal distance"))
+    float m_absHorizDist;
+
+private:
+    FBox m_worldBox;
+    FVector m_startPos;
+    FRotator m_startRot;
 };

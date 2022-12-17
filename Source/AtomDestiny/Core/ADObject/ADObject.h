@@ -30,7 +30,7 @@ class ATOMDESTINY_API UADObject : public USceneComponent, public IParameterizabl
     using ObjectEnhancementParameters = std::unordered_map<EObjectParameters, GameObjectPairParameterList>;
 
 public:
-    using USceneComponent::USceneComponent;
+    explicit UADObject();
 
     UFUNCTION(Meta = (AllowOverride = true))
     virtual void AddParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement) override;
@@ -41,8 +41,10 @@ public:
     UFUNCTION(Meta = (AllowOverride = true))
     virtual void ZeroParameter(EObjectParameters parameter, const FParameterZeroPack& pack) override;
 
+    ///
     /// Interprets ParameterEnhancement values and returns resulting value
-    static float InterpretParameterModifier(float baseValue, const FParameterEnhancement& enhancement);
+    /// 
+    static double InterpretParameterModifier(double baseValue, const FParameterEnhancement& enhancement);
 
 protected:
     
@@ -71,6 +73,10 @@ protected:
 
     // Removes enhancement value from parameter
     void RemoveFromParameter(EObjectParameters parameter, const TWeakObjectPtr<AActor>& enhanceObject);
+
+    // Recalculates value from start value from all exists parameters.
+    // GetParameterAvailable use before to check possible parameter problems.
+    double CalculateParametersFromAll(const double startValue, EObjectParameters parameter) const;
 
 private:
     

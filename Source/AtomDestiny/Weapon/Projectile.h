@@ -7,6 +7,17 @@
 
 #include "Projectile.generated.h"
 
+///
+/// Defines which point use to calculate damage at Game state
+///
+UENUM(BlueprintType)
+enum class EProjectileDamageOptions : uint8
+{
+    ProjectilePoint,
+    ImpactPoint,
+    TargetPoint
+};
+
 UINTERFACE(MinimalAPI, Blueprintable)
 class UProjectile : public UInterface
 {

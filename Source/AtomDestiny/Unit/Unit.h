@@ -24,3 +24,22 @@ enum class EUnitSize : uint8
     Medium = 2,
     Huge = 3
 };
+
+///
+/// Defines to unit what to do.
+/// Means work for navigation.
+///
+UENUM(BlueprintType)
+enum class EUnitBehaviour : uint8
+{
+    MoveToPoint,
+    MoveToTransform,
+    Standing
+};
+
+namespace AtomDestiny::Unit
+{
+    constexpr static double MinRandomScan = 0.020;
+    constexpr static double MaxRandomScan = 0.180;
+    
+} // namespace AtomDestiny::Unit

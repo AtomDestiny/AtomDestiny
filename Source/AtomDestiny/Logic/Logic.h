@@ -4,7 +4,7 @@
 
 #include <AtomDestiny/Unit/Unit.h>
 #include <AtomDestiny/Weapon/Weapon.h>
-#include <AtomDestiny/Core/AtomDestinyCore.h>
+#include <AtomDestiny/AtomDestiny.h>
 
 #include "Logic.generated.h"
 
@@ -37,15 +37,15 @@ public:
 
     // Returns current unit cost
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual int GetCost() const = 0;
+    virtual int32 GetCost() const = 0;
 
     // Returns logic binded weapon collections
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual TArray<TScriptInterface<IWeapon>>& GetAllWeapon() = 0;
+    virtual const TArray<TScriptInterface<IWeapon>>& GetAllWeapon() const = 0;
 
     // Returns max base unit velocity
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual float GetVelocity() const = 0;
+    virtual double GetVelocity() const = 0;
 
     // Sets side to unit
     UFUNCTION(Meta = (AllowOverride = true))
@@ -57,7 +57,7 @@ public:
 
     // Overloaded setting destination to logic as point
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual void SetDestinationByPoint(FVector destination) = 0;
+    virtual void SetDestinationByPoint(const FVector& destination) = 0;
 
     // Recalculates base unit parameters
     UFUNCTION(Meta = (AllowOverride = true))

@@ -23,6 +23,6 @@ struct FParameterEnhancement
     GENERATED_BODY()
     
     TWeakObjectPtr<AActor> enhancementObject;
-    float value;
+    double value = 0;
     EParameterModifier modifier;
 };

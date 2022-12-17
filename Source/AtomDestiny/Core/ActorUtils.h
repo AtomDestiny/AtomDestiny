@@ -9,7 +9,7 @@ namespace AtomDestiny::Utils
     ///
     /// Sets actor enabled or disabled.
     /// Common interface to Unity.
-    /// 
+    ///
     inline void SetActorActive(AActor* actor, const bool status)
     {
         assert(actor != nullptr);
