@@ -288,25 +288,21 @@ void UUnitState::InitializeComponent()
 
 void UUnitState::SetEnabled(bool enabled)
 {
-    // TODO: make it valid
-    // //get navigation
-    // var navigation = GetComponent<UnityEngine.AI.NavMeshAgent>();
-    //
-    // //navigation off
-    // if (navigation)
-    //     navigation.isStopped = !enabled;
-    //
-    // if (unitLogic != null)
-    // {
-    //     //logic off
-    //     ((MonoBehaviour)unitLogic).enabled = enabled;
-    //
-    //     //weapons off
-    //     for (int i = 0; i < unitWeapons.Count; ++i)
-    //         ((MonoBehaviour)(unitWeapons[i])).enabled = enabled;
-    //
-    //     //animation off
+    CastChecked<UActorComponent>(m_logic.GetInterface())->SetComponentTickEnabled(enabled);
+    GetNavigation()->SetActorTickEnabled(enabled);
+    
+    for (const TScriptInterface<IWeapon>& weapon : GetWeapons())
+    {
+        CastChecked<UActorComponent>(weapon.GetInterface())->SetComponentTickEnabled(enabled);
+    }
+
+    // TODO: make animation enabled
     //     if (unitAnimation != null)
     //         GetComponent<Animator>().enabled = enabled;
-    // }
+}
+
+TWeakObjectPtr<ANavigator> UUnitState::GetNavigation() const
+{
+    const APawn* pawn = CastChecked<APawn>(GetOwner());
+    return MakeWeakObjectPtr(CastChecked<ANavigator>(pawn->AIControllerClass));
 }
