@@ -7,11 +7,6 @@ namespace
 {
     constexpr double MaxScanDistance = std::numeric_limits<double>::max();
     
-    AAtomDestinyGameStateBase* GetGameState(const AActor* actor)
-    {
-        return CastChecked<AAtomDestinyGameStateBase>(actor->GetWorld()->GetGameState());
-    }
-    
 } // namespace
 
 void UUnitLogic::UpdateParameters()
@@ -44,7 +39,7 @@ void UUnitLogic::BeginPlay()
     
     CreateDestination();
     
-    m_enemies = GetGameState(GetOwner())->GetEnemies(m_side);
+    m_enemies = AtomDestiny::GetGameState(GetOwner())->GetEnemies(m_side);
 }
 
 void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func)
@@ -68,7 +63,7 @@ void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorCompo
 
 void UUnitLogic::CreateDestination()
 {
-    const TWeakObjectPtr<AActor> destination = GetGameState(GetOwner())->GetDestination(m_side);
+    const TWeakObjectPtr<AActor> destination = AtomDestiny::GetGameState(GetOwner())->GetDestination(m_side);
 
     if (destination.Get() && m_behaviour == EUnitBehaviour::MoveToTransform)
     {

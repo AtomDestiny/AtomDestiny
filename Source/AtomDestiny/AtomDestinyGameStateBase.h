@@ -21,6 +21,7 @@ class ATOMDESTINY_API AAtomDestinyGameStateBase : public AGameStateBase
     GENERATED_BODY()
 
 public:
+    
     AAtomDestinyGameStateBase();
     virtual ~AAtomDestinyGameStateBase() override;
     
@@ -52,3 +53,12 @@ protected:
     struct GameStateBasePrivateData;
     GameStateBasePrivateData* m_impl = nullptr; // not std::unique_ptr because of virtual destructor
 };
+
+namespace AtomDestiny
+{
+    inline AAtomDestinyGameStateBase* GetGameState(const AActor* actor)
+    {
+        return CastChecked<AAtomDestinyGameStateBase>(actor->GetWorld()->GetGameState());
+    }
+    
+} // namespace AtomDestiny
