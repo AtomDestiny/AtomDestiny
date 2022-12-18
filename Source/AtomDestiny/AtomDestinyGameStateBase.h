@@ -5,7 +5,7 @@
 #include <AtomDestiny/Unit/Unit.h>
 #include <AtomDestiny/Gameplay/GameDestination.h>
 
-#include <AtomDestiny/Weapon/Projectile.h>
+#include <AtomDestiny/Projectile/Projectile.h>
 #include <AtomDestiny/ObjectState/ObjectState.h>
 
 #include <Runtime/Engine/Classes/GameFramework/GameStateBase.h>

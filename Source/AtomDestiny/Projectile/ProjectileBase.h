@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <AtomDestiny/Core/Macros.h>
-#include <AtomDestiny/Weapon/Projectile.h>
+#include <AtomDestiny/Projectile/Projectile.h>
 
 #include <Engine/Classes/Components/SceneComponent.h>
 
