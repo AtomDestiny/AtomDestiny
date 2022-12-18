@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include "HashException.h"
-
 #include <Core/Public/Templates/SharedPointer.h>
 
 //
@@ -23,9 +21,7 @@ struct std::hash<TWeakPtr<T>>
 {
     [[nodiscard]] size_t operator()(const TWeakPtr<T>& ptr) const noexcept
     {
-        if (!ptr.IsValid())
-            throw AtomDestiny::HashException("Bad weak ptr at std::hash");
-        
+        check(ptr != nullptr);
         const TSharedPtr<T> pinnedPtr = ptr.Pin();
         return hash<typename TWeakPtr<T>::ElementType*>()(pinnedPtr.Get());
     }
@@ -45,9 +41,7 @@ struct std::hash<TWeakObjectPtr<T>>
 {
     [[nodiscard]] size_t operator()(const TWeakObjectPtr<T>& ptr) const noexcept
     {
-        if (!ptr.IsValid())
-            throw AtomDestiny::HashException("Bad weak object ptr at std::hash");
-        
+        check(ptr != nullptr);
         return hash<T*>()(ptr.Get());
     }
 };
