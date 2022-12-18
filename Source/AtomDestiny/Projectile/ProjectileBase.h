@@ -10,7 +10,7 @@
 ///
 /// Represents common abstract projectile
 ///
-UCLASS()
+UCLASS(Blueprintable)
 class UProjectileBase : public USceneComponent, public IProjectile
 {
     GENERATED_BODY()
@@ -18,20 +18,20 @@ class UProjectileBase : public USceneComponent, public IProjectile
 public:
 
     // Sets projectile points from weapon or another projectile
-    UFUNCTION(Meta = (AllowOverride = true))
-    virtual void SetPoints(const FProjectilePoints& points) override;
+    UFUNCTION()
+    virtual void SetPoints(const FProjectilePoints& points) override final;
     
     // Sets weapon parameters to projectile
-    UFUNCTION(Meta = (AllowOverride = true))
-    virtual void SetParameters(const FWeaponParameters& parameters) override;
+    UFUNCTION()
+    virtual void SetParameters(const FWeaponParameters& parameters) override final;
     
     // Returns projectile parameters
-    UFUNCTION(Meta = (AllowOverride = true))
-    virtual const FWeaponParameters& GetParameters() const override;
+    UFUNCTION()
+    virtual const FWeaponParameters& GetParameters() const override final;
     
     // Returns projectile points
-    UFUNCTION(Meta = (AllowOverride = true))
-    virtual const FProjectilePoints& GetPoints() const override;
+    UFUNCTION()
+    virtual const FProjectilePoints& GetPoints() const override final;
     
     // Initializes base data and launches a projectile
     virtual void Launch() ABSTRACT_METHOD;
