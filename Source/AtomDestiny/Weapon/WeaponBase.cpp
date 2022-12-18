@@ -217,7 +217,7 @@ void UWeaponBase::RotateToRoot(float deltaTime) const
     }
 }
 
-bool UWeaponBase::CheckRaycastToTarget(const FVector& origin, const FVector& direction) const
+bool UWeaponBase::CheckRaycastToTarget(const FVector& origin, const FVector& direction, const TWeakObjectPtr<AActor>& target, FHitResult* hitResult) const
 {
     // You can use this to customize various properties about the trace
     FCollisionQueryParams params;
@@ -225,7 +225,12 @@ bool UWeaponBase::CheckRaycastToTarget(const FVector& origin, const FVector& dir
 
     // The hit result gets populated by the line trace
     if (FHitResult hit; GetWorld()->LineTraceSingleByChannel(hit, origin, direction, m_layerMask, params))
-        return hit.GetActor() == m_target;
+    {
+        if (hitResult != nullptr)
+            *hitResult = hit;
+        
+        return hit.GetActor() == target;
+    }
     
     return false;
 }

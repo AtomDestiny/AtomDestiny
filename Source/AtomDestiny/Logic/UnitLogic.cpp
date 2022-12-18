@@ -203,7 +203,7 @@ void UUnitLogic::Aim(const TScriptInterface<IWeapon>& weapon, float deltaTime)
     if (weapon->IsRotated())
     {
         CheckBehaviour(weapon);
-        weapon->Fire();
+        weapon->Fire(deltaTime);
     }
     else
     {
@@ -217,7 +217,7 @@ void UUnitLogic::Aim(const TScriptInterface<IWeapon>& weapon, float deltaTime)
         if (m_isRotatedOnTarget)
         {
             CheckBehaviour(weapon);
-            weapon->Fire();
+            weapon->Fire(deltaTime);
         }
         else
             m_isAttacking = false;

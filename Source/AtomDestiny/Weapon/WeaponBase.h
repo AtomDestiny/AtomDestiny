@@ -17,6 +17,8 @@ UCLASS(Abstract, Blueprintable)
 class ATOMDESTINY_API UWeaponBase : public UADObject, public IWeapon
 {
     GENERATED_BODY()
+
+protected:
     
     // Setups weapon
     virtual void InitializeComponent() override;
@@ -39,7 +41,7 @@ public:
     virtual double GetFireRate() const ABSTRACT_RETURN_METHOD;
     
     // Main shot for weapon, called by Logic
-    virtual void Fire() ABSTRACT_METHOD;
+    virtual void Fire(float deltaTime) ABSTRACT_METHOD;
 
     // Returns true if weapon can see target, called by Logic
     virtual bool IsSeeTarget() const ABSTRACT_RETURN_METHOD;
@@ -137,7 +139,7 @@ protected:
     void RotateToRoot(float deltaTime) const;
     
     // Throws raycast to target by origin along direction and checks hit transform
-    bool CheckRaycastToTarget(const FVector& origin, const FVector& direction) const;
+    bool CheckRaycastToTarget(const FVector& origin, const FVector& direction, const TWeakObjectPtr<AActor>& target, FHitResult* hitResult = nullptr) const;
     
     // Reload coroutine for reset fire
     FAsyncCoroutine FiringDelay();

@@ -30,7 +30,7 @@ public:
 
     // Weapon attack. Should be called after setTarget
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual void Fire() = 0;
+    virtual void Fire(float deltaTime) = 0;
 
     ///
     /// Weapon states
