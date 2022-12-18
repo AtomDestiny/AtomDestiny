@@ -18,7 +18,7 @@
 /// You should use this class as base for any game mode.
 /// To has a better compile time and scaling it stores data as pointer implementation.
 ///
-UCLASS()
+UCLASS(Blueprintable)
 class ATOMDESTINY_API AAtomDestinyGameStateBase : public AGameStateBase
 {
     GENERATED_BODY()
