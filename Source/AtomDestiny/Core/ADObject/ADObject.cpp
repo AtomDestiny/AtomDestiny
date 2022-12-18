@@ -2,6 +2,7 @@
 
 UADObject::UADObject()
 {
+    bWantsInitializeComponent = true;
     PrimaryComponentTick.bCanEverTick = true;
 }
 
