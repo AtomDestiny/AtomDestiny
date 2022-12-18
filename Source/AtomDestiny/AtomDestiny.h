@@ -17,5 +17,5 @@ enum class EGameSide : uint8
 // Search, addition and removing is not a super frequency operation.
 //
 using FGameStateUnitList = TArray<TWeakObjectPtr<AActor>>;
-using FSharedGameStateUnitList = TSharedRef<FGameStateUnitList>;
-using FSharedEnemiesList = TSharedRef<TArray<FSharedGameStateUnitList>>;
+using FSharedGameStateUnitList = TSharedPtr<FGameStateUnitList>;
+using FEnemiesList = TArray<FSharedGameStateUnitList>;

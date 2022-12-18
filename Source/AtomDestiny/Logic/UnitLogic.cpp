@@ -38,8 +38,6 @@ void UUnitLogic::BeginPlay()
     Super::BeginPlay();
     
     CreateDestination();
-    
-    m_enemies = AtomDestiny::GetGameState(GetOwner())->GetEnemies(m_side);
 }
 
 void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func)
@@ -142,17 +140,19 @@ void UUnitLogic::ScanEnemy()
 {
     double minDist = ::MaxScanDistance;
 
+    const FEnemiesList& enemies = AtomDestiny::GetGameState(GetOwner())->GetEnemies(m_side);
+        
     const double sqrScanDistance = m_scanDistance * m_scanDistance;
     const double sqrMinScanDistance = m_minScanDistance * m_minScanDistance;
-    const size_t enemyListSideCount = static_cast<size_t>(m_enemies->Num());
+    const size_t enemyListSideCount = static_cast<size_t>(enemies.Num());
 
     for (size_t sideCount = 0; sideCount < enemyListSideCount; ++sideCount)
     {
-        const size_t enemyListUnitCount = static_cast<size_t>((*m_enemies)[sideCount]->Num());
+        const size_t enemyListUnitCount = static_cast<size_t>(enemies[sideCount]->Num());
 
         for (int unitCount = 0; unitCount < enemyListUnitCount; ++unitCount)
         {
-            if (AActor* target = (*(*m_enemies)[sideCount])[unitCount].Get(); target != nullptr)
+            if (AActor* target = (*enemies[sideCount])[unitCount].Get(); target != nullptr)
             {
                 const double sqrMagnitude = (target->GetActorLocation() - GetOwner()->GetActorLocation()).SquaredLength();
 

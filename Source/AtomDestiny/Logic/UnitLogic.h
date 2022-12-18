@@ -51,7 +51,4 @@ private:
     
     // Checks unit navigation and animation
     void CheckBehaviour(const TScriptInterface<IWeapon>& weapon);
-    
-    // Stores all targets
-    FSharedEnemiesList m_enemies;
 };

@@ -53,7 +53,7 @@ struct AAtomDestinyGameStateBase::GameStateBasePrivateData
     std::unordered_map<EGameSide, FSharedGameStateUnitList> activeUnits;
 
     // represents 
-    std::unordered_map<EGameSide, FSharedEnemiesList> enemies;
+    std::unordered_map<EGameSide, FEnemiesList> enemies;
 };
 
 AAtomDestinyGameStateBase::AAtomDestinyGameStateBase() :
@@ -73,18 +73,18 @@ AAtomDestinyGameStateBase::~AAtomDestinyGameStateBase()
 
 void AAtomDestinyGameStateBase::AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side)
 {
-    FGameStateUnitList& unitList = *(m_impl->activeUnits[side]);
+    const FSharedGameStateUnitList& unitList = m_impl->activeUnits[side];
 
-    if (const auto index = unitList.Find(actor); index == INDEX_NONE)
-        unitList.Add(std::move(actor));
+    if (const auto index = unitList->Find(actor); index == INDEX_NONE)
+        unitList->Add(std::move(actor));
 }
 
 void AAtomDestinyGameStateBase::RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side)
 {
-    FGameStateUnitList& unitList = *(m_impl->activeUnits[side]);
+    const FSharedGameStateUnitList& unitList = m_impl->activeUnits[side];
 
-    if (const auto index = unitList.Find(actor); index == INDEX_NONE)
-        unitList.RemoveAt(index);
+    if (const auto index = unitList->Find(actor); index == INDEX_NONE)
+        unitList->RemoveAt(index);
 }
 
 TWeakObjectPtr<AActor> AAtomDestinyGameStateBase::GetDestination(EGameSide side) const
@@ -105,7 +105,7 @@ TWeakObjectPtr<AActor> AAtomDestinyGameStateBase::GetDestination(EGameSide side)
     }
 }
 
-FSharedEnemiesList AAtomDestinyGameStateBase::GetEnemies(EGameSide side) const
+const FEnemiesList& AAtomDestinyGameStateBase::GetEnemies(EGameSide side) const
 {
     return m_impl->enemies[side];
 }
@@ -189,12 +189,12 @@ void AAtomDestinyGameStateBase::InitializeEnemies()
 {
     for (const EGameSide side : m_impl->activeUnits | std::views::keys)
     {
-        m_impl->enemies.insert(std::make_pair(side, FSharedEnemiesList{}));
+        m_impl->enemies.insert(std::make_pair(side, FEnemiesList{}));
 
         for (const EGameSide s : m_impl->activeUnits | std::views::keys)
         {
             if (side != s && side != EGameSide::None)
-                m_impl->enemies[side]->Add(m_impl->activeUnits[s]);
+                m_impl->enemies[side].Add(m_impl->activeUnits[s]);
         }
     }
 }

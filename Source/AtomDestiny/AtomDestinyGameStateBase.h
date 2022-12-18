@@ -32,7 +32,7 @@ public:
     void RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
 
     TWeakObjectPtr<AActor> GetDestination(EGameSide side) const;
-    FSharedEnemiesList GetEnemies(EGameSide side) const;
+    const FEnemiesList& GetEnemies(EGameSide side) const;
     
     // Adds damage from projectile to object with explosion point parameters
     UFUNCTION()
