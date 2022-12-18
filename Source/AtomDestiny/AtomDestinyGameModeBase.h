@@ -4,7 +4,7 @@
 
 #include "AtomDestinyGameModeBase.generated.h"
 
-UCLASS()
+UCLASS(Blueprintable)
 class ATOMDESTINY_API AAtomDestinyGameModeBase : public AGameModeBase
 {
     GENERATED_BODY()
