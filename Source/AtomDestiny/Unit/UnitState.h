@@ -38,7 +38,7 @@ public:
     TScriptInterface<IAnimation> GetAnimation() const { return m_animation; }
     
     // Returns ground transform
-    TWeakObjectPtr<UActorComponent> GetGroundPoint() const { return m_groundPoint; }
+    TWeakObjectPtr<USceneComponent> GetGroundPoint() const;
 
     // Returns current health
     double GetCurrentHealth() const { return m_objectState->GetHealth(); }
@@ -169,5 +169,11 @@ private:
     
     // Hashed unit animation
     TScriptInterface<IAnimation> m_animation = nullptr;
-    TWeakObjectPtr<USceneComponent> m_groundPoint = nullptr;
+
+    ///
+    /// Represents ground point on unit, by default enemy unit uses this point to navigate its projectile.
+    /// Use USceneComponent or derived from type only, it would be checked by run-time.
+    /// 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ground point", AllowPrivateAccess = "true"))
+    FComponentReference m_groundPoint;
 };

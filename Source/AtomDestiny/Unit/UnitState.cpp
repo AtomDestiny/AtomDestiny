@@ -3,6 +3,11 @@
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/ADObject/Parameterizable.h>
 
+TWeakObjectPtr<USceneComponent> UUnitState::GetGroundPoint() const
+{
+    return MakeWeakObjectPtr(CastChecked<USceneComponent>(m_groundPoint.GetComponent(GetOwner())));
+}
+
 double UUnitState::GetVelocity() const
 {
     // TODO: when we should have an animator, change speed of animator
@@ -268,22 +273,16 @@ void UUnitState::InitializeComponent()
     m_shield = GET_INTERFACE(Shield);
     m_animation = GET_INTERFACE(Animation);
 
-    check(m_groundPoint != nullptr);
+    check(CastChecked<USceneComponent>(m_groundPoint.GetComponent(GetOwner())) != nullptr);
     
     if (m_objectState == nullptr)
-    {
         UE_LOG(LogTemp, Error, TEXT("Unit Object state is invalid"));
-        throw std::runtime_error("Unit Object state is invalid");
-    }
 
     if (m_logic == nullptr)
-    {
         UE_LOG(LogTemp, Error, TEXT("Unit logic is invalid"));
-        throw std::runtime_error("Unit logic is invalid");
-    }
 
-    UActorComponent* component = AtomDestiny::Utils::FindComponentByName(GetOwner(), "GroundPoint");
-    m_groundPoint = MakeWeakObjectPtr(CastChecked<USceneComponent>(component));
+    // UActorComponent* component = AtomDestiny::Utils::FindComponentByName(GetOwner(), "GroundPoint");
+    // m_groundPoint = MakeWeakObjectPtr(CastChecked<USceneComponent>(component));
 }
 
 void UUnitState::SetEnabled(bool enabled)
