@@ -272,14 +272,14 @@ void UUnitState::InitializeComponent()
     m_objectState = GET_INTERFACE(ObjectState);
     m_shield = GET_INTERFACE(Shield);
     m_animation = GET_INTERFACE(Animation);
+
+    check(m_groundPoint != nullptr);
     
     if (m_objectState == nullptr)
         UE_LOG(LogTemp, Error, TEXT("Unit Object state is invalid"));
 
     if (m_logic == nullptr)
         UE_LOG(LogTemp, Error, TEXT("Unit logic is invalid"));
-
-    m_groundPoint = AtomDestiny::Utils::GetComponentFromReference<USceneComponent>(m_groundPointReference, GetOwner());
 }
 
 void UUnitState::SetEnabled(bool enabled)

@@ -175,8 +175,6 @@ private:
     /// Represents ground point on unit, by default enemy unit uses this point to navigate its projectile.
     /// Use USceneComponent or derived from type only, it would be checked by run-time.
     ///
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ground point",
-        AllowPrivateAccess = "true", UseComponentPicker))
-    FComponentReference m_groundPointReference;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ground point", AllowPrivateAccess = "true"))
     TWeakObjectPtr<USceneComponent> m_groundPoint;
 };
