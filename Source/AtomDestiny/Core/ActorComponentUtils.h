@@ -55,16 +55,8 @@ namespace AtomDestiny::Utils
             UE_LOG(LogTemp, Warning, TEXT("Can not get component from FComponentReference"));
             return {};
         }
-
-        Component* resultComponent = Cast<Component>(component);
-
-        if (resultComponent == nullptr)
-        {
-            UE_LOG(LogTemp, Error, TEXT("Can not convert component from FComponentReference to %hs"), typeid(resultComponent).name());
-            return {};
-        }
-
-        return MakeWeakObjectPtr(resultComponent);
+        
+        return MakeWeakObjectPtr(CastChecked<Component>(component));
     }
 
     template<typename Interface, typename UEInterface>
