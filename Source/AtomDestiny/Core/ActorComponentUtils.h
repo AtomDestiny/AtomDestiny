@@ -46,7 +46,7 @@ namespace AtomDestiny::Utils
     }
 
     template <typename Component>
-    TWeakObjectPtr<Component> GetComponentFromReference(const FComponentReference& componentReference, AActor* actor, const char* failMessage)
+    TWeakObjectPtr<Component> GetComponentFromReference(const FComponentReference& componentReference, AActor* actor)
     {
         UActorComponent* component = componentReference.GetComponent(actor);
         

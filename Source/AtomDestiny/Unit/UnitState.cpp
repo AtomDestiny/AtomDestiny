@@ -279,8 +279,7 @@ void UUnitState::InitializeComponent()
     if (m_logic == nullptr)
         UE_LOG(LogTemp, Error, TEXT("Unit logic is invalid"));
 
-    m_groundPoint = CastChecked<USceneComponent>(m_groundPointReference.GetComponent(GetOwner()));
-    check(m_groundPoint != nullptr);
+    m_groundPoint = AtomDestiny::Utils::GetComponentFromReference<USceneComponent>(m_groundPointReference, GetOwner());
 }
 
 void UUnitState::SetEnabled(bool enabled)
