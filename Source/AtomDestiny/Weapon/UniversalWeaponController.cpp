@@ -72,11 +72,9 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
 {
     m_firing = true;
     const TWeakObjectPtr<AActor> currentEnemy = m_target; // we need to store copy because of coroutines
-
-    // shot count
+    
     for (int32 i = 0; i < m_shotCount; ++i)
     {
-        // attack from all positions
         for (int32 shootingIndex = 0; shootingIndex < m_shootingPositions.Num(); ++shootingIndex)
         {
             if (!currentEnemy.IsValid())
