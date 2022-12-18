@@ -24,6 +24,7 @@ class ATOMDESTINY_API UUnitState : public UActorComponent
     GENERATED_BODY()
 
 public:
+    UUnitState() { bWantsInitializeComponent = true; }
     
     // Returns unit logic
     TScriptInterface<ILogic> GetLogic() const { return m_logic; }
@@ -174,6 +175,7 @@ private:
     /// Represents ground point on unit, by default enemy unit uses this point to navigate its projectile.
     /// Use USceneComponent or derived from type only, it would be checked by run-time.
     /// 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ground point", AllowPrivateAccess = "true"))
-    FComponentReference m_groundPoint;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ground point", AllowPrivateAccess = "true", UseComponentPicker))
+    FComponentReference m_groundPointReference;
+    TWeakObjectPtr<USceneComponent> m_groundPoint;
 };

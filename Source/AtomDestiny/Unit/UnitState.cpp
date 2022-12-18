@@ -5,7 +5,7 @@
 
 TWeakObjectPtr<USceneComponent> UUnitState::GetGroundPoint() const
 {
-    return MakeWeakObjectPtr(CastChecked<USceneComponent>(m_groundPoint.GetComponent(GetOwner())));
+    return m_groundPoint;
 }
 
 double UUnitState::GetVelocity() const
@@ -272,8 +272,6 @@ void UUnitState::InitializeComponent()
     m_objectState = GET_INTERFACE(ObjectState);
     m_shield = GET_INTERFACE(Shield);
     m_animation = GET_INTERFACE(Animation);
-
-    check(CastChecked<USceneComponent>(m_groundPoint.GetComponent(GetOwner())) != nullptr);
     
     if (m_objectState == nullptr)
         UE_LOG(LogTemp, Error, TEXT("Unit Object state is invalid"));
@@ -281,8 +279,8 @@ void UUnitState::InitializeComponent()
     if (m_logic == nullptr)
         UE_LOG(LogTemp, Error, TEXT("Unit logic is invalid"));
 
-    // UActorComponent* component = AtomDestiny::Utils::FindComponentByName(GetOwner(), "GroundPoint");
-    // m_groundPoint = MakeWeakObjectPtr(CastChecked<USceneComponent>(component));
+    m_groundPoint = CastChecked<USceneComponent>(m_groundPointReference.GetComponent(GetOwner()));
+    check(m_groundPoint != nullptr);
 }
 
 void UUnitState::SetEnabled(bool enabled)

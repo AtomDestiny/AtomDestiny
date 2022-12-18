@@ -45,6 +45,28 @@ namespace AtomDestiny::Utils
         return nullptr;
     }
 
+    template <typename Component>
+    TWeakObjectPtr<Component> GetComponentFromReference(const FComponentReference& componentReference, AActor* actor, const char* failMessage)
+    {
+        UActorComponent* component = componentReference.GetComponent(actor);
+        
+        if (component == nullptr)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Can not get component from FComponentReference"));
+            return {};
+        }
+
+        Component* resultComponent = Cast<Component>(component);
+
+        if (resultComponent == nullptr)
+        {
+            UE_LOG(LogTemp, Error, TEXT("Can not convert component from FComponentReference to %hs"), typeid(resultComponent).name());
+            return {};
+        }
+
+        return MakeWeakObjectPtr(resultComponent);
+    }
+
     template<typename Interface, typename UEInterface>
     TScriptInterface<Interface> CreateInterface(UEInterface* object)
     {
