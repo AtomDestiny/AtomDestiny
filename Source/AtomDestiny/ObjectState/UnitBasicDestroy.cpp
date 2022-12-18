@@ -10,11 +10,6 @@ void UUnitBasicDestroy::Destroy()
         return;
     }
     
-    FRotator rotator { FQuat::Identity };
-    TStrongObjectPtr blueprintPtr { m_explosionBlueprint.Get() };
-    
-    AtomDestiny::ObjectPool::Instance().Spawn(std::move(blueprintPtr), GetOwner()->GetTransform().GetLocation(), std::move(rotator));
-
-    TStrongObjectPtr currentActor { GetOwner() };
-    AtomDestiny::ObjectPool::Instance().Despawn(std::move(currentActor), m_deathDelay);
+    AtomDestiny::ObjectPool::Instance().Spawn(m_explosionBlueprint, GetOwner()->GetTransform().GetLocation(), FQuat::Identity);
+    AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(GetOwner()), m_deathDelay);
 }

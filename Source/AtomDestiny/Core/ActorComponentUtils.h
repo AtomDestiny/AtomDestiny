@@ -28,7 +28,7 @@ namespace AtomDestiny::Utils
     }
 
     template<typename Component>
-    [[maybe_unused]] Component* AddNewComponentToActor(const TStrongObjectPtr<AActor>& object)
+    [[maybe_unused]] Component* AddNewComponentToActor(const TWeakObjectPtr<AActor>& object)
     {
         return AddNewComponentToActor<Component>(object.Get());
     }

@@ -23,5 +23,10 @@ namespace AtomDestiny::Utils
     {
         SetActorActive(object.Get(), status);
     }
+
+    inline void SetActorActive(const TWeakObjectPtr<AActor>& object, const bool status)
+    {
+        SetActorActive(object.Get(), status);
+    }
     
 } // namespace AtomDestiny::Utils

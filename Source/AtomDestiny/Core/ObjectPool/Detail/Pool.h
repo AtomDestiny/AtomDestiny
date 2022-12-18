@@ -14,21 +14,21 @@ namespace AtomDestiny
     class ATOMDESTINY_API Pool
     {
     public:
-        explicit Pool(TStrongObjectPtr<AActor> object);
+        explicit Pool(TWeakObjectPtr<AActor> object);
 
         // Spawns an object from our pool
-        TStrongObjectPtr<AActor> Spawn(FVector position, FRotator rotation);
+        TWeakObjectPtr<AActor> Spawn(const FVector& position, const FQuat& rotation);
         
         // Returns an object to the inactive pool.
-        void Despawn(TStrongObjectPtr<AActor> object);
+        void Despawn(TWeakObjectPtr<AActor> object);
     
     private:
         
         // We would append an id to the name of anything we instantiate.
         int32_t m_nextId = 1;
         
-        std::stack<TStrongObjectPtr<AActor>> m_inactive;
-        TStrongObjectPtr<AActor> m_gameObjectToSpawn;
+        std::stack<TWeakObjectPtr<AActor>> m_inactive;
+        TWeakObjectPtr<AActor> m_gameObjectToSpawn;
     };
     
 } // namespace AtomDestiny

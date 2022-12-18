@@ -9,8 +9,7 @@ namespace AtomDestiny::Utils
     {
         if (blueprint.IsValid())
         {
-            const TStrongObjectPtr ptr { blueprint.Get() };
-            ObjectPool::Instance().Preload(ptr, count);
+            ObjectPool::Instance().Preload(blueprint, count);
         }
     }
     
