@@ -3,11 +3,6 @@
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/ADObject/Parameterizable.h>
 
-TWeakObjectPtr<USceneComponent> UUnitState::GetGroundPoint() const
-{
-    return m_groundPoint;
-}
-
 double UUnitState::GetVelocity() const
 {
     // TODO: when we should have an animator, change speed of animator

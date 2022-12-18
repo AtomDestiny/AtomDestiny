@@ -39,7 +39,7 @@ public:
     TScriptInterface<IAnimation> GetAnimation() const { return m_animation; }
     
     // Returns ground transform
-    TWeakObjectPtr<USceneComponent> GetGroundPoint() const;
+    TWeakObjectPtr<USceneComponent> GetGroundPoint() const { return m_groundPoint; }
 
     // Returns current health
     double GetCurrentHealth() const { return m_objectState->GetHealth(); }
