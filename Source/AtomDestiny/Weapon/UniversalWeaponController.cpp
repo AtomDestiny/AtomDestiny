@@ -81,8 +81,8 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
         {
             if (!currentEnemy.IsValid())
             {
-                FiringDelay();
-                break;
+                co_await FiringDelay();
+                co_return;
             }
 
             const USceneComponent* shotPosition = m_shootingPositions[shootingIndex];
