@@ -115,10 +115,10 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
             }
             
             if (shootingIndex < m_shootingPositions.Num() - 1)
-                co_await UE5Coro::Latent::Seconds(m_delayBetweenShots);
+                co_await Coroutines::Latent::Seconds(m_delayBetweenShots);
         }
 
         if (i < (m_shotCount - 1))
-            co_await UE5Coro::Latent::Seconds(m_shotDelay);
+            co_await Coroutines::Latent::Seconds(m_shotDelay);
     }
 }

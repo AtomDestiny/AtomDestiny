@@ -2,10 +2,14 @@
 
 #include "CoreMinimal.h"
 
-#ifdef PLATFORM_MAC
-    #include <experimental/coroutine>
-    namespace coro = std::experimental;
-#else
+#ifdef __cpp_lib_coroutine
+    #define COROUTINE
+#endif // __cpp_lib_coroutine
+
+#ifdef COROUTINE
     #include <coroutine>
     namespace coro = std;
-#endif // PLATFORM MAC
+#else
+    #include <experimental/coroutine>
+    namespace coro = std::experimental;
+#endif // COROUTINE
