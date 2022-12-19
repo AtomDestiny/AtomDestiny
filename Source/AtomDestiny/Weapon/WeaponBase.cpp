@@ -4,6 +4,7 @@
 
 #include <AtomDestiny/Core/Utils.h>
 #include <AtomDestiny/Core/MathUtils.h>
+#include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
 void UWeaponBase::InitializeComponent()
@@ -182,7 +183,7 @@ void UWeaponBase::RotateToTarget(float deltaTime)
 {
     if (!m_target.IsValid())
     {
-        UE_LOG(LogTemp, Warning, TEXT("Target for weapon is invalid"));
+        LOG_WARNING(TEXT("Target for weapon is invalid"));
         return;
     }
 

@@ -15,7 +15,7 @@ bool UUniversalWeaponController::IsSeeTarget() const
     if (!m_useRaycast)
         return true;
     
-    if (m_scanPosition == nullptr)
+    if (!m_scanPosition.IsValid())
     {
         bool isTargetAtSight = false;
         

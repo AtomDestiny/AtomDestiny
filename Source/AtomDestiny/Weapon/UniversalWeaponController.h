@@ -41,16 +41,27 @@ private:
     // Ammunition count before reloading
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shot count", AllowPrivateAccess = "true"))
     int32 m_shotCount = 1.0;
-    
-    // Particle blueprint that spawns by weapon at firing
+
+    ///
+    /// Particle blueprint that spawns by weapon at firing.
+    /// Current controller do not attack target with damage,
+    /// projectile blueprints should make a real damage to target.
+    /// 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shot particle blueprint", AllowPrivateAccess = "true"))
     TWeakObjectPtr<AActor> m_shotParticleBlueprint;
-    
-    // Shot points where projectiles will be spawned
+
+    ///
+    /// Shot points where projectiles will be spawned.
+    /// Shots between shot position controls by 'Delay between shots' parameter.
+    /// Weapon would not make firing without shooting position.
+    /// 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shooting position", AllowPrivateAccess = "true"))
     TArray<USceneComponent*> m_shootingPositions;
-    
-    // Weapon scan point
+
+    ///
+    /// Weapon scan point, it can be nullptr.
+    /// Then controller would use shot positions to scan from.
+    ///
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Scan position", AllowPrivateAccess = "true"))
     TWeakObjectPtr<USceneComponent> m_scanPosition;
     

@@ -1,5 +1,6 @@
 ﻿#include "UnitState.h"
 
+#include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/ADObject/Parameterizable.h>
 
@@ -267,14 +268,10 @@ void UUnitState::InitializeComponent()
     m_objectState = GET_INTERFACE(ObjectState);
     m_shield = GET_INTERFACE(Shield);
     m_animation = GET_INTERFACE(Animation);
-
-    check(m_groundPoint != nullptr);
     
-    if (m_objectState == nullptr)
-        UE_LOG(LogTemp, Error, TEXT("Unit Object state is invalid"));
-
-    if (m_logic == nullptr)
-        UE_LOG(LogTemp, Error, TEXT("Unit logic is invalid"));
+    LOG_ERROR_CHECK(m_groundPoint == nullptr, TEXT("Ground point is invalid"));
+    LOG_ERROR_CHECK(m_objectState == nullptr, TEXT("Unit object state is invalid"));
+    LOG_ERROR_CHECK(m_logic == nullptr, TEXT("Unit logic is invalid"));
 }
 
 void UUnitState::SetEnabled(bool enabled)

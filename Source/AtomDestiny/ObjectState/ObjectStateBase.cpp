@@ -1,5 +1,7 @@
 ﻿#include "ObjectStateBase.h"
 
+#include <AtomDestiny/Core/Logger.h>
+
 void UObjectStateBase::RegenerateHealth(double health)
 {
     const auto value = FMath::Abs(health);
@@ -119,7 +121,7 @@ void UObjectStateBase::RecalculateParameter(EObjectParameters parameter)
 {
     if (!GetParameterAvailable(parameter))
     {
-        UE_LOG(LogTemp, Warning, TEXT("U try to recalculate not available parameter"));
+        LOG_WARNING(TEXT("U try to recalculate not available parameter"));
         return;
     }
     

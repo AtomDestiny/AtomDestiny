@@ -1,5 +1,7 @@
 ﻿#include "ADObject.h"
 
+#include <AtomDestiny/Core/Logger.h>
+
 UADObject::UADObject()
 {
     bWantsInitializeComponent = true;
@@ -24,13 +26,13 @@ void UADObject::ZeroParameter(EObjectParameters parameter, const FParameterZeroP
 {
     if (!pack.zeroObject.IsValid())
     {
-        UE_LOG(LogTemp, Warning, TEXT("Pack zero object is null"));
+        LOG_WARNING(TEXT("Pack zero object is null"));
         return;
     }
 
-    if (!m_enhancementParameters.count(parameter))
+    if (!m_enhancementParameters.contains(parameter))
     {
-        UE_LOG(LogTemp, Warning, TEXT("You try to zero non existing parameter"));
+        LOG_WARNING(TEXT("You try to zero non existing parameter"));
         return;
     }
     
@@ -95,7 +97,10 @@ std::vector<FParameterEnhancement>& UADObject::GetParameterEnhancementList(EObje
     const auto iter = m_enhancementParameters.find(parameter);
 
     if (iter == m_enhancementParameters.cend())
+    {
+        LOG_FATAL(TEXT("Trying to get non existing parameter"));
         throw std::logic_error("Trying to get non existing parameter");
+    }
 
     return iter->second.second;
 }
@@ -121,14 +126,17 @@ std::vector<TWeakObjectPtr<AActor>>& UADObject::GetParameterZeroList(EObjectPara
     const auto iter = m_enhancementParameters.find(parameter);
 
     if (iter == m_enhancementParameters.cend())
+    {
+        LOG_FATAL(TEXT("Trying to get non existing parameter"));
         throw std::logic_error("Trying to get non existing parameter");
+    }
 
     return iter->second.first;
 }
 
 void UADObject::AddNewParameter(EObjectParameters parameter)
 {
-    if (!m_enhancementParameters.count(parameter))
+    if (!m_enhancementParameters.contains(parameter))
         m_enhancementParameters.emplace(parameter, GameObjectPairParameterList{});
 }
 
@@ -140,9 +148,9 @@ void UADObject::AddNewParameters(const std::vector<EObjectParameters>& parameter
 
 void UADObject::AddToParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement)
 {
-    if (!m_enhancementParameters.count(parameter))
+    if (!m_enhancementParameters.contains(parameter))
     {
-        UE_LOG(LogTemp, Warning, TEXT("You try to enhance non existing parameter"));
+        LOG_WARNING(TEXT("You try to enhance non existing parameter"));
         return;
     }
 
@@ -160,9 +168,9 @@ void UADObject::AddToParameter(EObjectParameters parameter, const FParameterEnha
 
 void UADObject::RemoveFromParameter(EObjectParameters parameter, const TWeakObjectPtr<AActor>& enhanceObject)
 {
-    if (!m_enhancementParameters.count(parameter))
+    if (!m_enhancementParameters.contains(parameter))
     {
-        UE_LOG(LogTemp, Warning, TEXT("You try to remove enhancement object from non existing parameter"));
+        LOG_WARNING(TEXT("You try to remove enhancement object from non existing parameter"));
         return;
     }
 
