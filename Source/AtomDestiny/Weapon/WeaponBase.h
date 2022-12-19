@@ -233,9 +233,14 @@ protected:
     
     // Rotated on target state
     bool m_isRotatedOnTarget = false;
-    
-    // Hashed weapon transform
-    TWeakObjectPtr<USceneComponent> m_weaponTransform = nullptr;
+
+    ///
+    /// It's a pointer to scene component to rotate this weapon and aim from this.
+    /// So be aware to use Static mesh or Skeletal mesh, that represents a weapon to rotate in real world.
+    /// Hashed weapon transform (Scene component)
+    /// 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Weapon component"))
+    TWeakObjectPtr<USceneComponent> m_weaponComponent = nullptr;
     
     // Preload spawn blueprints count at pool
     inline static uint32_t BlueprintPreloadCount = 5;

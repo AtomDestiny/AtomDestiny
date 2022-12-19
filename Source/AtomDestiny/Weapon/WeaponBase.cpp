@@ -11,7 +11,7 @@ void UWeaponBase::InitializeComponent()
 {
     Super::InitializeComponent();
     
-    m_weaponTransform = this;
+    LOG_WARNING_CHECK(m_weaponComponent == nullptr, TEXT("Weapon component is invalid, is it right?"));
         
     m_currentDamage = m_damage;
     m_currentAttackRange = m_attackRange;
@@ -188,7 +188,7 @@ void UWeaponBase::RotateToTarget(float deltaTime)
     }
 
     // calculate vector on target
-    const FVector weaponLocation = m_weaponTransform->GetComponentTransform().GetLocation();
+    const FVector weaponLocation = m_weaponComponent->GetComponentTransform().GetLocation();
     FVector targetVector = m_target->GetTransform().GetLocation() - weaponLocation;
     targetVector.Y = 0;
     
@@ -200,21 +200,21 @@ void UWeaponBase::RotateToTarget(float deltaTime)
     const FVector lookVector = FMath::VInterpNormalRotationTo(weaponLocation.ForwardVector, targetVector, m_rotateSpeed * deltaTime, 0.1f);
     const FQuat lookRotation = FQuat::FindBetween(lookVector, FVector::UpVector);
     
-    m_weaponTransform->SetWorldRotation(lookRotation);
+    m_weaponComponent->SetWorldRotation(lookRotation);
 }
 
 void UWeaponBase::RotateToRoot(float deltaTime) const
 {
     if (!m_target.IsValid() && m_rotatedWeapon)
     {
-        const FVector weaponLocation = m_weaponTransform->GetComponentTransform().GetLocation();
+        const FVector weaponLocation = m_weaponComponent->GetComponentTransform().GetLocation();
         const FVector rootLocation = GetOwner()->GetTransform().GetLocation();
 
         // TODO: check to swap last parameters
         const FVector lookVector = FMath::VInterpNormalRotationTo(weaponLocation.ForwardVector, rootLocation.ForwardVector, m_rotateSpeed * deltaTime, 0.1f);
         const FQuat lookRotation = FQuat::FindBetween(lookVector, FVector::UpVector);
 
-        m_weaponTransform->SetWorldRotation(lookRotation);
+        m_weaponComponent->SetWorldRotation(lookRotation);
     }
 }
 
@@ -240,7 +240,7 @@ FAsyncCoroutine UWeaponBase::FiringDelay()
 {
     co_await Coroutines::Latent::Seconds(m_reloadTime);
 
-    if (m_weaponTransform.IsValid())
+    if (m_weaponAnimation != nullptr)
         m_weaponAnimation->SetDefaultState();
         
     m_firing = false;
