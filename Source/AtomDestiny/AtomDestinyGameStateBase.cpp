@@ -1,6 +1,5 @@
 ﻿#include "AtomDestinyGameStateBase.h"
 
-#include <ranges>
 #include <unordered_set>
 #include <unordered_map>
 
@@ -187,11 +186,11 @@ void AAtomDestinyGameStateBase::InitializeSides()
 
 void AAtomDestinyGameStateBase::InitializeEnemies()
 {
-    for (const EGameSide side : m_impl->activeUnits | std::views::keys)
+    for (const auto& [side, list] : m_impl->activeUnits)
     {
         m_impl->enemies.insert(std::make_pair(side, FEnemiesList{}));
 
-        for (const EGameSide s : m_impl->activeUnits | std::views::keys)
+        for (const auto& [s, l] : m_impl->activeUnits)
         {
             if (side != s && side != EGameSide::None)
                 m_impl->enemies[side].Add(m_impl->activeUnits[s]);
