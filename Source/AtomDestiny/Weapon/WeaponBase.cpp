@@ -11,7 +11,7 @@ void UWeaponBase::InitializeComponent()
 {
     Super::InitializeComponent();
     
-    LOG_WARNING_CHECK(m_weaponComponent == nullptr, TEXT("Weapon component is invalid, is it right?"));
+    ENSURE_WARNING(m_weaponComponent != nullptr, TEXT("Weapon component is invalid, is it right?"));
         
     m_currentDamage = m_damage;
     m_currentAttackRange = m_attackRange;
