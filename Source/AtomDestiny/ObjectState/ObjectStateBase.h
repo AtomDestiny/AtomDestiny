@@ -12,7 +12,7 @@
 /// Represents base class for any object
 /// to have a parameters in Atom Destiny world.
 ///
-UCLASS(Abstract, Blueprintable)
+UCLASS(Abstract)
 class UObjectStateBase : public UADObject, public IObjectState
 {
     GENERATED_BODY()

@@ -16,7 +16,7 @@
 /// Minimal entity for any Parameterizable Atom Destiny object.
 /// (Units, Buildings, Abilities, Weapons and so on).
 ///
-UCLASS(Abstract, Blueprintable)
+UCLASS(Abstract)
 class ATOMDESTINY_API UADObject : public UActorComponent, public IParameterizable
 {
     GENERATED_BODY()
