@@ -269,9 +269,9 @@ void UUnitState::InitializeComponent()
     m_shield = GET_INTERFACE(Shield);
     m_animation = GET_INTERFACE(Animation);
     
-    ENSURE_ERROR(m_groundPoint != nullptr, TEXT("Ground point is invalid"));
-    ENSURE_ERROR(m_objectState != nullptr, TEXT("Unit object state is invalid"));
-    ENSURE_ERROR(m_logic != nullptr, TEXT("Unit logic is invalid"));
+    ENSURE(m_groundPoint != nullptr, TEXT("Ground point is invalid"));
+    ENSURE(m_objectState != nullptr, TEXT("Unit object state is invalid"));
+    ENSURE(m_logic != nullptr, TEXT("Unit logic is invalid"));
 }
 
 void UUnitState::SetEnabled(bool enabled)
