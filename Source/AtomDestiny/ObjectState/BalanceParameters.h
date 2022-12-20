@@ -12,16 +12,16 @@ struct FBalanceParameters
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ballistic resistance"))
-    double ballisticResistance;
+    double ballisticResistance = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Energy resistance"))
-    double energyResistance;
+    double energyResistance = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Explosive resistance"))
-    double explosiveResistance;
+    double explosiveResistance = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Elemental resistance"))
-    double elementalResistance;
+    double elementalResistance = 0;
 };
 
 // Represents balance values
