@@ -5,6 +5,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "AtomDestiny/UI/HealthBar.h"
 
@@ -20,14 +21,8 @@ ATestActor::ATestActor(const FObjectInitializer& ObjectInitializer) : Super(Obje
         RootComponent = m_box;
     }
 
-    /*m_box = CreateDefaultSubobject<UBoxComponent>(TEXT("Box"));
-    SetRootComponent(m_box);*/
-
     m_mesh = ObjectInitializer.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("Mesh"));
     m_mesh->SetupAttachment(RootComponent);
-
-    /*m_bar = CreateDefaultSubobject<UHealthBar>(TEXT("HealthBar"));
-    m_bar->SetupAttachment(m_box);*/
 
     m_healthBar = ObjectInitializer.CreateDefaultSubobject<UWidgetComponent>(this, TEXT("HealthBar"));
     m_healthBar->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
@@ -47,11 +42,29 @@ void ATestActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-    UE_LOG(LogTemp, Display, TEXT("TestActor ticked"));
+	FVector2D screenPos;
 
-   // m_mesh->AddRelativeRotation(FRotator(0, 0, 2));
-
-    /*if (m_healthBar != nullptr)
-        m_healthBar->SetRelativeLocation(GetActorLocation() + FVector(20, 0, 0));*/
+	auto const* player = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	
+	auto result = UGameplayStatics::ProjectWorldToScreen(
+			player,
+			GetActorLocation(),
+			screenPos
+		);
+	
+	if (result)
+	{
+		FVector worldPos, worldDir;
+		screenPos -= {0, 20};
+		
+		UGameplayStatics::DeprojectScreenToWorld(
+				player,
+				screenPos,
+				worldPos,
+				worldDir
+			);
+		m_healthBar->SetWorldLocation(worldPos);
+	}
+	else
+		UE_LOG(LogTemp, Warning, TEXT("HealthBar is not updated!"));
 }
-
