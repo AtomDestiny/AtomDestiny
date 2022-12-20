@@ -26,7 +26,7 @@ public:
 
     // Sets current target to weapon. Should be called before fire
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual void SetTarget(AActor* gameObject) = 0;
+    virtual void SetTarget(AActor* target) = 0;
 
     // Weapon attack. Should be called after setTarget
     UFUNCTION(Meta = (AllowOverride = true))

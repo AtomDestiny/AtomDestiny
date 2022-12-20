@@ -5,7 +5,6 @@
 UADObject::UADObject()
 {
     bWantsInitializeComponent = true;
-    PrimaryComponentTick.bCanEverTick = true;
 }
 
 // IParameterizable
@@ -79,6 +78,12 @@ double UADObject::InterpretParameterModifier(double baseValue, const FParameterE
     }
 
     return result;
+}
+
+void UADObject::BeginPlay()
+{
+    Super::BeginPlay();
+    PrimaryComponentTick.bCanEverTick = true;
 }
 
 std::vector<EObjectParameters> UADObject::GetParameterTypes() const

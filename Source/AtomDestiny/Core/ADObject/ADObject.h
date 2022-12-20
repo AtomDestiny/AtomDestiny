@@ -47,6 +47,8 @@ public:
     static double InterpretParameterModifier(double baseValue, const FParameterEnhancement& enhancement);
 
 protected:
+
+    virtual void BeginPlay() override;
     
     // Recalculates parameter for implementor
     UFUNCTION(Meta = (AllowOverride = true))
