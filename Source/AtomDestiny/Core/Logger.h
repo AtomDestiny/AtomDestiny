@@ -2,19 +2,19 @@
 
 #include <Runtime/Core/Public/Logging/LogMacros.h>
 
-#define LOG_INFO(Format, ...) UE_LOG(LogTemp, Log, Format, __VA_ARGS__)
-#define LOG_WARNING(Format, ...) UE_LOG(LogTemp, Warning, Format, __VA_ARGS__)
-#define LOG_ERROR(Format, ...) UE_LOG(LogTemp, Error, Format, __VA_ARGS__)
-#define LOG_FATAL(Format, ...) UE_LOG(LogTemp, Fatal, Format, __VA_ARGS__)
+#define LOG_INFO(Format, ...) UE_LOG(LogTemp, Log, Format, ##__VA_ARGS__)
+#define LOG_WARNING(Format, ...) UE_LOG(LogTemp, Warning, Format, ##__VA_ARGS__)
+#define LOG_ERROR(Format, ...) UE_LOG(LogTemp, Error, Format, ##__VA_ARGS__)
+#define LOG_FATAL(Format, ...) UE_LOG(LogTemp, Fatal, Format, ##__VA_ARGS__)
 
 #define LOG_WARNING_CHECK(CheckStatement, Format, ...) \
-        if (CheckStatement) \
-                LOG_WARNING(Format, __VA_ARGS__);
+        if ((CheckStatement)) \
+                LOG_WARNING(Format, ##__VA_ARGS__);
 
 #define LOG_ERROR_CHECK(CheckStatement, Format, ...) \
-        if (CheckStatement) \
-                LOG_ERROR(Format, __VA_ARGS__);
+        if ((CheckStatement)) \
+                LOG_ERROR(Format, ##__VA_ARGS__);
 
 #define LOG_FATAL_CHECK(CheckStatement, Format, ...) \
-        if (CheckStatement) \
-                LOG_FATAL(Format, __VA_ARGS__);
+        if ((CheckStatement)) \
+                LOG_FATAL(Format, ##__VA_ARGS__);
