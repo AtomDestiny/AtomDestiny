@@ -7,7 +7,6 @@
 #include "Components/WidgetComponent.h"
 #include "Kismet/GameplayStatics.h"
 
-#include "AtomDestiny/UI/HealthBar.h"
 
 // Sets default values
 ATestActor::ATestActor(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -34,7 +33,6 @@ ATestActor::ATestActor(const FObjectInitializer& ObjectInitializer) : Super(Obje
 void ATestActor::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -42,29 +40,13 @@ void ATestActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	FVector2D screenPos;
+	auto const& playerTfm = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetTransform();
+	if (!playerTfm.IsValid())
+		UE_LOG(LogTemp, Warning, TEXT("Invalid player transform!"));
+	
+	FVector const Up = playerTfm.TransformVector({0,0,1});
 
-	auto const* player = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Axis is: %s"), *Up.ToString()));
 	
-	auto result = UGameplayStatics::ProjectWorldToScreen(
-			player,
-			GetActorLocation(),
-			screenPos
-		);
-	
-	if (result)
-	{
-		FVector worldPos, worldDir;
-		screenPos -= {0, 20};
-		
-		UGameplayStatics::DeprojectScreenToWorld(
-				player,
-				screenPos,
-				worldPos,
-				worldDir
-			);
-		m_healthBar->SetWorldLocation(worldPos);
-	}
-	else
-		UE_LOG(LogTemp, Warning, TEXT("HealthBar is not updated!"));
+	m_healthBar->SetRelativeLocation(Up * 420);
 }
