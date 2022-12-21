@@ -3,6 +3,7 @@
 #include "HealthBar.h"
 
 #include "Components/ProgressBar.h"
+#include "Components/WidgetComponent.h"
 #include "Math/Vector.h"
 
 /*UHealthBar::UHealthBar(const FObjectInitializer& ObjectInitializer, AActor* root) : UUserWidget(ObjectInitializer)
