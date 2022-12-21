@@ -18,7 +18,7 @@ void UUnitLogic::SetDestination(AActor* destination)
 {
     m_currentDestination = nullptr;
     m_canScan = true;
-
+    
     m_behaviour = destination != nullptr ? EUnitBehaviour::MoveToTransform : EUnitBehaviour::Standing;
     m_mainDestination = destination != nullptr ? MakeWeakObjectPtr(destination) : nullptr;
 }
@@ -43,7 +43,7 @@ void UUnitLogic::BeginPlay()
 void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func)
 {
     Super::TickComponent(deltaTime, tickType, func);
-
+    
     CheckNavigation();
     CheckScanDelay(deltaTime);
 
@@ -61,8 +61,11 @@ void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorCompo
 
 void UUnitLogic::CreateDestination()
 {
-    const TWeakObjectPtr<AActor> destination = AtomDestiny::GetGameState(GetOwner())->GetDestination(m_side);
+    if (!m_navigation.IsValid())
+        return;
 
+    const TWeakObjectPtr<AActor> destination = AtomDestiny::GetGameState(GetOwner())->GetDestination(m_side);
+    
     if (destination.Get() && m_behaviour == EUnitBehaviour::MoveToTransform)
     {
         m_mainDestination = destination;
@@ -78,7 +81,7 @@ void UUnitLogic::CreateDestination()
 
 void UUnitLogic::CheckNavigation()
 {
-    if (m_currentDestination == nullptr)
+    if (!m_currentDestination.IsValid())
     {
         SetDefaultDestination();
 

@@ -7,9 +7,9 @@
 UENUM(BlueprintType)
 enum class EUnitType : uint8
 {
-    None = 0,
     Shooter,
     Lancer,
+    None
 };
 
 ///
@@ -19,10 +19,10 @@ enum class EUnitType : uint8
 UENUM(BlueprintType)
 enum class EUnitSize : uint8
 {
-    None,
-    Small = 1,
-    Medium = 2,
-    Huge = 3
+    Small = 0,
+    Medium,
+    Huge,
+    None
 };
 
 ///

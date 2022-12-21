@@ -13,7 +13,7 @@
 ///
 /// Represents base abstract weapon, any weapon realizations should use it as base class
 ///
-UCLASS(Abstract, Blueprintable)
+UCLASS(Abstract)
 class ATOMDESTINY_API UWeaponBase : public UADObject, public IWeapon
 {
     GENERATED_BODY()
