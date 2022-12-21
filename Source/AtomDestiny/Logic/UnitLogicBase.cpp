@@ -60,10 +60,8 @@ void UUnitLogicBase::BeginPlay()
     // navigation initialization
     const APawn* pawn = CastChecked<APawn>(GetOwner());
     check(pawn->AIControllerClass != nullptr);
-
-    AController* controller = Cast<AController>(pawn->AIControllerClass.Get());
     
-    if (ANavigator* navigator = Cast<ANavigator>(controller); navigator != nullptr)
+    if (ANavigator* navigator = Cast<ANavigator>(pawn->Controller.Get()); navigator != nullptr)
     {
         m_navigation = MakeWeakObjectPtr(navigator);
         m_navigation->SetMovementComponent(pawn->FindComponentByClass<UFloatingPawnMovement>());
@@ -79,10 +77,7 @@ void UUnitLogicBase::BeginPlay()
     m_currentSpeed = m_speed;
     m_defaultStopDistance = m_navigation->GetStopDistance();
     
-    // get animation
     m_animation = GET_INTERFACE(Animation);
-    
-    // setup scan delay
     m_scanDelay += FMath::RandRange(AtomDestiny::Unit::MinRandomScan, AtomDestiny::Unit::MaxRandomScan);
 
     // new layer
