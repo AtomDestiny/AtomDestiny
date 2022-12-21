@@ -4,8 +4,7 @@
 
 #include <AtomDestiny/Core/MathUtils.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
-
-#include "Core/Logger.h"
+#include <AtomDestiny/Core/Logger.h>
 
 const TArray<TScriptInterface<IWeapon>>& UUnitLogicBase::GetAllWeapon() const
 {
