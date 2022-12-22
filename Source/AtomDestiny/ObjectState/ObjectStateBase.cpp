@@ -58,7 +58,7 @@ void UObjectStateBase::InitializeComponent()
     m_currentMaxHealth = m_currentHealth;
     m_currentDefence = m_defence;
 
-    LOG_CHECK_WARNING(m_healthBlueprint != nullptr, TEXT("You forgot to add health bar blueprint"));
+    LOG_CHECK_WARNING(m_healthBlueprint != nullptr, TEXT("No health bar blueprint at Object state"));
 
     if (m_healthBlueprint.IsValid())
         m_healthBar = CastChecked<USlider>(m_healthBlueprint);
