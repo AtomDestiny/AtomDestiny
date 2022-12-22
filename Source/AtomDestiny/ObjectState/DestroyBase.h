@@ -2,7 +2,6 @@
 
 #include <Engine/Classes/Components/SceneComponent.h>
 
-#include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/ObjectState/Destroyable.h>
 
 #include "DestroyBase.generated.h"
@@ -16,9 +15,9 @@ class ATOMDESTINY_API UDestroyBase : public USceneComponent, public IDestroyable
     GENERATED_BODY()
 
 public:
-    
-    // Destroys attached actor
-    virtual void Destroy() ABSTRACT_METHOD;
+
+    virtual bool IsDestroyed() const override;
+    virtual void Destroy() override;
     
 protected:
     virtual void BeginPlay() override;

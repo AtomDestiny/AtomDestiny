@@ -7,6 +7,12 @@
 
 void UUnitParameters::AddDamage(double damage, EWeaponType type, AActor* owner)
 {
+    if (m_currentHealth <= 0)
+    {
+        LOG_ERROR(TEXT("Current unit heath equal or lower that zero. Something went wrong"));
+        return;
+    }
+    
     double resultDamage = std::abs(damage) - m_currentDefence;
     resultDamage = std::max(resultDamage, AtomDestiny::Balance::MinDamageValue);
     resultDamage = GetDamageAfterDefenceType(resultDamage);
@@ -30,20 +36,19 @@ void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActo
     m_healthBlueprint->SetIsEnabled(showHeathBar);
 
     // check current health on death
-    if (m_currentHealth <= 0)
+    if (m_currentHealth <= 0 && !m_isDead)
     {
-        if (!m_isDead)
+        const TScriptInterface<IDestroyable> destroyable = GET_INTERFACE(Destroyable);
+
+        if (destroyable == nullptr)
         {
-            const TScriptInterface<IDestroyable> destroyable = GET_INTERFACE(Destroyable);
-
-            if (destroyable == nullptr)
-            {
-                LOG_ERROR(TEXT("There is no IDestroyable component on Unit"));
-                return;
-            }
-
-            destroyable->Destroy();
-            m_isDead = !m_isDead;
+            LOG_ERROR(TEXT("There is no IDestroyable component on Unit"));
+            return;
         }
+
+        if (!destroyable->IsDestroyed())
+            destroyable->Destroy();
+
+        m_isDead = true;
     }
 }

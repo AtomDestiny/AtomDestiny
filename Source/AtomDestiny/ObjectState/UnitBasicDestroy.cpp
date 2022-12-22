@@ -9,6 +9,8 @@ void UUnitBasicDestroy::Destroy()
         UE_LOG(LogTemp, Warning, TEXT("Unit base destroy has invalid explosion blueprint"));
         return;
     }
+
+    Super::Destroy();
     
     AtomDestiny::ObjectPool::Instance().Spawn(m_explosionBlueprint, GetOwner()->GetTransform().GetLocation(), FQuat::Identity);
     AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(GetOwner()), m_deathDelay);

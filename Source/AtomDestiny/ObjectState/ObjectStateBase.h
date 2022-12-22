@@ -95,7 +95,6 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Balance parameters"))
     FBalanceParameters m_balanceParameters;
     
-    // Dead state
     bool m_isDead = false;
     
     // Current object defence
