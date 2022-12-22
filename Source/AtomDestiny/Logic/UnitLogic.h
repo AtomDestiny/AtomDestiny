@@ -51,4 +51,7 @@ private:
     
     // Checks unit navigation and animation
     void CheckBehaviour(const TScriptInterface<IWeapon>& weapon);
+
+    // searches nearest enemy
+    TWeakObjectPtr<AActor> FindEnemy(double minScanDistance, double scanDistance) const;
 };

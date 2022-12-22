@@ -74,9 +74,20 @@ void UUnitLogic::CreateDestination()
         m_navigation->Move(m_currentDestination->GetActorLocation());
     }
     else if (m_behaviour == EUnitBehaviour::MoveToPoint)
+    {
         m_navigation->Move(m_destinationPoint);
-    else
+    }
+    else if (m_behaviour == EUnitBehaviour::Standing)
+    {
         m_navigation->Move(GetOwner()->GetActorLocation());
+        m_navigation->Stop();
+    }
+    else
+    {
+        // So we have no destination and should try to search any possible enemy target
+        const TWeakObjectPtr<AActor> target = FindEnemy(0, std::numeric_limits<double>::max());
+        target.IsValid()? m_navigation->Move(target.Get()) : m_navigation->Move(GetOwner());
+    }
 }
 
 void UUnitLogic::CheckNavigation()
@@ -141,35 +152,12 @@ void UUnitLogic::UpdateNavigationTarget()
 
 void UUnitLogic::ScanEnemy()
 {
-    double minDist = ::MaxScanDistance;
+    TWeakObjectPtr<AActor> target = FindEnemy(m_minScanDistance, m_scanDistance);
 
-    const FEnemiesList& enemies = AtomDestiny::GetGameState(GetOwner())->GetEnemies(m_side);
-        
-    const double sqrScanDistance = m_scanDistance * m_scanDistance;
-    const double sqrMinScanDistance = m_minScanDistance * m_minScanDistance;
-    const size_t enemyListSideCount = static_cast<size_t>(enemies.Num());
-
-    for (size_t sideCount = 0; sideCount < enemyListSideCount; ++sideCount)
+    if (target.IsValid())
     {
-        const size_t enemyListUnitCount = static_cast<size_t>(enemies[sideCount]->Num());
-
-        for (int unitCount = 0; unitCount < enemyListUnitCount; ++unitCount)
-        {
-            if (AActor* target = (*enemies[sideCount])[unitCount].Get(); target != nullptr)
-            {
-                const double sqrMagnitude = (target->GetActorLocation() - GetOwner()->GetActorLocation()).SquaredLength();
-
-                if ((sqrScanDistance >= sqrMagnitude) && (sqrMinScanDistance <= sqrMagnitude))
-                {
-                    if (sqrMagnitude <= minDist)
-                    {
-                        m_currentDestination = MakeWeakObjectPtr(target);
-                        minDist = sqrMagnitude;
-                        m_isTargetFound = true;
-                    }
-                }
-            }
-        }
+        m_currentDestination = std::move(target);
+        m_isTargetFound = true;
     }
 
     m_canScan = false;
@@ -236,4 +224,43 @@ void UUnitLogic::CheckBehaviour(const TScriptInterface<IWeapon>& weapon)
         if (m_animation != nullptr)
             m_animation->Attack();
     }
+}
+
+TWeakObjectPtr<AActor> UUnitLogic::FindEnemy(double minScanDistance, double scanDistance) const
+{
+    const FEnemiesList& enemies = AtomDestiny::GetGameState(GetOwner())->GetEnemies(m_side);
+
+    if (enemies.IsEmpty())
+        return nullptr;
+
+    double minDist = ::MaxScanDistance;
+    AActor* enemy = nullptr;
+    
+    const double sqrScanDistance = scanDistance * scanDistance;
+    const double sqrMinScanDistance = minScanDistance * minScanDistance;
+    const size_t enemyListSideCount = static_cast<size_t>(enemies.Num());
+
+    for (size_t sideCount = 0; sideCount < enemyListSideCount; ++sideCount)
+    {
+        const size_t enemyListUnitCount = static_cast<size_t>(enemies[sideCount]->Num());
+
+        for (int unitCount = 0; unitCount < enemyListUnitCount; ++unitCount)
+        {
+            if (AActor* target = (*enemies[sideCount])[unitCount].Get(); target != nullptr)
+            {
+                const double sqrMagnitude = (target->GetActorLocation() - GetOwner()->GetActorLocation()).SquaredLength();
+
+                if ((sqrScanDistance >= sqrMagnitude) && (sqrMinScanDistance <= sqrMagnitude))
+                {
+                    if (sqrMagnitude <= minDist)
+                    {
+                        minDist = sqrMagnitude;
+                        enemy = target;
+                    }
+                }
+            }
+        }
+    }
+
+    return MakeWeakObjectPtr(enemy);
 }
