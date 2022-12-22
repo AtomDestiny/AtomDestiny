@@ -16,7 +16,7 @@
 /// Minimal entity for any Parameterizable Atom Destiny object.
 /// (Units, Buildings, Abilities, Weapons and so on).
 ///
-UCLASS(Abstract, Blueprintable)
+UCLASS(Abstract)
 class ATOMDESTINY_API UADObject : public UActorComponent, public IParameterizable
 {
     GENERATED_BODY()
@@ -47,6 +47,8 @@ public:
     static double InterpretParameterModifier(double baseValue, const FParameterEnhancement& enhancement);
 
 protected:
+
+    virtual void BeginPlay() override;
     
     // Recalculates parameter for implementor
     UFUNCTION(Meta = (AllowOverride = true))

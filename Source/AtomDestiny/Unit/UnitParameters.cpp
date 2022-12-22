@@ -2,6 +2,7 @@
 
 #include <AtomDestiny/ObjectState/Destroyable.h>
 
+#include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
 void UUnitParameters::AddDamage(double damage, EWeaponType type, AActor* owner)
@@ -19,10 +20,14 @@ void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActo
 {
     Super::TickComponent(deltaTime, levelTick, func);
 
+    if (!m_healthBar.IsValid())
+        return;
+    
     const double value = m_healthBar->GetMaxValue() * m_currentHealth / m_currentMaxHealth;
+    const bool showHeathBar = m_hideBar ? false : m_currentHealth != m_currentMaxHealth;
     
     m_healthBar->SetValue(static_cast<float>(value));
-    m_healthBlueprint->SetIsEnabled(m_hideBar ? !(m_currentHealth == m_currentMaxHealth) : true);
+    m_healthBlueprint->SetIsEnabled(showHeathBar);
 
     // check current health on death
     if (m_currentHealth <= 0)
@@ -33,7 +38,7 @@ void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActo
 
             if (destroyable == nullptr)
             {
-                UE_LOG(LogTemp, Error, TEXT("There is no IDestroyable component on Unit"));
+                LOG_ERROR(TEXT("There is no IDestroyable component on Unit"));
                 return;
             }
 

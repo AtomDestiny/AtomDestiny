@@ -13,7 +13,7 @@
 /// Represents abstract unit logic with common values.
 /// Should be derived by concrete logic.
 ///
-UCLASS(Abstract, Blueprintable)
+UCLASS(Abstract)
 class ATOMDESTINY_API UUnitLogicBase : public UADObject, public ILogic
 {
     GENERATED_BODY()

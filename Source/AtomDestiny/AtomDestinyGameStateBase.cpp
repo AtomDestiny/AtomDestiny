@@ -5,13 +5,14 @@
 
 // ReSharper disable once CppUnusedIncludeDirective
 #include <AtomDestiny/Core/Hash.h>
+#include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Logic/UnitLogicBase.h>
 
 #include <Engine/Classes/GameFramework/Actor.h>
 
 #include "Core/ActorComponentUtils.h"
 
-namespace 
+namespace
 {
     constexpr double MinimalCriticalRange = 0;
     constexpr double MaximumCriticalRange = 100;
@@ -67,11 +68,20 @@ AAtomDestinyGameStateBase::AAtomDestinyGameStateBase() :
 
 AAtomDestinyGameStateBase::~AAtomDestinyGameStateBase()
 {
+    UUnitLogicBase::unitCreated.RemoveDynamic(this, &AAtomDestinyGameStateBase::OnUnitCreated);
+    UUnitLogicBase::unitDestroyed.RemoveDynamic(this, &AAtomDestinyGameStateBase::OnUnitDestroyed);
+    
     delete m_impl;
 }
 
 void AAtomDestinyGameStateBase::AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side)
 {
+    if (!actor.IsValid())
+    {
+        LOG_WARNING(TEXT("Trying to add invalid unit to game state"));
+        return;
+    }
+
     const FSharedGameStateUnitList& unitList = m_impl->activeUnits[side];
 
     if (const auto index = unitList->Find(actor); index == INDEX_NONE)
@@ -80,9 +90,15 @@ void AAtomDestinyGameStateBase::AddUnit(TWeakObjectPtr<AActor> actor, EGameSide 
 
 void AAtomDestinyGameStateBase::RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side)
 {
+    if (!actor.IsValid())
+    {
+        LOG_WARNING(TEXT("Trying to remove invalid unit from game state"));
+        return;
+    }
+    
     const FSharedGameStateUnitList& unitList = m_impl->activeUnits[side];
 
-    if (const auto index = unitList->Find(actor); index == INDEX_NONE)
+    if (const auto index = unitList->Find(actor); index != INDEX_NONE)
         unitList->RemoveAt(index);
 }
 

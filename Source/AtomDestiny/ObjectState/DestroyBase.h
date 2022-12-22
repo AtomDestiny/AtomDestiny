@@ -10,7 +10,7 @@
 ///
 /// Represents base class for any destroyable game object
 ///
-UCLASS(Abstract, Blueprintable)
+UCLASS(Abstract)
 class ATOMDESTINY_API UDestroyBase : public USceneComponent, public IDestroyable
 {
     GENERATED_BODY()

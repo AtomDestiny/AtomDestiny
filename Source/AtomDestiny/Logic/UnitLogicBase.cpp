@@ -4,6 +4,7 @@
 
 #include <AtomDestiny/Core/MathUtils.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
+#include <AtomDestiny/Core/Logger.h>
 
 const TArray<TScriptInterface<IWeapon>>& UUnitLogicBase::GetAllWeapon() const
 {
@@ -44,19 +45,8 @@ void UUnitLogicBase::InitializeComponent()
 {
     Super::InitializeComponent();
     
-    // get all weapons
     m_weapons = GET_INTERFACES(Weapon);
-
-    // get navigation
-    APawn* pawn = CastChecked<APawn>(GetOwner());
-    check(pawn->AIControllerClass != nullptr);
     
-    m_navigation = CastChecked<ANavigator>(pawn->AIControllerClass);
-    m_navigation->SetMovementComponent(pawn->FindComponentByClass<UFloatingPawnMovement>());
-    
-    m_speed = m_navigation->GetSpeed();
-    m_currentSpeed = m_speed;
-
     CalculateDistances();
 
     AddNewParameter(EObjectParameters::Velocity);
@@ -65,14 +55,28 @@ void UUnitLogicBase::InitializeComponent()
 void UUnitLogicBase::BeginPlay()
 {
     Super::BeginPlay();
-    
-    // navigation setup
-    m_defaultStopDistance = m_navigation->GetStopDistance();
 
-    // get animation
-    m_animation = GET_INTERFACE(Animation);
+    // navigation initialization
+    const APawn* pawn = CastChecked<APawn>(GetOwner());
+    check(pawn->AIControllerClass != nullptr);
     
-    // setup scan delay
+    if (ANavigator* navigator = Cast<ANavigator>(pawn->Controller.Get()); navigator != nullptr)
+    {
+        m_navigation = MakeWeakObjectPtr(navigator);
+        m_navigation->SetMovementComponent(pawn->FindComponentByClass<UFloatingPawnMovement>());
+    }
+    else
+    {
+        PrimaryComponentTick.bCanEverTick = false;
+        LOG_ERROR(TEXT("Pawn AIControllerClass should be an ANavigator or derived from. Tick disabled"));
+        return;
+    }
+    
+    m_speed = m_navigation->GetSpeed();
+    m_currentSpeed = m_speed;
+    m_defaultStopDistance = m_navigation->GetStopDistance();
+    
+    m_animation = GET_INTERFACE(Animation);
     m_scanDelay += FMath::RandRange(AtomDestiny::Unit::MinRandomScan, AtomDestiny::Unit::MaxRandomScan);
 
     // new layer

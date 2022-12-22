@@ -10,7 +10,7 @@
 ///
 /// Represents common abstract projectile
 ///
-UCLASS(Blueprintable)
+UCLASS(Abstract)
 class UProjectileBase : public USceneComponent, public IProjectile
 {
     GENERATED_BODY()
