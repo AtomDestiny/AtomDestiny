@@ -64,6 +64,8 @@ void UUnitLogicBase::BeginPlay()
     {
         m_navigation = MakeWeakObjectPtr(navigator);
         m_navigation->SetMovementComponent(pawn->FindComponentByClass<UFloatingPawnMovement>());
+
+        m_navigation->AttachToActor(GetOwner(), FAttachmentTransformRules::KeepRelativeTransform);
     }
     else
     {
