@@ -32,6 +32,9 @@ public:
     void RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
 
     TWeakObjectPtr<AActor> GetDestination(EGameSide side) const;
+
+    // use this method to prevent crushes for GetEnemies reference
+    bool IsEnemiesExist(EGameSide side) const;
     const FEnemiesList& GetEnemies(EGameSide side) const;
     
     // Adds damage from projectile to object with explosion point parameters
@@ -43,6 +46,10 @@ public:
     static void AddDamageToState(const TScriptInterface<IObjectState>& objectState, const FWeaponParameters& parameters);
 
 protected:
+
+    // called by GameMode directly
+    virtual void HandleBeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
     
     ///
     /// Event callbacks
@@ -67,9 +74,9 @@ protected:
 
 namespace AtomDestiny
 {
-    inline AAtomDestinyGameStateBase* GetGameState(const AActor* actor)
+    inline TWeakObjectPtr<AAtomDestinyGameStateBase> GetGameState(const AActor* actor)
     {
-        return CastChecked<AAtomDestinyGameStateBase>(actor->GetWorld()->GetGameState());
+        return MakeWeakObjectPtr(CastChecked<AAtomDestinyGameStateBase>(actor->GetWorld()->GetGameState()));
     }
     
 } // namespace AtomDestiny

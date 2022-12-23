@@ -228,11 +228,12 @@ void UUnitLogic::CheckBehaviour(const TScriptInterface<IWeapon>& weapon)
 
 TWeakObjectPtr<AActor> UUnitLogic::FindEnemy(double minScanDistance, double scanDistance) const
 {
-    const FEnemiesList& enemies = AtomDestiny::GetGameState(GetOwner())->GetEnemies(m_side);
+    const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
 
-    if (enemies.IsEmpty())
+    if (!gameState.IsValid() || !gameState->IsEnemiesExist(m_side) || gameState->GetEnemies(m_side).IsEmpty())
         return nullptr;
-
+        
+    const FEnemiesList& enemies = gameState->GetEnemies(m_side);
     double minDist = ::MaxScanDistance;
     AActor* enemy = nullptr;
     

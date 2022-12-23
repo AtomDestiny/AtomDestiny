@@ -61,16 +61,10 @@ AAtomDestinyGameStateBase::AAtomDestinyGameStateBase() :
 {
     InitializeSides();
     InitializeEnemies();
-    
-    UUnitLogicBase::unitCreated.AddDynamic(this, &AAtomDestinyGameStateBase::OnUnitCreated);
-    UUnitLogicBase::unitDestroyed.AddDynamic(this, &AAtomDestinyGameStateBase::OnUnitDestroyed);
 }
 
 AAtomDestinyGameStateBase::~AAtomDestinyGameStateBase()
 {
-    UUnitLogicBase::unitCreated.RemoveDynamic(this, &AAtomDestinyGameStateBase::OnUnitCreated);
-    UUnitLogicBase::unitDestroyed.RemoveDynamic(this, &AAtomDestinyGameStateBase::OnUnitDestroyed);
-    
     delete m_impl;
 }
 
@@ -81,11 +75,9 @@ void AAtomDestinyGameStateBase::AddUnit(TWeakObjectPtr<AActor> actor, EGameSide 
         LOG_WARNING(TEXT("Trying to add invalid unit to game state"));
         return;
     }
-
-    const FSharedGameStateUnitList& unitList = m_impl->activeUnits[side];
-
-    if (const auto index = unitList->Find(actor); index == INDEX_NONE)
-        unitList->Add(std::move(actor));
+    
+    const FSharedGameStateUnitList& unitListPtr = m_impl->activeUnits[side];
+    unitListPtr->AddUnique(actor);
 }
 
 void AAtomDestinyGameStateBase::RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side)
@@ -96,10 +88,8 @@ void AAtomDestinyGameStateBase::RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSi
         return;
     }
     
-    const FSharedGameStateUnitList& unitList = m_impl->activeUnits[side];
-
-    if (const auto index = unitList->Find(actor); index != INDEX_NONE)
-        unitList->RemoveAt(index);
+    const FSharedGameStateUnitList& unitListPtr = m_impl->activeUnits[side];
+    unitListPtr->Remove(actor);
 }
 
 TWeakObjectPtr<AActor> AAtomDestinyGameStateBase::GetDestination(EGameSide side) const
@@ -118,6 +108,11 @@ TWeakObjectPtr<AActor> AAtomDestinyGameStateBase::GetDestination(EGameSide side)
     default:
         return nullptr;
     }
+}
+
+bool AAtomDestinyGameStateBase::IsEnemiesExist(EGameSide side) const
+{
+    return m_impl->enemies.Contains(side);
 }
 
 const FEnemiesList& AAtomDestinyGameStateBase::GetEnemies(EGameSide side) const
@@ -179,6 +174,27 @@ void AAtomDestinyGameStateBase::AddDamageToState(const TScriptInterface<IObjectS
         objectState->AddDamage(resultDamage, parameters.weaponType, parameters.owner.Get());
 }
 
+void AAtomDestinyGameStateBase::HandleBeginPlay()
+{
+    // specially added before parent call
+    // Super::HandleBeginPlay will call BeginPlay for all actors
+    UUnitLogicBase::unitCreated.AddDynamic(this, &AAtomDestinyGameStateBase::OnUnitCreated);
+    UUnitLogicBase::unitDestroyed.AddDynamic(this, &AAtomDestinyGameStateBase::OnUnitDestroyed);
+    
+    Super::HandleBeginPlay();
+}
+
+void AAtomDestinyGameStateBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    Super::EndPlay(EndPlayReason);
+
+    UUnitLogicBase::unitCreated.RemoveDynamic(this, &AAtomDestinyGameStateBase::OnUnitCreated);
+    UUnitLogicBase::unitDestroyed.RemoveDynamic(this, &AAtomDestinyGameStateBase::OnUnitDestroyed);
+
+    m_impl->activeUnits.Reset();
+    m_impl->enemies.Reset();
+}
+
 void AAtomDestinyGameStateBase::OnUnitCreated(AActor* actor, EGameSide side, EUnitType)
 {
     AddUnit(MakeWeakObjectPtr(actor), side);
@@ -207,6 +223,8 @@ void AAtomDestinyGameStateBase::InitializeEnemies()
 {
     for (const auto& [side, list] : m_impl->activeUnits)
     {
+        m_impl->enemies.Add(side, FEnemiesList{});
+        
         for (const auto& [s, l] : m_impl->activeUnits)
         {
             if (side != s && side != EGameSide::None)
