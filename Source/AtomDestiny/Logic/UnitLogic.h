@@ -15,6 +15,7 @@ class ATOMDESTINY_API UUnitLogic final : public UUnitLogicBase
     GENERATED_BODY()
 
 public:
+    explicit UUnitLogic(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Recalculates parameters params
     virtual void UpdateParameters() override;

@@ -16,6 +16,7 @@ class ATOMDESTINY_API UPlasmaShotProjectile : public UProjectileBase
     GENERATED_BODY()
 
 public:
+    explicit UPlasmaShotProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     // Base values initialization to projectile and generating impact blueprint
     virtual void Launch() override;

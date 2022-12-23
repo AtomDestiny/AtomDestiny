@@ -14,6 +14,7 @@ class ATOMDESTINY_API UUnitBasicDestroy final : public UDestroyBase
     GENERATED_BODY()
 
 public:
+    explicit UUnitBasicDestroy(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     // Destroys current actor
     virtual void Destroy() override;

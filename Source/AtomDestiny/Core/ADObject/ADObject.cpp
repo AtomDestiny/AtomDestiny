@@ -2,7 +2,8 @@
 
 #include <AtomDestiny/Core/Logger.h>
 
-UADObject::UADObject()
+UADObject::UADObject(const FObjectInitializer& objectInitializer):
+    UActorComponent(objectInitializer)
 {
     bWantsInitializeComponent = true;
 }
@@ -78,11 +79,6 @@ double UADObject::InterpretParameterModifier(double baseValue, const FParameterE
     }
 
     return result;
-}
-
-void UADObject::BeginPlay()
-{
-    Super::BeginPlay();
 }
 
 std::vector<EObjectParameters> UADObject::GetParameterTypes() const
@@ -205,6 +201,14 @@ double UADObject::CalculateParametersFromAll(const double startValue, EObjectPar
     };
 
     return calculator();
+}
+
+void UADObject::SetTickEnabled(bool enable)
+{
+    UActorComponent::PrimaryComponentTick.bCanEverTick = enable;
+    UActorComponent::PrimaryComponentTick.bStartWithTickEnabled = enable;
+
+    Super::SetComponentTickEnabled(enable);
 }
 
 void UADObject::RemoveNullParameters(EObjectParameters parameter)

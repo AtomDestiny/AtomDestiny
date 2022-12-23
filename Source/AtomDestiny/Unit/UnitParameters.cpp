@@ -5,10 +5,10 @@
 #include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
-UUnitParameters::UUnitParameters()
+UUnitParameters::UUnitParameters(const FObjectInitializer& objectInitializer):
+    UObjectStateBase(objectInitializer)
 {
-    PrimaryComponentTick.bCanEverTick = true;
-    PrimaryComponentTick.bStartWithTickEnabled = true;
+    SetTickEnabled(true);
 }
 
 void UUnitParameters::AddDamage(double damage, EWeaponType type, AActor* owner)

@@ -6,6 +6,11 @@
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/Logger.h>
 
+UUnitLogicBase::UUnitLogicBase(const FObjectInitializer& objectInitializer):
+    UADObject(objectInitializer)
+{
+}
+
 const TArray<TScriptInterface<IWeapon>>& UUnitLogicBase::GetAllWeapon() const
 {
     return m_weapons;

@@ -9,6 +9,12 @@ namespace
     
 } // namespace
 
+UUnitLogic::UUnitLogic(const FObjectInitializer& objectInitializer):
+    UUnitLogicBase(objectInitializer)
+{
+    SetTickEnabled(true);
+}
+
 void UUnitLogic::UpdateParameters()
 {
     CalculateDistances();
@@ -36,9 +42,6 @@ void UUnitLogic::SetDestinationByPoint(const FVector& destination)
 void UUnitLogic::BeginPlay()
 {
     Super::BeginPlay();
-
-    PrimaryComponentTick.bCanEverTick = true;
-    PrimaryComponentTick.bStartWithTickEnabled = true;
     
     CreateDestination();
 }

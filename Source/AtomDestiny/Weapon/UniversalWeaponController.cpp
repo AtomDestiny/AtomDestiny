@@ -5,6 +5,11 @@
 
 #include <AtomDestiny/Projectile/Projectile.h>
 
+UUniversalWeaponController::UUniversalWeaponController(const FObjectInitializer& objectInitializer):
+    UWeaponBase(objectInitializer)
+{
+}
+
 double UUniversalWeaponController::GetFireRate() const
 {
     return m_shotCount * m_shootingPositions.Num() / (m_shotDelay * (m_shotCount * m_shootingPositions.Num() - 1) + m_reloadTime);

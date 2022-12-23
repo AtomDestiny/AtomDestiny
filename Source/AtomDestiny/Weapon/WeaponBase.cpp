@@ -7,6 +7,11 @@
 #include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
+UWeaponBase::UWeaponBase(const FObjectInitializer& objectInitializer):
+    UADObject(objectInitializer)
+{
+}
+
 void UWeaponBase::InitializeComponent()
 {
     Super::InitializeComponent();

@@ -23,6 +23,7 @@ class ATOMDESTINY_API UUnitLogicBase : public UADObject, public ILogic
     DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FUnitAction, AActor*, actor, EGameSide, side, EUnitType, unitType);
     
 public:
+    explicit UUnitLogicBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Returns list of all unit weapons
     virtual const TArray<TScriptInterface<IWeapon>>& GetAllWeapon() const override;

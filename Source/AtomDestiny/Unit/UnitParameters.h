@@ -10,7 +10,7 @@ class ATOMDESTINY_API UUnitParameters final : public UObjectStateBase
     GENERATED_BODY()
 
 public:
-    explicit UUnitParameters();
+    explicit UUnitParameters(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     // Adds damage to this Actor
     UFUNCTION(Meta = (AllowOverride = false))

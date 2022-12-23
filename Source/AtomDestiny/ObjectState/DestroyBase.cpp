@@ -2,6 +2,11 @@
 
 #include <AtomDestiny/Core/Utils.h>
 
+UDestroyBase::UDestroyBase(const FObjectInitializer& objectInitializer):
+    UActorComponent(objectInitializer)
+{
+}
+
 bool UDestroyBase::IsDestroyed() const
 {
     return m_destroyed;

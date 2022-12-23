@@ -2,6 +2,11 @@
 
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 
+UUnitBasicDestroy::UUnitBasicDestroy(const FObjectInitializer& objectInitializer):
+    UDestroyBase(objectInitializer)
+{
+}
+
 void UUnitBasicDestroy::Destroy()
 {
     if (!m_explosionBlueprint.IsValid())

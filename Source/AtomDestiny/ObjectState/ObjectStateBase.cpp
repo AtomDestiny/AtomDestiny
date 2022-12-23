@@ -2,6 +2,11 @@
 
 #include <AtomDestiny/Core/Logger.h>
 
+UObjectStateBase::UObjectStateBase(const FObjectInitializer& objectInitializer):
+    UADObject(objectInitializer)
+{
+}
+
 void UObjectStateBase::RegenerateHealth(double health)
 {
     const auto value = FMath::Abs(health);

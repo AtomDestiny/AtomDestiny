@@ -15,6 +15,7 @@ class ATOMDESTINY_API UUniversalWeaponController final : public UWeaponBase
     GENERATED_BODY()
 
 public:
+    explicit UUniversalWeaponController(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Returns fire rate
     virtual double GetFireRate() const override;

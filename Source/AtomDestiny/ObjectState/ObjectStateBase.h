@@ -18,6 +18,7 @@ class UObjectStateBase : public UADObject, public IObjectState
     GENERATED_BODY()
     
 public:
+    explicit UObjectStateBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Adds damage to this object
     virtual void AddDamage(double damage, EWeaponType type, AActor* owner) ABSTRACT_METHOD;

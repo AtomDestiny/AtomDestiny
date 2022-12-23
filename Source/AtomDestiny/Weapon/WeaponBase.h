@@ -19,6 +19,7 @@ class ATOMDESTINY_API UWeaponBase : public UADObject, public IWeapon
     GENERATED_BODY()
 
 protected:
+    explicit UWeaponBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Setups weapon
     virtual void InitializeComponent() override;
