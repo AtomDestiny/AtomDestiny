@@ -36,6 +36,9 @@ void UUnitLogic::SetDestinationByPoint(const FVector& destination)
 void UUnitLogic::BeginPlay()
 {
     Super::BeginPlay();
+
+    PrimaryComponentTick.bCanEverTick = true;
+    PrimaryComponentTick.bStartWithTickEnabled = true;
     
     CreateDestination();
 }

@@ -5,6 +5,12 @@
 #include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
+UUnitParameters::UUnitParameters()
+{
+    PrimaryComponentTick.bCanEverTick = true;
+    PrimaryComponentTick.bStartWithTickEnabled = true;
+}
+
 void UUnitParameters::AddDamage(double damage, EWeaponType type, AActor* owner)
 {
     if (m_currentHealth <= 0)

@@ -5,8 +5,6 @@
 UADObject::UADObject()
 {
     bWantsInitializeComponent = true;
-    PrimaryComponentTick.bCanEverTick = true;
-    PrimaryComponentTick.bStartWithTickEnabled = true;
 }
 
 // IParameterizable
