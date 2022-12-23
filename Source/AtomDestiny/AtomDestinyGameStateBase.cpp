@@ -50,10 +50,10 @@ namespace
 struct AAtomDestinyGameStateBase::GameStateBasePrivateData
 {
     // represents active units at overall battle
-    std::unordered_map<EGameSide, FSharedGameStateUnitList> activeUnits;
+    TMap<EGameSide, FSharedGameStateUnitList> activeUnits;
 
-    // represents 
-    std::unordered_map<EGameSide, FEnemiesList> enemies;
+    // represents references to Active units, that could be threaded as enemies
+    TMap<EGameSide, FEnemiesList> enemies;
 };
 
 AAtomDestinyGameStateBase::AAtomDestinyGameStateBase() :
@@ -195,8 +195,11 @@ void AAtomDestinyGameStateBase::InitializeSides()
 
     for (uint8 side = 0; side < lastSide; ++side)
     {
-        if (const EGameSide currentSide = static_cast<EGameSide>(side); !m_impl->activeUnits.contains(currentSide))
-            m_impl->activeUnits.insert(std::make_pair(currentSide, MakeShared<FGameStateUnitList>()));
+        if (const EGameSide currentSide = static_cast<EGameSide>(side); !m_impl->activeUnits.Contains(currentSide))
+        {
+            TSharedPtr<FGameStateUnitList> ptr { new FGameStateUnitList() };
+            m_impl->activeUnits.Add(currentSide, std::move(ptr));
+        }
     }
 }
 
@@ -204,8 +207,6 @@ void AAtomDestinyGameStateBase::InitializeEnemies()
 {
     for (const auto& [side, list] : m_impl->activeUnits)
     {
-        m_impl->enemies.insert(std::make_pair(side, FEnemiesList{}));
-
         for (const auto& [s, l] : m_impl->activeUnits)
         {
             if (side != s && side != EGameSide::None)

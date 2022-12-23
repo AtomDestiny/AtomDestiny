@@ -19,3 +19,12 @@ enum class EGameSide : uint8
 using FGameStateUnitList = TArray<TWeakObjectPtr<AActor>>;
 using FSharedGameStateUnitList = TSharedPtr<FGameStateUnitList>;
 using FEnemiesList = TArray<FSharedGameStateUnitList>;
+
+namespace AtomDestiny
+{
+    struct GameSide
+    {
+        static FString ToString(EGameSide);
+    };
+    
+} // namespace AtomDestiny
