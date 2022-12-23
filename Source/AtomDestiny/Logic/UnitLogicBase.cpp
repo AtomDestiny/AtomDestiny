@@ -62,7 +62,7 @@ void UUnitLogicBase::BeginPlay()
     Super::BeginPlay();
 
     // navigation initialization
-    const APawn* pawn = CastChecked<APawn>(GetOwner());
+    APawn* pawn = CastChecked<APawn>(GetOwner());
     check(pawn->AIControllerClass != nullptr);
     
     if (ANavigator* navigator = Cast<ANavigator>(pawn->Controller.Get()); navigator != nullptr)
@@ -70,7 +70,10 @@ void UUnitLogicBase::BeginPlay()
         m_navigation = MakeWeakObjectPtr(navigator);
         m_navigation->SetMovementComponent(pawn->FindComponentByClass<UFloatingPawnMovement>());
 
-        m_navigation->AttachToActor(GetOwner(), FAttachmentTransformRules::KeepRelativeTransform);
+        m_navigation->AttachToActor(pawn, FAttachmentTransformRules::KeepRelativeTransform);
+        
+        m_navigation->SetPawn(pawn);
+        m_navigation->AActor::SetActorLocation(pawn->GetActorLocation());
     }
     else
     {

@@ -4,6 +4,11 @@
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/ADObject/Parameterizable.h>
 
+UUnitState::UUnitState(const FObjectInitializer& objectInitializer):
+    UActorComponent(objectInitializer)
+{
+}
+
 double UUnitState::GetVelocity() const
 {
     // TODO: when we should have an animator, change speed of animator
@@ -260,9 +265,9 @@ void UUnitState::ZeroParameter(EObjectParameters parameter, const FParameterZero
     }
 }
 
-void UUnitState::InitializeComponent()
+void UUnitState::BeginPlay()
 {
-    Super::InitializeComponent();
+    Super::BeginPlay();
 
     m_logic = GET_INTERFACE(Logic);
     m_objectState = GET_INTERFACE(ObjectState);
@@ -292,5 +297,5 @@ void UUnitState::SetEnabled(bool enabled)
 TWeakObjectPtr<ANavigator> UUnitState::GetNavigation() const
 {
     const APawn* pawn = CastChecked<APawn>(GetOwner());
-    return MakeWeakObjectPtr(CastChecked<ANavigator>(pawn->AIControllerClass));
+    return MakeWeakObjectPtr(CastChecked<ANavigator>(pawn->Controller));
 }

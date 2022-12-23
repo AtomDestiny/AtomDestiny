@@ -24,7 +24,7 @@ class ATOMDESTINY_API UUnitState : public UActorComponent
     GENERATED_BODY()
 
 public:
-    UUnitState() { bWantsInitializeComponent = true; }
+    explicit UUnitState(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Returns unit logic
     TScriptInterface<ILogic> GetLogic() const { return m_logic; }
@@ -151,7 +151,7 @@ public:
 
 private:
     
-    virtual void InitializeComponent() override;
+    virtual void BeginPlay() override;
     
     // Activate/deactivate unit
     void SetEnabled(bool enabled);

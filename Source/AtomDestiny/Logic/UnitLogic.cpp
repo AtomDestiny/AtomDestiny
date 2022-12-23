@@ -90,9 +90,7 @@ void UUnitLogic::CreateDestination()
     }
     else
     {
-        // So we have no destination and should try to search any possible enemy target
-        const TWeakObjectPtr<AActor> target = FindEnemy(0, std::numeric_limits<double>::max());
-        target.IsValid()? m_navigation->Move(target.Get()) : m_navigation->Move(GetOwner());
+        MoveNearestEnemyIfCan();
     }
 }
 
@@ -120,7 +118,9 @@ void UUnitLogic::CheckNavigation()
 void UUnitLogic::SetDefaultDestination()
 {
     if (m_behaviour == EUnitBehaviour::MoveToPoint)
+    {
         m_navigation->Move(m_destinationPoint);
+    }
     else
     {
         if (m_mainDestination.Get() && m_behaviour == EUnitBehaviour::MoveToTransform)
@@ -130,9 +130,7 @@ void UUnitLogic::SetDefaultDestination()
         }
         else
         {
-            // So we have no destination and should try to search any possible enemy target
-            const TWeakObjectPtr<AActor> target = FindEnemy(0, std::numeric_limits<double>::max());
-            target.IsValid()? m_navigation->Move(target.Get()) : m_navigation->Move(GetOwner());
+            MoveNearestEnemyIfCan();
         }
     }
 
@@ -148,16 +146,36 @@ void UUnitLogic::SetDefaultDestination()
 void UUnitLogic::UpdateNavigationTarget()
 {
     if (m_currentDestination.Get() && m_behaviour == EUnitBehaviour::MoveToTransform)
+    {
         m_navigation->Move(m_currentDestination->GetActorLocation());
+    }
     else if (m_behaviour == EUnitBehaviour::MoveToPoint)
+    {
         m_navigation->Move(m_destinationPoint);
+    }
     else if (m_behaviour == EUnitBehaviour::Standing && m_mainDestination.Get() && m_currentDestination.Get())
+    {
         m_navigation->Move(m_currentDestination->GetActorLocation());
+    }
 
     m_navigation->SetStopDistance(m_defaultStopDistance);
 
     if (m_animation != nullptr)
         m_animation->Walk();
+}
+
+void UUnitLogic::MoveNearestEnemyIfCan()
+{
+    // So we have no destination and should try to search any possible enemy target
+    if (const TWeakObjectPtr<AActor> target = FindEnemy(0, std::numeric_limits<double>::max()); target.IsValid())
+    {
+        m_navigation->Move(target.Get());
+        m_currentDestination = std::move(target);
+    }
+    else
+    {
+        m_navigation->Move(GetOwner());
+    }
 }
 
 void UUnitLogic::ScanEnemy()
@@ -221,7 +239,9 @@ void UUnitLogic::Aim(const TScriptInterface<IWeapon>& weapon, float deltaTime)
             weapon->Fire(deltaTime);
         }
         else
+        {
             m_isAttacking = false;
+        }
     }
 }
 

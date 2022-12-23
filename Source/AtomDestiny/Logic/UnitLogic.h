@@ -44,6 +44,7 @@ private:
     
     // Updates navigation data
     void UpdateNavigationTarget();
+    void MoveNearestEnemyIfCan();
     
     // Try to search enemy at possible distance
     void ScanEnemy();
