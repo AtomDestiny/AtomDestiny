@@ -5,6 +5,8 @@
 ANavigator::ANavigator(const FObjectInitializer& objectInitializer)
     : AAIController(objectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
 {
+    bStartAILogicOnPossess = true;
+    
     PrimaryActorTick.bCanEverTick = true;
     PrimaryActorTick.bStartWithTickEnabled = true;
 }
