@@ -76,7 +76,7 @@ namespace AtomDestiny
 {
     inline TWeakObjectPtr<AAtomDestinyGameStateBase> GetGameState(const AActor* actor)
     {
-        return MakeWeakObjectPtr(CastChecked<AAtomDestinyGameStateBase>(actor->GetWorld()->GetGameState()));
+        return MakeWeakObjectPtr(Cast<AAtomDestinyGameStateBase>(actor->GetWorld()->GetGameState()));
     }
     
 } // namespace AtomDestiny
