@@ -123,7 +123,11 @@ void UUnitLogic::SetDefaultDestination()
             m_navigation->Move(m_currentDestination->GetActorLocation());
         }
         else
-            m_navigation->Move(GetOwner()->GetActorLocation());
+        {
+            // So we have no destination and should try to search any possible enemy target
+            const TWeakObjectPtr<AActor> target = FindEnemy(0, std::numeric_limits<double>::max());
+            target.IsValid()? m_navigation->Move(target.Get()) : m_navigation->Move(GetOwner());
+        }
     }
 
     m_navigation->SetStopDistance(m_defaultStopDistance);
