@@ -1,6 +1,7 @@
 ﻿#include "Navigator.h"
 
 #include <Runtime/AIModule/Classes/Navigation/CrowdFollowingComponent.h>
+#include <AtomDestiny/Core/Logger.h>
 
 ANavigator::ANavigator(const FObjectInitializer& objectInitializer)
     : AAIController(objectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
@@ -21,18 +22,50 @@ void ANavigator::Move(AActor* target)
 {
     check(target != nullptr)
     
+    if (target == m_target.Get())
+    {
+        if (m_logMovingResults)
+            LOG_WARNING(TEXT("Already moving to target %s"), *target->GetActorNameOrLabel());
+            
+        return;
+    }
+    
+    const EPathFollowingRequestResult::Type result = MoveToActor(target);
+
+    if (result == EPathFollowingRequestResult::Type::Failed)
+    {
+        if (m_logMovingResults)
+            LOG_WARNING(TEXT("Failed to move to target %s"), *target->GetActorNameOrLabel());
+        
+        return;
+    }
+
     m_target = MakeWeakObjectPtr(target);
     m_targetPoint = FVector{};
-    
-    MoveToActor(m_target.Get());
 }
 
 void ANavigator::Move(const FVector& point)
 {
+    if (point == m_targetPoint)
+    {
+        if (m_logMovingResults)
+            LOG_WARNING(TEXT("Already moving to target %s"), *point.ToString());
+            
+        return;
+    }
+    
+    const EPathFollowingRequestResult::Type result = MoveToLocation(point);
+
+    if (result == EPathFollowingRequestResult::Type::Failed)
+    {
+        if (m_logMovingResults)
+            LOG_WARNING(TEXT("Failed to move to point %s"), *point.ToString());
+        
+        return;
+    }
+
     m_target = nullptr;
     m_targetPoint = point;
-    
-    MoveToLocation(point);
 }
 
 void ANavigator::Stop()

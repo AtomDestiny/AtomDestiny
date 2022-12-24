@@ -35,6 +35,9 @@ public:
     double GetRemainingDistance() const;
 
 private:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Log navigation results", AllowPrivateAccess = "true"))
+    bool m_logMovingResults = false;
+    
     double m_stopDistance = 1.0f;
     
     TWeakObjectPtr<AActor> m_target;
