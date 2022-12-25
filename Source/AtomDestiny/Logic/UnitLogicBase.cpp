@@ -108,21 +108,10 @@ void UUnitLogicBase::RotateToTarget(float deltaTime)
         return;
     }
 
-    // calculate vector on target
-    const FVector weaponLocation = GetOwner()->GetTransform().GetLocation();
-    FVector targetVector = m_currentDestination->GetTransform().GetLocation() - weaponLocation;
-    targetVector.Y = 0;
-
-    // angle between unit and target
-    const auto angle = AtomDestiny::Vector::Angle(targetVector, weaponLocation.ForwardVector);
+    const auto [angle, rotation] = AtomDestiny::RotationToTarget(GetOwner(), m_currentDestination.Get(), deltaTime, m_rotateSpeed);
+    
     m_isRotatedOnTarget = (FMath::Abs(angle) < m_attackAngle);
-
-    // TODO: check to swap last parameters
-    const FVector lookVector = FMath::VInterpNormalRotationTo(weaponLocation.ForwardVector, targetVector,
-                                                              m_rotateSpeed * deltaTime, 0.1f);
-    const FQuat lookRotation = FQuat::FindBetween(lookVector, FVector::UpVector);
-
-    GetOwner()->SetActorRotation(lookRotation);
+    GetOwner()->SetActorRotation(rotation);
 }
 
 void UUnitLogicBase::CheckScanDelay(float deltaTime)

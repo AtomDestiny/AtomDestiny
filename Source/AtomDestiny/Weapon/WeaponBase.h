@@ -225,6 +225,9 @@ protected:
     // Layer mask
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Layer mask to ignore raycast hits"))
     TEnumAsByte<ECollisionChannel> m_layerMask;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Force fire disable"))
+    bool m_forceFireDisable = false;
     
     // Main weapon target, driven by ILogic
     TWeakObjectPtr<AActor> m_target = nullptr;

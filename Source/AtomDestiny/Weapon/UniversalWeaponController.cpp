@@ -17,6 +17,9 @@ double UUniversalWeaponController::GetFireRate() const
 
 bool UUniversalWeaponController::IsSeeTarget() const
 {
+    if (!m_target.IsValid())
+        return false;
+    
     if (!m_useRaycast)
         return true;
     
@@ -39,7 +42,7 @@ bool UUniversalWeaponController::IsSeeTarget() const
 
 void UUniversalWeaponController::Fire(float deltaTime)
 {
-    if (!m_target.IsValid())
+    if (!m_target.IsValid() || m_forceFireDisable)
         return;
 
     const bool isValidShotDistance = (m_target->GetActorLocation() - m_weaponComponent->GetComponentLocation()).SquaredLength() > m_minShotSqrtDistance;
@@ -82,7 +85,7 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
     {
         for (int32 shootingIndex = 0; shootingIndex < m_shootingPositions.Num(); ++shootingIndex)
         {
-            if (!currentEnemy.IsValid())
+            if (!currentEnemy.IsValid() || !m_projectileBlueprint.IsValid())
             {
                 co_await FiringDelay();
                 co_return;

@@ -192,34 +192,18 @@ void UWeaponBase::RotateToTarget(float deltaTime)
         return;
     }
 
-    // calculate vector on target
-    const FVector weaponLocation = m_weaponComponent->GetComponentTransform().GetLocation();
-    FVector targetVector = m_target->GetTransform().GetLocation() - weaponLocation;
-    targetVector.Y = 0;
+    const auto [angle, rotation] = AtomDestiny::RotationToTarget(m_weaponComponent.Get(), m_target.Get(), deltaTime, m_rotateSpeed);
     
-    // angle between unit and target
-    const auto angle = AtomDestiny::Vector::Angle(targetVector, weaponLocation.ForwardVector);
     m_isRotatedOnTarget = (FMath::Abs(angle) < m_attackAngle);
-
-    // TODO: check to swap last parameters
-    const FVector lookVector = FMath::VInterpNormalRotationTo(weaponLocation.ForwardVector, targetVector, m_rotateSpeed * deltaTime, 0.1f);
-    const FQuat lookRotation = FQuat::FindBetween(lookVector, FVector::UpVector);
-    
-    m_weaponComponent->SetWorldRotation(lookRotation);
+    m_weaponComponent->SetWorldRotation(rotation);
 }
 
 void UWeaponBase::RotateToRoot(float deltaTime) const
 {
     if (!m_target.IsValid() && m_rotatedWeapon)
     {
-        const FVector weaponLocation = m_weaponComponent->GetComponentTransform().GetLocation();
-        const FVector rootLocation = GetOwner()->GetTransform().GetLocation();
-
-        // TODO: check to swap last parameters
-        const FVector lookVector = FMath::VInterpNormalRotationTo(weaponLocation.ForwardVector, rootLocation.ForwardVector, m_rotateSpeed * deltaTime, 0.1f);
-        const FQuat lookRotation = FQuat::FindBetween(lookVector, FVector::UpVector);
-
-        m_weaponComponent->SetWorldRotation(lookRotation);
+        const FQuat rotation = AtomDestiny::RotationToRoot(m_weaponComponent.Get(), GetOwner(), deltaTime, m_rotateSpeed);
+        m_weaponComponent->SetWorldRotation(rotation);
     }
 }
 

@@ -21,5 +21,54 @@ namespace AtomDestiny
         }
         
     } // namespace Vector
+
+    struct RotationRes
+    {
+        double angle = 0;   // angle between current location and target location
+        FQuat rotation;     // rotation that should be applied to owner
+    };
+
+    // calculates Rotation res to target
+    static RotationRes RotationToTarget(const FVector& currentLocation, const FVector& targetLocation, float deltaTime, float rotationSpeedDegrees)
+    {
+        FVector targetVector = currentLocation - targetLocation;
+        targetVector.Y = 0;
+
+        RotationRes result;
+        result.angle = Vector::Angle(targetVector, currentLocation.ForwardVector);
+
+        const FVector lookVector = FMath::VInterpNormalRotationTo(currentLocation.ForwardVector, targetVector, deltaTime, rotationSpeedDegrees);
+        result.rotation = FQuat::FindBetween(lookVector, FVector::UpVector);
+
+        return result;
+    }
+
+    static RotationRes RotationToTarget(const USceneComponent* component, const AActor* actor, float deltaTime, float rotationSpeedDegrees)
+    {
+        check(component != nullptr);
+        check(actor != nullptr);
+
+        return RotationToTarget(component->GetComponentLocation(), actor->GetActorLocation(), deltaTime, rotationSpeedDegrees);
+    }
+
+    static RotationRes RotationToTarget(const AActor* current, const AActor* target, float deltaTime, float rotationSpeedDegrees)
+    {
+        check(current != nullptr);
+        check(target != nullptr);
+
+        return RotationToTarget(current->GetActorLocation(), target->GetActorLocation(), deltaTime, rotationSpeedDegrees);
+    }
+
+    // calculates rotation to root from current position
+    static FQuat RotationToRoot(const FVector& current, const FVector& root, float deltaTime, float rotationSpeedDegrees)
+    {
+        const FVector lookVector = FMath::VInterpNormalRotationTo(current.ForwardVector, root.ForwardVector, deltaTime, rotationSpeedDegrees);
+        return FQuat::FindBetween(lookVector, FVector::UpVector);
+    }
+
+    static FQuat RotationToRoot(const USceneComponent* component, const AActor* actor, float deltaTime, float rotationSpeedDegrees)
+    {
+        return RotationToRoot(component->GetComponentLocation(), actor->GetActorLocation(), deltaTime, rotationSpeedDegrees);
+    }
     
 } // namespace AtomDestiny
