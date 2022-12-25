@@ -9,7 +9,7 @@
 /// Represents base unit behaviour and AI.
 /// It controls over animation, weapon and movement.
 ///
-UCLASS(Abstract, Blueprintable)
+UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
 class ATOMDESTINY_API UUnitLogic final : public UUnitLogicBase
 {
     GENERATED_BODY()

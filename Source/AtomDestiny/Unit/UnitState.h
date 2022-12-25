@@ -18,7 +18,7 @@
 /// Represents wrapper class that contains all base API for unit.
 /// Also it contains some helper methods.
 ///
-UCLASS(Blueprintable)
+UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
 class ATOMDESTINY_API UUnitState : public UActorComponent
 {
     GENERATED_BODY()

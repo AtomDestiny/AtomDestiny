@@ -4,7 +4,7 @@
 
 #include "UnitParameters.generated.h"
 
-UCLASS(Blueprintable)
+UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
 class ATOMDESTINY_API UUnitParameters final : public UObjectStateBase
 {
     GENERATED_BODY()
