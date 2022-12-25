@@ -10,26 +10,15 @@ void UUnitMovementComponent::TickComponent(float deltaTime, ELevelTick tickType,
     if (!Velocity.IsZero())
     {
         const FVector velocity = Velocity.GetUnsafeNormal();
-
-        auto const& actorLoc = GetActorLocation();
-        auto const& fwdVec = GetActorTransform().TransformVector({0,1,0});
+        const FVector actorLocation = GetActorLocation();
+        const FVector forwardVector = GetOwner()->GetActorForwardVector();
         
-        DrawDebugLine(GetWorld(), actorLoc, actorLoc + velocity * 1000, FColor::Red);
-        DrawDebugLine(GetWorld(), actorLoc, actorLoc + fwdVec * 800, FColor::Blue);
+        DrawDebugLine(GetWorld(), actorLocation, actorLocation + velocity * 1000, FColor::Red);
+        DrawDebugLine(GetWorld(), actorLocation, actorLocation + forwardVector * 800, FColor::Blue);
 
-        const FRotator rot = FRotationMatrix::MakeFromX(velocity).Rotator().Add(0,-90,0);
-        
-        const FRotator desiredRotation = FMath::RInterpTo(
-            GetPawnOwner()->GetActorRotation(),
-            rot,
-            deltaTime,
-            m_rotationSpeed
-            );
+        const FRotator rotation = FRotationMatrix::MakeFromX(velocity).Rotator();
+        const FRotator desiredRotation = FMath::RInterpTo(GetPawnOwner()->GetActorRotation(),rotation, deltaTime, m_rotationSpeed);
         
         GetPawnOwner()->SetActorRotation(desiredRotation);
-    }
-    else
-    {
-        LOG_WARNING(TEXT("Velocity is 0"))
     }
 }

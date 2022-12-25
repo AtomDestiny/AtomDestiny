@@ -4,6 +4,7 @@ class UUnitParameters;
 class UUnitState;
 class UUnitLogic;
 class USceneComponent;
+class UUnitMovementComponent;
 
 #include <Runtime/Engine/Classes/GameFramework/Pawn.h>
 
@@ -24,9 +25,21 @@ public:
     explicit ADefaultUnit(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
 protected:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Box collider"))
     TObjectPtr<USceneComponent> m_boxComponent;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ground point"))
     TObjectPtr<USceneComponent> m_groundPoint;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit state"))
     TObjectPtr<UUnitState> m_unitState;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit logic"))
     TObjectPtr<UUnitLogic> m_unitLogic;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit paremeters"))
     TObjectPtr<UUnitParameters> m_unitParameters;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit movement"))
+    TObjectPtr<UUnitMovementComponent> m_unitMovement;
 };
