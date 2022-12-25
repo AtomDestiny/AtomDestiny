@@ -22,13 +22,8 @@ void ANavigator::Move(AActor* target)
 {
     check(target != nullptr)
     
-    if (target == m_target.Get())
-    {
-        if (m_logMovingResults)
-            LOG_WARNING(TEXT("Already moving to target %s"), *target->GetActorNameOrLabel());
-            
+    if (!CheckMoveRequest(target))
         return;
-    }
     
     const EPathFollowingRequestResult::Type result = MoveToActor(target);
 
@@ -46,13 +41,8 @@ void ANavigator::Move(AActor* target)
 
 void ANavigator::Move(const FVector& point)
 {
-    if (point == m_targetPoint)
-    {
-        if (m_logMovingResults)
-            LOG_WARNING(TEXT("Already moving to target %s"), *point.ToString());
-            
+    if (!CheckMoveRequest(point))
         return;
-    }
     
     const EPathFollowingRequestResult::Type result = MoveToLocation(point);
 
@@ -102,4 +92,34 @@ double ANavigator::GetRemainingDistance() const
         return (m_target->GetActorLocation() - owner->GetActorLocation()).Length();
 
     return (m_targetPoint - owner->GetActorLocation()).Length();
+}
+
+bool ANavigator::CheckMoveRequest(const AActor* target) const
+{
+    if (target == m_target.Get() && !m_updateNavigationOnEveryCall)
+    {
+        CheckLogPrint(target->GetActorNameOrLabel());
+        return false;
+    }
+    
+    return true;
+}
+
+bool ANavigator::CheckMoveRequest(const FVector& point) const
+{
+    if (point == m_targetPoint && !m_updateNavigationOnEveryCall)
+    {
+        CheckLogPrint(point.ToString());
+        return false;
+    }
+    
+    return true;
+}
+
+void ANavigator::CheckLogPrint(const FString& message) const
+{
+    if (m_logMovingResults)
+    {
+        LOG_WARNING(TEXT("Already moving to target %s"), *message);
+    }
 }

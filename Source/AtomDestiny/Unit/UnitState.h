@@ -10,8 +10,6 @@
 #include <AtomDestiny/Core/ADObject/ParameterEnhancement.h>
 #include <AtomDestiny/Core/ADObject/ParameterZeroPack.h>
 
-#include <AtomDestiny/Navigation/Navigator.h>
-
 #include "UnitState.generated.h"
 
 ///
@@ -155,9 +153,6 @@ private:
     
     // Activate/deactivate unit
     void SetEnabled(bool enabled);
-
-    // Returns current navigation from Owner actor
-    TWeakObjectPtr<ANavigator> GetNavigation() const;
     
     // Hashed unit logic
     TScriptInterface<ILogic> m_logic = nullptr;
