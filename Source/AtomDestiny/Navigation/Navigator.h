@@ -48,7 +48,7 @@ private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Every call update target", AllowPrivateAccess = "true"))
     bool m_updateNavigationOnEveryCall = false; 
     
-    double m_stopDistance = 1.0f;
+    double m_stopDistance = 1.0;
     
     TWeakObjectPtr<AActor> m_target;
     TWeakObjectPtr<UFloatingPawnMovement> m_pawnMovement;

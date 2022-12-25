@@ -25,7 +25,7 @@ void ANavigator::Move(AActor* target)
     if (!CheckMoveRequest(target))
         return;
     
-    const EPathFollowingRequestResult::Type result = MoveToActor(target);
+    const EPathFollowingRequestResult::Type result = MoveToActor(target, static_cast<float>(m_stopDistance));
 
     if (result == EPathFollowingRequestResult::Type::Failed)
     {
@@ -44,7 +44,7 @@ void ANavigator::Move(const FVector& point)
     if (!CheckMoveRequest(point))
         return;
     
-    const EPathFollowingRequestResult::Type result = MoveToLocation(point);
+    const EPathFollowingRequestResult::Type result = MoveToLocation(point, static_cast<float>(m_stopDistance));
 
     if (result == EPathFollowingRequestResult::Type::Failed)
     {

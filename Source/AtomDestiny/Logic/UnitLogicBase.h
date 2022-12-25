@@ -113,7 +113,8 @@ protected:
     double m_attackAngle = 5.0;
     
     // Default stop distance (from navigation stop distance)
-    double m_defaultStopDistance = 0;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Default stop distance"))
+    double m_defaultStopDistance = 50.0;
     
     // Delta range for unit attack
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Try attack delta"))
