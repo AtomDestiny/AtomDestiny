@@ -46,26 +46,10 @@ namespace
     
 } // namespace
 
-// Place core data here
-struct AAtomDestinyGameStateBase::GameStateBasePrivateData
-{
-    // represents active units at overall battle
-    TMap<EGameSide, FSharedGameStateUnitList> activeUnits;
-
-    // represents references to Active units, that could be threaded as enemies
-    TMap<EGameSide, FEnemiesList> enemies;
-};
-
-AAtomDestinyGameStateBase::AAtomDestinyGameStateBase() :
-    m_impl(new GameStateBasePrivateData{})
+AAtomDestinyGameStateBase::AAtomDestinyGameStateBase()
 {
     InitializeSides();
     InitializeEnemies();
-}
-
-AAtomDestinyGameStateBase::~AAtomDestinyGameStateBase()
-{
-    delete m_impl;
 }
 
 void AAtomDestinyGameStateBase::AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side)
@@ -76,7 +60,7 @@ void AAtomDestinyGameStateBase::AddUnit(TWeakObjectPtr<AActor> actor, EGameSide 
         return;
     }
     
-    const FSharedGameStateUnitList& unitListPtr = m_impl->activeUnits[side];
+    const FSharedGameStateUnitList& unitListPtr = m_activeUnits[side];
     unitListPtr->AddUnique(actor);
 }
 
@@ -88,7 +72,7 @@ void AAtomDestinyGameStateBase::RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSi
         return;
     }
     
-    const FSharedGameStateUnitList& unitListPtr = m_impl->activeUnits[side];
+    const FSharedGameStateUnitList& unitListPtr = m_activeUnits[side];
     unitListPtr->Remove(actor);
 }
 
@@ -112,12 +96,12 @@ TWeakObjectPtr<AActor> AAtomDestinyGameStateBase::GetDestination(EGameSide side)
 
 bool AAtomDestinyGameStateBase::IsEnemiesExist(EGameSide side) const
 {
-    return m_impl->enemies.Contains(side);
+    return m_enemies.Contains(side);
 }
 
 const FEnemiesList& AAtomDestinyGameStateBase::GetEnemies(EGameSide side) const
 {
-    return m_impl->enemies[side];
+    return m_enemies[side];
 }
 
 void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& projectile, EProjectileDamageOptions options)
@@ -191,8 +175,8 @@ void AAtomDestinyGameStateBase::EndPlay(const EEndPlayReason::Type EndPlayReason
     UUnitLogicBase::unitCreated.RemoveDynamic(this, &AAtomDestinyGameStateBase::OnUnitCreated);
     UUnitLogicBase::unitDestroyed.RemoveDynamic(this, &AAtomDestinyGameStateBase::OnUnitDestroyed);
 
-    m_impl->activeUnits.Reset();
-    m_impl->enemies.Reset();
+    m_activeUnits.Reset();
+    m_enemies.Reset();
 }
 
 void AAtomDestinyGameStateBase::OnUnitCreated(AActor* actor, EGameSide side, EUnitType)
@@ -211,24 +195,24 @@ void AAtomDestinyGameStateBase::InitializeSides()
 
     for (uint8 side = 0; side < lastSide; ++side)
     {
-        if (const EGameSide currentSide = static_cast<EGameSide>(side); !m_impl->activeUnits.Contains(currentSide))
+        if (const EGameSide currentSide = static_cast<EGameSide>(side); !m_activeUnits.Contains(currentSide))
         {
             TSharedPtr<FGameStateUnitList> ptr { new FGameStateUnitList() };
-            m_impl->activeUnits.Add(currentSide, std::move(ptr));
+            m_activeUnits.Add(currentSide, std::move(ptr));
         }
     }
 }
 
 void AAtomDestinyGameStateBase::InitializeEnemies()
 {
-    for (const auto& [side, list] : m_impl->activeUnits)
+    for (const auto& [side, list] : m_activeUnits)
     {
-        m_impl->enemies.Add(side, FEnemiesList{});
+        m_enemies.Add(side, FEnemiesList{});
         
-        for (const auto& [s, l] : m_impl->activeUnits)
+        for (const auto& [s, l] : m_activeUnits)
         {
             if (side != s && side != EGameSide::None)
-                m_impl->enemies[side].Add(m_impl->activeUnits[s]);
+                m_enemies[side].Add(m_activeUnits[s]);
         }
     }
 }

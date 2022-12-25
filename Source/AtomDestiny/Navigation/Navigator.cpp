@@ -4,7 +4,7 @@
 #include <AtomDestiny/Core/Logger.h>
 
 ANavigator::ANavigator(const FObjectInitializer& objectInitializer)
-    : AAIController(objectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("PathFollowingComponent")))
+    : AAIController(objectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("CrowdPathFollowingComponent")))
 {
     bStartAILogicOnPossess = true;
     

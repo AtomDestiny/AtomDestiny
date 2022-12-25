@@ -26,7 +26,7 @@ class ATOMDESTINY_API AAtomDestinyGameStateBase : public AGameStateBase
 public:
     
     AAtomDestinyGameStateBase();
-    virtual ~AAtomDestinyGameStateBase() override;
+    virtual ~AAtomDestinyGameStateBase() override = default;
     
     void AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
     void RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
@@ -67,9 +67,12 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Game destination"))
     FGameDestination m_destination;
-    
-    struct GameStateBasePrivateData;
-    GameStateBasePrivateData* m_impl = nullptr; // not std::unique_ptr because of virtual destructor
+
+    // represents active units at overall battle
+    TMap<EGameSide, FSharedGameStateUnitList> m_activeUnits;
+
+    // represents references to Active units, that could be threaded as enemies
+    TMap<EGameSide, FEnemiesList> m_enemies;
 };
 
 namespace AtomDestiny
