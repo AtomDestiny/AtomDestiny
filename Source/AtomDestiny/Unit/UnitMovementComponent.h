@@ -17,5 +17,5 @@ protected:
     virtual void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction) override;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Rotation speed"))
-    double m_rotationSpeed = 1.0f;
+    double m_rotationSpeed = 5.0f;
 };
