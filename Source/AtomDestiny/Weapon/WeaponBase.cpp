@@ -192,7 +192,7 @@ void UWeaponBase::RotateToTarget(float deltaTime)
         return;
     }
 
-    const auto [angle, rotation] = AtomDestiny::RotationToTarget(m_weaponComponent.Get(), m_target.Get(), deltaTime, m_rotateSpeed);
+    const auto [angle, rotation] = AtomDestiny::LerpRotation(m_weaponComponent.Get(), m_target.Get(), deltaTime, m_rotateSpeed);
     
     m_isRotatedOnTarget = (FMath::Abs(angle) < m_attackAngle);
     m_weaponComponent->SetWorldRotation(rotation);

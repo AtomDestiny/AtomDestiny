@@ -28,6 +28,12 @@ namespace AtomDestiny
         FQuat rotation;     // rotation that should be applied to owner
     };
 
+    struct RotatorRes
+    {
+        double angle = 0;
+        FRotator rotator;
+    };
+
     // calculates Rotation res to target
     static RotationRes RotationToTarget(const FVector& currentLocation, const FVector& targetLocation, float deltaTime, float rotationSpeedDegrees)
     {
@@ -69,6 +75,29 @@ namespace AtomDestiny
     static FQuat RotationToRoot(const USceneComponent* component, const AActor* actor, float deltaTime, float rotationSpeedDegrees)
     {
         return RotationToRoot(component->GetComponentLocation(), actor->GetActorLocation(), deltaTime, rotationSpeedDegrees);
+    }
+
+    static RotatorRes LerpRotation(const FVector& currentLocation, const FVector& targetLocation,
+        const FVector& currentForward, const FRotator& currentRotation, float deltaTime, float rotationSpeedDegrees)
+    {
+        FVector targetDirection = targetLocation - currentLocation;
+        
+        const FRotator rotation = FRotationMatrix::MakeFromX(targetDirection).Rotator();
+        const FRotator desiredRotation = FMath::RInterpTo(currentRotation,rotation, deltaTime, rotationSpeedDegrees);
+
+        return RotatorRes {
+            .angle = Vector::Angle(targetDirection, currentForward),
+            .rotator = desiredRotation,
+        };
+    }
+
+    static RotatorRes LerpRotation(const USceneComponent* component, const AActor* actor, float deltaTime, float rotationSpeedDegrees)
+    {
+        check(component != nullptr);
+        check(actor != nullptr);
+
+        return LerpRotation(component->GetComponentLocation(), actor->GetActorLocation(),
+            component->GetForwardVector(), component->GetComponentRotation(), deltaTime, rotationSpeedDegrees);
     }
     
 } // namespace AtomDestiny
