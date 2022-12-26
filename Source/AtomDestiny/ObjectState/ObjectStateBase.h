@@ -62,6 +62,9 @@ protected:
     
     /// Calculates damage after defence type
     double GetDamageAfterDefenceType(float damage) const;
+
+    // use this standard algorithm to take a damage from Atom Destiny projectile
+    double GetResultDamage(EWeaponType type, double damage) const;
     
     // Recalculates speed parameter
     virtual void RecalculateParameter(EObjectParameters parameter) override;

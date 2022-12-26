@@ -19,5 +19,7 @@ void UDestroyBase::Destroy()
 
 void UDestroyBase::BeginPlay()
 {
+    Super::BeginPlay();
+    
     AtomDestiny::Utils::PreloadBlueprint(m_explosionBlueprint, BlueprintExplosionPreloadCount);
 }

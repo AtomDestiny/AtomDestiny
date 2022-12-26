@@ -20,4 +20,7 @@ protected:
     
     // Called every frame
     virtual void TickComponent(float deltaTime, ELevelTick levelTick, FActorComponentTickFunction* func) override;
+
+private:
+    void RenderBar();
 };

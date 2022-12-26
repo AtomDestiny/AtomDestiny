@@ -51,14 +51,6 @@ void UUnitLogic::BeginPlay()
 void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func)
 {
     Super::TickComponent(deltaTime, tickType, func);
-
-    // TODO: remove this check if correctly disable tick at BeginPlay
-    // or setup ANavigator entity by default
-    if (!m_navigation.IsValid())
-    {
-        LOG_WARNING(TEXT("Unit navigation is invalid, check unit settings"));
-        return;
-    }
     
     CheckNavigation();
     CheckScanDelay(deltaTime);
