@@ -112,10 +112,21 @@ This style guide specially differs from some part of Unreal Engine core coding s
 >     };
 >};
 
-- global variable starts with 'g' symbol
+- global variable starts with 'g' symbol. Const values that really represents static value, may start with Upper symbol without g.
+- static variables of class/struct entities should start same with Upper letter.
 
 >```cpp
 >static int gPlatformStatus = 0;
+>
+>namespace Space
+>{
+>    cosnt int MaxDamage = 1;
+>}
+>
+>class Unit
+>{
+>    inline static int MaxHeath = 100;
+>};
 
 ### Using 'auto' keyword
 
