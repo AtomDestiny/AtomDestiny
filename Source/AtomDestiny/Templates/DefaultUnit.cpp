@@ -23,4 +23,6 @@ ADefaultUnit::ADefaultUnit(const FObjectInitializer& objectInitializer):
     m_unitParameters = objectInitializer.CreateDefaultSubobject<UUnitParameters>(this, TEXT("UnitParameters"));
     m_unitLogic = objectInitializer.CreateDefaultSubobject<UUnitLogic>(this, TEXT("UnitLogic"));
     m_unitMovement = objectInitializer.CreateDefaultSubobject<UUnitMovementComponent>(this, TEXT("UnitMovement"));
+
+    m_unitState->SetGroundPoint(MakeWeakObjectPtr(m_groundPoint.Get()));
 }

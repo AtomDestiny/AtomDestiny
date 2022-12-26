@@ -77,7 +77,7 @@ void UUnitLogicBase::BeginPlay()
     }
     else
     {
-        PrimaryComponentTick.bCanEverTick = false;
+        SetTickEnabled(false);
         LOG_ERROR(TEXT("Pawn AIControllerClass should be an ANavigator or derived from. Tick disabled"));
         return;
     }

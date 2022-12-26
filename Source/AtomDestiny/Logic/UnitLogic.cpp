@@ -3,6 +3,8 @@
 #include <limits>
 #include <AtomDestiny/AtomDestinyGameStateBase.h>
 
+#include "Core/Logger.h"
+
 namespace
 {
     constexpr double MaxScanDistance = std::numeric_limits<double>::max();
@@ -49,6 +51,12 @@ void UUnitLogic::BeginPlay()
 void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func)
 {
     Super::TickComponent(deltaTime, tickType, func);
+
+    if (!m_navigation.IsValid())
+    {
+        LOG_WARNING(TEXT("Unit navigation is invalid, check unit settings"));
+        return;
+    }
     
     CheckNavigation();
     CheckScanDelay(deltaTime);

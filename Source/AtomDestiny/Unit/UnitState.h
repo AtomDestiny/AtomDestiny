@@ -38,6 +38,7 @@ public:
     
     // Returns ground transform
     TWeakObjectPtr<USceneComponent> GetGroundPoint() const { return m_groundPoint; }
+    void SetGroundPoint(TWeakObjectPtr<USceneComponent> groundPoint) { m_groundPoint = std::move(groundPoint); }
 
     // Returns current health
     double GetCurrentHealth() const { return m_objectState->GetHealth(); }
