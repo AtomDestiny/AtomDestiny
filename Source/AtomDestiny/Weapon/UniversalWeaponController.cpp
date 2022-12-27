@@ -29,15 +29,13 @@ bool UUniversalWeaponController::IsSeeTarget() const
         
         for (const TWeakObjectPtr<USceneComponent>& position : m_shootingPositions)
         {
-            const FVector targetVector = m_target->GetActorLocation() - position->GetComponentLocation();
-            isTargetAtSight = CheckRaycastToTarget(position->GetComponentLocation(), targetVector, m_target);
+            isTargetAtSight = CheckRaycastToTarget(position->GetComponentLocation(), m_target->GetActorLocation(), m_target);
         }
 
         return isTargetAtSight;
     }
     
-    const FVector targetVector = m_target->GetActorLocation() - m_scanPosition->GetComponentLocation();
-    return CheckRaycastToTarget(m_scanPosition->GetComponentLocation(), targetVector, m_target);
+    return CheckRaycastToTarget(m_scanPosition->GetComponentLocation(), m_target->GetActorLocation(), m_target);
 }
 
 void UUniversalWeaponController::Fire(float deltaTime)
