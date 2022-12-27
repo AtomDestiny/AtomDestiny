@@ -28,10 +28,10 @@ namespace AtomDestiny
         FRotator rotator;
     };
 
-    static FRotator LerpRotationRoot(const USceneComponent* component, const AActor* actor, float deltaTime, float rotationSpeedDegrees)
+    static FRotator LerpRotationRoot(const USceneComponent* component, const AActor* owner, float deltaTime, float rotationSpeedDegrees)
     {
-        const FRotator rotation = FRotationMatrix::MakeFromX(component->GetForwardVector()).Rotator();
-        return FMath::RInterpTo(actor->GetActorRotation(),rotation, deltaTime, rotationSpeedDegrees);
+        const FRotator rotation = FRotationMatrix::MakeFromX(owner->GetActorForwardVector()).Rotator();
+        return FMath::RInterpTo(component->GetComponentRotation(),rotation, deltaTime, rotationSpeedDegrees);
     }
     
     static RotatorRes LerpRotation(const FVector& currentLocation, const FVector& targetLocation,
