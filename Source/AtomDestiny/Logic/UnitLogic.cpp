@@ -2,8 +2,8 @@
 
 #include <limits>
 #include <AtomDestiny/AtomDestinyGameStateBase.h>
-
-#include "Core/Logger.h"
+#include <AtomDestiny/Core/Logger.h>
+#include <AtomDestiny/Core/Utils.h>
 
 namespace
 {
@@ -51,32 +51,36 @@ void UUnitLogic::BeginPlay()
 void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func)
 {
     Super::TickComponent(deltaTime, tickType, func);
-
-    if (!m_navigation.IsValid())
-    {
-        LOG_WARNING(TEXT("Unit navigation is invalid, check unit settings"));
-        return;
-    }
     
     CheckNavigation();
     CheckScanDelay(deltaTime);
 
     if (!m_isAttacking && m_canScan)
+    {
         ScanEnemy();
+    }
 
     if (m_isTargetFound && !m_isAttacking)
+    {
         UpdateNavigationTarget();
+    }
 
     if (m_isTargetFound)
+    {
         TryToAttack(deltaTime);
+    }
     else
+    {
         SetDefaultDestination();
+    }
 }
 
 void UUnitLogic::CreateDestination()
 {
     if (!m_navigation.IsValid())
+    {
         return;
+    }
 
     const TWeakObjectPtr<AActor> destination = AtomDestiny::GetGameState(GetOwner())->GetDestination(m_side);
     
@@ -114,7 +118,9 @@ void UUnitLogic::CheckNavigation()
     else if ((m_currentDestination->GetActorLocation() - GetOwner()->GetActorLocation()).SquaredLength() <= (m_minScanDistance * m_minScanDistance))
     {
         for (const TScriptInterface<IWeapon>& weapon : m_weapons)
+        {
             weapon.GetInterface()->SetTarget(nullptr);
+        }
         
         SetDefaultDestination();
 
@@ -147,7 +153,9 @@ void UUnitLogic::SetDefaultDestination()
     if (m_navigation->GetRemainingDistance() > m_navigation->GetStopDistance())
     {
         if (m_animation != nullptr)
+        {
             m_animation->Walk();
+        }
     }
 }
 
@@ -169,7 +177,9 @@ void UUnitLogic::UpdateNavigationTarget()
     m_navigation->SetStopDistance(m_defaultStopDistance);
 
     if (m_animation != nullptr)
+    {
         m_animation->Walk();
+    }
 }
 
 void UUnitLogic::MoveNearestEnemyIfCan()
@@ -217,7 +227,9 @@ void UUnitLogic::TryToAttack(float deltaTime)
             if (targetVector.SquaredLength() <= weaponSqrDist + m_tryAttackDelta)
             {
                 if (weapon->IsSeeTarget())
+                {
                     Aim(weapon, deltaTime);
+                }
             }
         }
     }
@@ -237,7 +249,9 @@ void UUnitLogic::Aim(const TScriptInterface<IWeapon>& weapon, float deltaTime)
         m_navigation->Stop();
 
         if (m_animation != nullptr)
+        {
             m_animation->Idle();
+        }
         
         RotateToTarget(deltaTime);
         
@@ -260,16 +274,21 @@ void UUnitLogic::CheckBehaviour(const TScriptInterface<IWeapon>& weapon)
         m_navigation->Stop();
         
         if (m_animation != nullptr)
+        {
             m_animation->Attack();
+        }
     }
 }
 
+// Search algorithm optimized to used squared length
 TWeakObjectPtr<AActor> UUnitLogic::FindEnemy(double minScanDistance, double scanDistance) const
 {
     const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
 
     if (!gameState.IsValid() || !gameState->IsEnemiesExist(m_side) || gameState->GetEnemies(m_side).IsEmpty())
+    {
         return nullptr;
+    }
         
     const FEnemiesList& enemies = gameState->GetEnemies(m_side);
     double minDist = ::MaxScanDistance;

@@ -8,6 +8,7 @@
 #include <AtomDestiny/Unit/UnitMovementComponent.h>
 
 #include <AtomDestiny/Logic/UnitLogic.h>
+#include <AtomDestiny/ObjectState/UnitBasicDestroy.h>
 
 #include <Kismet/GameplayStatics.h>
 
@@ -33,8 +34,11 @@ ADefaultUnit::ADefaultUnit(const FObjectInitializer& objectInitializer):
     m_unitParameters = objectInitializer.CreateDefaultSubobject<UUnitParameters>(this, TEXT("UnitParameters"));
     m_unitLogic = objectInitializer.CreateDefaultSubobject<UUnitLogic>(this, TEXT("UnitLogic"));
     m_unitMovement = objectInitializer.CreateDefaultSubobject<UUnitMovementComponent>(this, TEXT("UnitMovement"));
+    m_unitDestroy = objectInitializer.CreateDefaultSubobject<UUnitBasicDestroy>(this, TEXT("UnitDestroy"));
 
+    // setup ground point and default AI controller
     m_unitState->SetGroundPoint(MakeWeakObjectPtr(m_groundPoint.Get()));
+    AIControllerClass = ANavigator::StaticClass();
 }
 
 void ADefaultUnit::Tick(float DeltaTime)

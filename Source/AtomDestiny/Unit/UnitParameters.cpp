@@ -18,28 +18,16 @@ void UUnitParameters::AddDamage(double damage, EWeaponType type, AActor* owner)
         LOG_ERROR(TEXT("Current unit heath equal or lower that zero. Something went wrong"));
         return;
     }
-    
-    double resultDamage = std::abs(damage) - m_currentDefence;
-    resultDamage = std::max(resultDamage, AtomDestiny::Balance::MinDamageValue);
-    resultDamage = GetDamageAfterDefenceType(resultDamage);
-    resultDamage = GetDamageAfterDefenceParameters(type, resultDamage);
-    
-    // change current health
+
+    // calculate result damage change current health
+    const double resultDamage = GetResultDamage(type, damage);
     m_currentHealth -= resultDamage;
 }
 
 void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActorComponentTickFunction* func)
 {
     Super::TickComponent(deltaTime, levelTick, func);
-
-    if (!m_healthBar.IsValid())
-        return;
-    
-    const double value = m_healthBar->GetMaxValue() * m_currentHealth / m_currentMaxHealth;
-    const bool showHeathBar = m_hideBar ? false : m_currentHealth != m_currentMaxHealth;
-    
-    m_healthBar->SetValue(static_cast<float>(value));
-    m_healthBlueprint->SetIsEnabled(showHeathBar);
+    RenderBar();
 
     // check current health on death
     if (m_currentHealth <= 0 && !m_isDead)
@@ -48,13 +36,28 @@ void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActo
 
         if (destroyable == nullptr)
         {
-            LOG_ERROR(TEXT("There is no IDestroyable component on Unit"));
+            LOG_ERROR(TEXT("There is no IDestroyable component on Unit, so Unit params can not imitate a Destroy"));
             return;
         }
 
         if (!destroyable->IsDestroyed())
+        {
             destroyable->Destroy();
+        }
 
         m_isDead = true;
     }
+}
+
+void UUnitParameters::RenderBar()
+{
+    if (!m_healthBar.IsValid() || m_hideBar)
+    {
+        return;
+    }
+    
+    const double value = m_healthBar->GetMaxValue() * m_currentHealth / m_currentMaxHealth;
+    
+    m_healthBar->SetValue(static_cast<float>(value));
+    m_healthBlueprint->SetIsEnabled(m_currentHealth != m_currentMaxHealth);
 }

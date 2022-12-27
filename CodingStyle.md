@@ -2,7 +2,7 @@
 
 Glance coding style guide description.<br />
 For contribution you should use this codig rules.<br />
-This style guide specially differs from Unreal Engine core coding standards.
+This style guide specially differs from some part of Unreal Engine core coding standards.
 
 ### Base concepts
 
@@ -23,11 +23,12 @@ This style guide specially differs from Unreal Engine core coding standards.
 
 - 1 space after if/else switch instructions
 - else operator use on the next line after closing bracket
-- if/else operator with one code line must be used without brackets
 
 >```cpp
 >if (transactions.empty())
+>{
 >     Foo();
+>}
 >else
 >{
 >     Foo();
@@ -111,7 +112,35 @@ This style guide specially differs from Unreal Engine core coding standards.
 >     };
 >};
 
-- global variable starts with 'g' symbol
+- global variable starts with 'g' symbol. Const values that really represents static value, may start with Upper symbol without g.
+- static variables of class/struct entities should start same with Upper letter.
 
 >```cpp
 >static int gPlatformStatus = 0;
+>
+>namespace Space
+>{
+>    cosnt int MaxDamage = 1;
+>}
+>
+>class Unit
+>{
+>    inline static int MaxHeath = 100;
+>};
+
+### Using 'auto' keyword
+
+Try to avoid 'auto' usage everywhere. Perfect example is to use for standard, understandable types or casting functions.
+
+>```cpp
+> const auto value = static_cast<int>(someValue);     // good
+> const auto equipment = someCLass->GetEquipment();   // bad, what type returns equipment?
+>
+> std::map<int, std::string> storage;
+> const auto iter = std::begin(storage);              // good, STL and understandable type
+>
+> const auto tuple = std::make_tuple( ... );          // good
+
+### Constness
+
+All that can be marked const should be marked as const.

@@ -12,9 +12,12 @@ void UUnitMovementComponent::TickComponent(float deltaTime, ELevelTick tickType,
         const FVector velocity = Velocity.GetUnsafeNormal();
         const FVector actorLocation = GetActorLocation();
         const FVector forwardVector = GetOwner()->GetActorForwardVector();
-        
-        DrawDebugLine(GetWorld(), actorLocation, actorLocation + velocity * 1000, FColor::Red);
-        DrawDebugLine(GetWorld(), actorLocation, actorLocation + forwardVector * 800, FColor::Blue);
+
+        if (m_drawDebugNavigation)
+        {
+            DrawDebugLine(GetWorld(), actorLocation, actorLocation + velocity * 1000, FColor::Red);
+            DrawDebugLine(GetWorld(), actorLocation, actorLocation + forwardVector * 800, FColor::Blue);
+        }
 
         const FRotator rotation = FRotationMatrix::MakeFromX(velocity).Rotator();
         const FRotator desiredRotation = FMath::RInterpTo(GetPawnOwner()->GetActorRotation(),rotation, deltaTime, m_rotationSpeed);

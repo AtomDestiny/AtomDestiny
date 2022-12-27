@@ -18,4 +18,7 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Rotation speed"))
     double m_rotationSpeed = 5.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Draw debug navigation"))
+    bool m_drawDebugNavigation = true;
 };
