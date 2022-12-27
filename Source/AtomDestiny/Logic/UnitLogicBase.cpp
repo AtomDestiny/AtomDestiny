@@ -108,7 +108,7 @@ void UUnitLogicBase::RotateToTarget(float deltaTime)
         return;
     }
 
-    const auto [angle, rotation] = AtomDestiny::RotationToTarget(GetOwner(), m_currentDestination.Get(), deltaTime, m_rotateSpeed);
+    const auto [angle, rotation] = AtomDestiny::LerpRotation(GetOwner(), m_currentDestination.Get(), deltaTime, m_rotateSpeed);
     
     m_isRotatedOnTarget = (FMath::Abs(angle) < m_attackAngle);
     GetOwner()->SetActorRotation(rotation);

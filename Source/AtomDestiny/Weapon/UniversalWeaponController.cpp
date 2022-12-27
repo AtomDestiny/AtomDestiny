@@ -8,6 +8,7 @@
 UUniversalWeaponController::UUniversalWeaponController(const FObjectInitializer& objectInitializer):
     UWeaponBase(objectInitializer)
 {
+    SetTickEnabled(true);
 }
 
 double UUniversalWeaponController::GetFireRate() const

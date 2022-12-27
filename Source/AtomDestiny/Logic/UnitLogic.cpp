@@ -51,7 +51,8 @@ void UUnitLogic::BeginPlay()
 void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func)
 {
     Super::TickComponent(deltaTime, tickType, func);
-    
+
+    CheckTargetDistance();
     CheckNavigation();
     CheckScanDelay(deltaTime);
 
@@ -72,6 +73,32 @@ void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorCompo
     else
     {
         SetDefaultDestination();
+    }
+}
+
+void UUnitLogic::CheckTargetDistance()
+{
+    if (m_currentDestination.IsValid() && m_isAttacking)
+    {
+        const double scanLengthSquared = m_scanDistance * m_scanDistance;
+        const FVector targetVector = m_currentDestination->GetActorLocation() - GetOwner()->GetActorLocation();
+        
+        if (targetVector.SquaredLength() <= (scanLengthSquared + m_tryAttackDelta))
+        {
+            return;
+        }
+        
+        m_isAttacking = false;
+        m_isTargetFound = false;
+        m_currentDestination = nullptr;
+
+        for (const TScriptInterface<IWeapon>& weapon : m_weapons)
+        {
+            if (weapon != nullptr)
+            {
+                weapon->SetTarget(nullptr);
+            }
+        }
     }
 }
 

@@ -32,7 +32,8 @@ protected:
     virtual void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func) override;
     
 private:
-
+    void CheckTargetDistance();
+    
     // Creates default navigation
     void CreateDestination();
     

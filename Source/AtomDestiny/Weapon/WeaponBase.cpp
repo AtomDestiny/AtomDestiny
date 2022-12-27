@@ -202,8 +202,8 @@ void UWeaponBase::RotateToRoot(float deltaTime) const
 {
     if (!m_target.IsValid() && m_rotatedWeapon)
     {
-        const FQuat rotation = AtomDestiny::RotationToRoot(m_weaponComponent.Get(), GetOwner(), deltaTime, m_rotateSpeed);
-        m_weaponComponent->SetWorldRotation(rotation);
+        FRotator rotator = AtomDestiny::LerpRotationRoot(m_weaponComponent.Get(), GetOwner(), deltaTime, m_rotateSpeed);
+        m_weaponComponent->SetWorldRotation(std::move(rotator));
     }
 }
 
@@ -239,7 +239,7 @@ void UWeaponBase::RecalculateParameter(EObjectParameters parameter)
 {
     if (!GetParameterAvailable(parameter))
     {
-        UE_LOG(LogTemp, Warning, TEXT("U try to recalculate not available parameter"));
+        LOG_WARNING(TEXT("U try to recalculate not available parameter"));
         return;
     }
     
@@ -276,7 +276,7 @@ void UWeaponBase::RecalculateParameter(EObjectParameters parameter)
             break;
         }
     default:
-        UE_LOG(LogTemp, Error, TEXT("Unavailable parameters to Recalculate"));
+        LOG_WARNING(TEXT("Unavailable parameters to Recalculate"));
         break;
     }
 }
@@ -317,7 +317,7 @@ void UWeaponBase::ZeroizeParameter(EObjectParameters parameter)
         }
 
     default:
-        UE_LOG(LogTemp, Error, TEXT("Unavailable parameters to Zeroize"));
+        LOG_ERROR(TEXT("Unavailable parameters to Zeroize"));
         break;
     }
 }
