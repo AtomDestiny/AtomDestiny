@@ -1,6 +1,7 @@
 ﻿#include "DefaultUnit.h"
 
-#include <Runtime/Engine/Classes/Components/BoxComponent.h>
+#include <Components/BoxComponent.h>
+#include <Components/WidgetComponent.h>
 
 #include <AtomDestiny/Unit/UnitState.h>
 #include <AtomDestiny/Unit/UnitParameters.h>
@@ -8,21 +9,45 @@
 
 #include <AtomDestiny/Logic/UnitLogic.h>
 
+#include <Kismet/GameplayStatics.h>
+
 ADefaultUnit::ADefaultUnit(const FObjectInitializer& objectInitializer):
     APawn(objectInitializer)
 {
-    m_boxComponent = objectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("BoxCollider"));
+    
     
     if (RootComponent == nullptr)
     {
+        m_boxComponent = objectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("BoxCollider"));
         RootComponent = m_boxComponent;
     }
 
     m_groundPoint = objectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("GroundPoint"));
+    m_groundPoint->SetupAttachment(RootComponent);
+    
+    m_healthBar = objectInitializer.CreateDefaultSubobject<UWidgetComponent>(this, TEXT("HealthBar"));
+    m_healthBar->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+    m_healthBar->SetUsingAbsoluteLocation(true);
+    
     m_unitState = objectInitializer.CreateDefaultSubobject<UUnitState>(this, TEXT("UnitState"));
     m_unitParameters = objectInitializer.CreateDefaultSubobject<UUnitParameters>(this, TEXT("UnitParameters"));
     m_unitLogic = objectInitializer.CreateDefaultSubobject<UUnitLogic>(this, TEXT("UnitLogic"));
     m_unitMovement = objectInitializer.CreateDefaultSubobject<UUnitMovementComponent>(this, TEXT("UnitMovement"));
 
     m_unitState->SetGroundPoint(MakeWeakObjectPtr(m_groundPoint.Get()));
+}
+
+void ADefaultUnit::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    auto const& playerTfm = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetTransform();
+    if (!playerTfm.IsValid())
+        UE_LOG(LogTemp, Warning, TEXT("Invalid player transform!"));
+	
+    FVector const Up = playerTfm.TransformVector({0,0,1});
+
+    //GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Axis is: %s"), *Up.ToString()));
+	
+    m_healthBar->SetWorldLocation(GetActorLocation() + Up * 420);
 }
