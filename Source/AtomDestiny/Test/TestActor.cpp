@@ -25,7 +25,6 @@ ATestActor::ATestActor(const FObjectInitializer& ObjectInitializer) : Super(Obje
 
     m_healthBar = ObjectInitializer.CreateDefaultSubobject<UWidgetComponent>(this, TEXT("HealthBar"));
     m_healthBar->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
-
     m_healthBar->SetUsingAbsoluteLocation(true);
 }
 
@@ -48,5 +47,5 @@ void ATestActor::Tick(float DeltaTime)
 
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Axis is: %s"), *Up.ToString()));
 	
-	m_healthBar->SetRelativeLocation(Up * 420);
+	m_healthBar->SetWorldLocation(GetActorLocation() + Up * 420);
 }

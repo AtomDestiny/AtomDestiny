@@ -4,6 +4,7 @@ class UUnitParameters;
 class UUnitState;
 class UUnitLogic;
 class USceneComponent;
+class UWidgetComponent;
 class UUnitMovementComponent;
 class UUnitBasicDestroy;
 
@@ -24,7 +25,10 @@ class ADefaultUnit : public APawn
     
 public:
     explicit ADefaultUnit(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
-
+    
+    // Called every frame
+    virtual void Tick(float DeltaTime) override;
+    
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Box collider"))
     TObjectPtr<USceneComponent> m_boxComponent;
@@ -32,6 +36,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ground point"))
     TObjectPtr<USceneComponent> m_groundPoint;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Health bar"))
+    TObjectPtr<UWidgetComponent> m_healthBar;
+    
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit state"))
     TObjectPtr<UUnitState> m_unitState;
     
