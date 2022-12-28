@@ -10,20 +10,19 @@
 #include <AtomDestiny/Core/ADObject/ParameterEnhancement.h>
 #include <AtomDestiny/Core/ADObject/ParameterZeroPack.h>
 
-#include <AtomDestiny/Navigation/Navigator.h>
-
 #include "UnitState.generated.h"
 
 ///
 /// Represents wrapper class that contains all base API for unit.
 /// Also it contains some helper methods.
 ///
-UCLASS(Blueprintable)
+UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
 class ATOMDESTINY_API UUnitState : public UActorComponent
 {
     GENERATED_BODY()
 
 public:
+    explicit UUnitState(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Returns unit logic
     TScriptInterface<ILogic> GetLogic() const { return m_logic; }
@@ -38,7 +37,8 @@ public:
     TScriptInterface<IAnimation> GetAnimation() const { return m_animation; }
     
     // Returns ground transform
-    TWeakObjectPtr<UActorComponent> GetGroundPoint() const { return m_groundPoint; }
+    TWeakObjectPtr<USceneComponent> GetGroundPoint() const { return m_groundPoint; }
+    void SetGroundPoint(TWeakObjectPtr<USceneComponent> groundPoint) { m_groundPoint = std::move(groundPoint); }
 
     // Returns current health
     double GetCurrentHealth() const { return m_objectState->GetHealth(); }
@@ -150,13 +150,10 @@ public:
 
 private:
     
-    virtual void InitializeComponent() override;
+    virtual void BeginPlay() override;
     
     // Activate/deactivate unit
     void SetEnabled(bool enabled);
-
-    // Returns current navigation from Owner actor
-    TWeakObjectPtr<ANavigator> GetNavigation() const;
     
     // Hashed unit logic
     TScriptInterface<ILogic> m_logic = nullptr;
@@ -169,5 +166,11 @@ private:
     
     // Hashed unit animation
     TScriptInterface<IAnimation> m_animation = nullptr;
-    TWeakObjectPtr<USceneComponent> m_groundPoint = nullptr;
+
+    ///
+    /// Represents ground point on unit, by default enemy unit uses this point to navigate its projectile.
+    /// Use USceneComponent or derived from type only, it would be checked by run-time.
+    ///
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ground point", AllowPrivateAccess = "true"))
+    TWeakObjectPtr<USceneComponent> m_groundPoint;
 };

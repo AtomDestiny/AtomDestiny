@@ -7,7 +7,7 @@ void UDespawner::Despawn(double time)
 {
     FTimerManager& timerManager = GetWorld()->GetTimerManager();
     const auto despawnHandler = [this] {
-        ObjectPool::Instance().Despawn(TStrongObjectPtr(this->GetOwner()));
+        ObjectPool::Instance().Despawn(MakeWeakObjectPtr(this->GetOwner()));
     };
     
     constexpr bool noLoop = false;

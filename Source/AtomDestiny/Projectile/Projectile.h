@@ -2,7 +2,7 @@
 
 #include <Runtime/CoreUObject/Public/UObject/Interface.h>
 
-#include <AtomDestiny/Weapon/ProjectilePoints.h>
+#include <AtomDestiny/Projectile/ProjectilePoints.h>
 #include <AtomDestiny/Weapon/WeaponParameters.h>
 
 #include "Projectile.generated.h"

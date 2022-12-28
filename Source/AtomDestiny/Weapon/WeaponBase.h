@@ -13,10 +13,13 @@
 ///
 /// Represents base abstract weapon, any weapon realizations should use it as base class
 ///
-UCLASS(Abstract, Blueprintable)
+UCLASS(Abstract)
 class ATOMDESTINY_API UWeaponBase : public UADObject, public IWeapon
 {
     GENERATED_BODY()
+
+protected:
+    explicit UWeaponBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Setups weapon
     virtual void InitializeComponent() override;
@@ -39,7 +42,7 @@ public:
     virtual double GetFireRate() const ABSTRACT_RETURN_METHOD;
     
     // Main shot for weapon, called by Logic
-    virtual void Fire() ABSTRACT_METHOD;
+    virtual void Fire(float deltaTime) ABSTRACT_METHOD;
 
     // Returns true if weapon can see target, called by Logic
     virtual bool IsSeeTarget() const ABSTRACT_RETURN_METHOD;
@@ -137,7 +140,7 @@ protected:
     void RotateToRoot(float deltaTime) const;
     
     // Throws raycast to target by origin along direction and checks hit transform
-    bool CheckRaycastToTarget(const FVector& origin, const FVector& direction) const;
+    bool CheckRaycastToTarget(const FVector& origin, const FVector& direction, const TWeakObjectPtr<AActor>& target, FHitResult* hitResult = nullptr) const;
     
     // Reload coroutine for reset fire
     FAsyncCoroutine FiringDelay();
@@ -222,6 +225,9 @@ protected:
     // Layer mask
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Layer mask to ignore raycast hits"))
     TEnumAsByte<ECollisionChannel> m_layerMask;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Force fire disable"))
+    bool m_forceFireDisable = false;
     
     // Main weapon target, driven by ILogic
     TWeakObjectPtr<AActor> m_target = nullptr;
@@ -231,9 +237,14 @@ protected:
     
     // Rotated on target state
     bool m_isRotatedOnTarget = false;
-    
-    // Hashed weapon transform
-    TWeakObjectPtr<USceneComponent> m_weaponTransform = nullptr;
+
+    ///
+    /// It's a pointer to scene component to rotate this weapon and aim from this.
+    /// So be aware to use Static mesh or Skeletal mesh, that represents a weapon to rotate in real world.
+    /// Hashed weapon transform (Scene component)
+    /// 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Weapon component"))
+    TWeakObjectPtr<USceneComponent> m_weaponComponent = nullptr;
     
     // Preload spawn blueprints count at pool
     inline static uint32_t BlueprintPreloadCount = 5;

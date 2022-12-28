@@ -51,9 +51,9 @@ template<typename> class TFutureAwaiter;
 template<typename> class TTaskAwaiter;
 namespace Test { class FTestHelper; }
 
-using FHandle = std::coroutine_handle<FPromise>;
-using FAsyncHandle = std::coroutine_handle<FAsyncPromise>;
-using FLatentHandle = std::coroutine_handle<FLatentPromise>;
+using FHandle = coro::coroutine_handle<FPromise>;
+using FAsyncHandle = coro::coroutine_handle<FAsyncPromise>;
+using FLatentHandle = coro::coroutine_handle<FLatentPromise>;
 using FHandleVariant = std::variant<FAsyncHandle, FLatentHandle>;
 using FOptionalHandleVariant = std::variant<std::monostate,
                                             FAsyncHandle, FLatentHandle>;
@@ -203,7 +203,7 @@ public:
     UE5CORO_API void unhandled_exception();
 
     // co_yield is not allowed in async coroutines
-    std::suspend_never yield_value(auto&&) = delete;
+    coro::suspend_never yield_value(auto&&) = delete;
 };
 
 class [[nodiscard]] UE5CORO_API FAsyncPromise : public FPromise
@@ -213,7 +213,7 @@ public:
     void Resume();
 
     FInitialSuspend initial_suspend() { return {FInitialSuspend::Resume}; }
-    std::suspend_never final_suspend() noexcept { return {}; }
+    coro::suspend_never final_suspend() noexcept { return {}; }
     void return_void() { }
 
     template<typename T>
@@ -264,7 +264,7 @@ public:
     void SetCurrentAwaiter(FLatentAwaiter*);
 
     FInitialSuspend initial_suspend();
-    std::suspend_always final_suspend() noexcept { return {}; }
+    coro::suspend_always final_suspend() noexcept { return {}; }
     void return_void();
 
     template<typename T>

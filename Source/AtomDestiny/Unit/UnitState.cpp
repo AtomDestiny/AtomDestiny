@@ -1,7 +1,26 @@
 ﻿#include "UnitState.h"
 
+#include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/ADObject/Parameterizable.h>
+
+#include <AtomDestiny/Navigation/Navigator.h>
+
+namespace
+{
+    // Returns current navigation from Owner actor
+    TWeakObjectPtr<ANavigator> GetNavigation(AActor* owner)
+    {
+        const APawn* pawn = CastChecked<APawn>(owner);
+        return MakeWeakObjectPtr(CastChecked<ANavigator>(pawn->Controller));
+    }
+    
+} // namespace
+
+UUnitState::UUnitState(const FObjectInitializer& objectInitializer):
+    UActorComponent(objectInitializer)
+{
+}
 
 double UUnitState::GetVelocity() const
 {
@@ -259,37 +278,24 @@ void UUnitState::ZeroParameter(EObjectParameters parameter, const FParameterZero
     }
 }
 
-void UUnitState::InitializeComponent()
+void UUnitState::BeginPlay()
 {
-    Super::InitializeComponent();
+    Super::BeginPlay();
 
     m_logic = GET_INTERFACE(Logic);
     m_objectState = GET_INTERFACE(ObjectState);
     m_shield = GET_INTERFACE(Shield);
     m_animation = GET_INTERFACE(Animation);
-
-    check(m_groundPoint != nullptr);
     
-    if (m_objectState == nullptr)
-    {
-        UE_LOG(LogTemp, Error, TEXT("Unit Object state is invalid"));
-        throw std::runtime_error("Unit Object state is invalid");
-    }
-
-    if (m_logic == nullptr)
-    {
-        UE_LOG(LogTemp, Error, TEXT("Unit logic is invalid"));
-        throw std::runtime_error("Unit logic is invalid");
-    }
-
-    UActorComponent* component = AtomDestiny::Utils::FindComponentByName(GetOwner(), "GroundPoint");
-    m_groundPoint = MakeWeakObjectPtr(CastChecked<USceneComponent>(component));
+    ENSURE(m_groundPoint != nullptr, TEXT("Ground point is invalid"));
+    ENSURE(m_objectState != nullptr, TEXT("Unit object state is invalid"));
+    ENSURE(m_logic != nullptr, TEXT("Unit logic is invalid"));
 }
 
 void UUnitState::SetEnabled(bool enabled)
 {
     CastChecked<UActorComponent>(m_logic.GetInterface())->SetComponentTickEnabled(enabled);
-    GetNavigation()->SetActorTickEnabled(enabled);
+    GetNavigation(GetOwner())->SetActorTickEnabled(enabled);
     
     for (const TScriptInterface<IWeapon>& weapon : GetWeapons())
     {
@@ -299,10 +305,4 @@ void UUnitState::SetEnabled(bool enabled)
     // TODO: make animation enabled
     //     if (unitAnimation != null)
     //         GetComponent<Animator>().enabled = enabled;
-}
-
-TWeakObjectPtr<ANavigator> UUnitState::GetNavigation() const
-{
-    const APawn* pawn = CastChecked<APawn>(GetOwner());
-    return MakeWeakObjectPtr(CastChecked<ANavigator>(pawn->AIControllerClass));
 }

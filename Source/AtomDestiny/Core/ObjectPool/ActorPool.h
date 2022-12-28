@@ -24,35 +24,35 @@ namespace AtomDestiny
         static ActorPool& Instance();
         
         // Initializes our dictionary
-        void Initialize(const TStrongObjectPtr<AActor>& object);
+        void Initialize(const TWeakObjectPtr<AActor>& object);
         
         // Spawns a copy of the specified actor (instantiating one if required)
-        TStrongObjectPtr<AActor> Spawn(TStrongObjectPtr<AActor> object, FVector position, FRotator rotation);
+        TWeakObjectPtr<AActor> Spawn(TWeakObjectPtr<AActor> object, const FVector& position, const FQuat& rotation);
         
         // Spawns a copy of the specified prefab, with zero pos and identity rotation
-        TStrongObjectPtr<AActor> Spawn(TStrongObjectPtr<AActor> object);
+        TWeakObjectPtr<AActor> Spawn(TWeakObjectPtr<AActor> object);
         
         // Despawns the specified AActor back into its pool.
-        void Despawn(TStrongObjectPtr<AActor> object) const;
+        void Despawn(TWeakObjectPtr<AActor> object) const;
         
         // Despawns the specified AActor back into its pool after time
-        void Despawn(TStrongObjectPtr<AActor> object, double time) const;
+        void Despawn(TWeakObjectPtr<AActor> object, double time) const;
         
         // Cleans all pooled members
         void DestroyAll();
         
         // Destroys current object
-        void Destroy(TStrongObjectPtr<AActor> object);
+        void Destroy(TWeakObjectPtr<AActor> object);
         
         // Returns true if Blueprint Actor is already in pool
-        bool Contains(TStrongObjectPtr<AActor> object) const;
+        bool Contains(TWeakObjectPtr<AActor> object) const;
 
         // Early objects preloading
-        void Preload(const TStrongObjectPtr<AActor>& object, uint32_t size = 1);
+        void Preload(const TWeakObjectPtr<AActor>& object, uint32_t size = 1);
         
     private:
         bool m_preloadingActive = true;
-        std::unordered_map<TStrongObjectPtr<AActor>, TSharedPtr<Pool>> m_pools;
+        std::unordered_map<TWeakObjectPtr<AActor>, TSharedPtr<Pool>> m_pools;
     };
 
     // Redefinition to support classic pattern

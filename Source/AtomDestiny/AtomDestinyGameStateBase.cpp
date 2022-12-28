@@ -1,18 +1,18 @@
 ﻿#include "AtomDestinyGameStateBase.h"
 
-#include <ranges>
 #include <unordered_set>
 #include <unordered_map>
 
 // ReSharper disable once CppUnusedIncludeDirective
 #include <AtomDestiny/Core/Hash.h>
+#include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Logic/UnitLogicBase.h>
 
 #include <Engine/Classes/GameFramework/Actor.h>
 
 #include "Core/ActorComponentUtils.h"
 
-namespace 
+namespace
 {
     constexpr double MinimalCriticalRange = 0;
     constexpr double MaximumCriticalRange = 100;
@@ -46,45 +46,34 @@ namespace
     
 } // namespace
 
-// Place core data here
-struct AAtomDestinyGameStateBase::GameStateBasePrivateData
-{
-    // represents active units at overall battle
-    std::unordered_map<EGameSide, FSharedGameStateUnitList> activeUnits;
-
-    // represents 
-    std::unordered_map<EGameSide, FSharedEnemiesList> enemies;
-};
-
-AAtomDestinyGameStateBase::AAtomDestinyGameStateBase() :
-    m_impl(new GameStateBasePrivateData{})
+AAtomDestinyGameStateBase::AAtomDestinyGameStateBase()
 {
     InitializeSides();
     InitializeEnemies();
-    
-    UUnitLogicBase::unitCreated.AddDynamic(this, &AAtomDestinyGameStateBase::OnUnitCreated);
-    UUnitLogicBase::unitDestroyed.AddDynamic(this, &AAtomDestinyGameStateBase::OnUnitDestroyed);
-}
-
-AAtomDestinyGameStateBase::~AAtomDestinyGameStateBase()
-{
-    delete m_impl;
 }
 
 void AAtomDestinyGameStateBase::AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side)
 {
-    FGameStateUnitList& unitList = *(m_impl->activeUnits[side]);
-
-    if (const auto index = unitList.Find(actor); index == INDEX_NONE)
-        unitList.Add(std::move(actor));
+    if (!actor.IsValid())
+    {
+        LOG_WARNING(TEXT("Trying to add invalid unit to game state"));
+        return;
+    }
+    
+    const FSharedGameStateUnitList& unitListPtr = m_activeUnits[side];
+    unitListPtr->AddUnique(actor);
 }
 
 void AAtomDestinyGameStateBase::RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side)
 {
-    FGameStateUnitList& unitList = *(m_impl->activeUnits[side]);
-
-    if (const auto index = unitList.Find(actor); index == INDEX_NONE)
-        unitList.RemoveAt(index);
+    if (!actor.IsValid())
+    {
+        LOG_WARNING(TEXT("Trying to remove invalid unit from game state"));
+        return;
+    }
+    
+    const FSharedGameStateUnitList& unitListPtr = m_activeUnits[side];
+    unitListPtr->Remove(actor);
 }
 
 TWeakObjectPtr<AActor> AAtomDestinyGameStateBase::GetDestination(EGameSide side) const
@@ -105,9 +94,14 @@ TWeakObjectPtr<AActor> AAtomDestinyGameStateBase::GetDestination(EGameSide side)
     }
 }
 
-FSharedEnemiesList AAtomDestinyGameStateBase::GetEnemies(EGameSide side) const
+bool AAtomDestinyGameStateBase::IsEnemiesExist(EGameSide side) const
 {
-    return m_impl->enemies[side];
+    return m_enemies.Contains(side);
+}
+
+const FEnemiesList& AAtomDestinyGameStateBase::GetEnemies(EGameSide side) const
+{
+    return m_enemies[side];
 }
 
 void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& projectile, EProjectileDamageOptions options)
@@ -164,6 +158,27 @@ void AAtomDestinyGameStateBase::AddDamageToState(const TScriptInterface<IObjectS
         objectState->AddDamage(resultDamage, parameters.weaponType, parameters.owner.Get());
 }
 
+void AAtomDestinyGameStateBase::HandleBeginPlay()
+{
+    // specially added before parent call
+    // Super::HandleBeginPlay will call BeginPlay for all actors
+    UUnitLogicBase::unitCreated.AddDynamic(this, &AAtomDestinyGameStateBase::OnUnitCreated);
+    UUnitLogicBase::unitDestroyed.AddDynamic(this, &AAtomDestinyGameStateBase::OnUnitDestroyed);
+    
+    Super::HandleBeginPlay();
+}
+
+void AAtomDestinyGameStateBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    Super::EndPlay(EndPlayReason);
+
+    UUnitLogicBase::unitCreated.RemoveDynamic(this, &AAtomDestinyGameStateBase::OnUnitCreated);
+    UUnitLogicBase::unitDestroyed.RemoveDynamic(this, &AAtomDestinyGameStateBase::OnUnitDestroyed);
+
+    m_activeUnits.Reset();
+    m_enemies.Reset();
+}
+
 void AAtomDestinyGameStateBase::OnUnitCreated(AActor* actor, EGameSide side, EUnitType)
 {
     AddUnit(MakeWeakObjectPtr(actor), side);
@@ -180,21 +195,24 @@ void AAtomDestinyGameStateBase::InitializeSides()
 
     for (uint8 side = 0; side < lastSide; ++side)
     {
-        if (const EGameSide currentSide = static_cast<EGameSide>(side); !m_impl->activeUnits.contains(currentSide))
-            m_impl->activeUnits.insert(std::make_pair(currentSide, MakeShared<FGameStateUnitList>()));
+        if (const EGameSide currentSide = static_cast<EGameSide>(side); !m_activeUnits.Contains(currentSide))
+        {
+            TSharedPtr<FGameStateUnitList> ptr { new FGameStateUnitList() };
+            m_activeUnits.Add(currentSide, std::move(ptr));
+        }
     }
 }
 
 void AAtomDestinyGameStateBase::InitializeEnemies()
 {
-    for (const EGameSide side : m_impl->activeUnits | std::views::keys)
+    for (const auto& [side, list] : m_activeUnits)
     {
-        m_impl->enemies.insert(std::make_pair(side, FSharedEnemiesList{}));
-
-        for (const EGameSide s : m_impl->activeUnits | std::views::keys)
+        m_enemies.Add(side, FEnemiesList{});
+        
+        for (const auto& [s, l] : m_activeUnits)
         {
             if (side != s && side != EGameSide::None)
-                m_impl->enemies[side]->Add(m_impl->activeUnits[s]);
+                m_enemies[side].Add(m_activeUnits[s]);
         }
     }
 }

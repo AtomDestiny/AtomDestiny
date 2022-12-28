@@ -1,37 +1,38 @@
 ﻿#pragma once
 
 #include <AtomDestiny/Core/Macros.h>
-#include <AtomDestiny/Weapon/Projectile.h>
+#include <AtomDestiny/Projectile/Projectile.h>
 
-#include <Engine/Classes/Components/SceneComponent.h>
+#include <Engine/Classes/Components/ActorComponent.h>
 
 #include "ProjectileBase.generated.h"
 
 ///
 /// Represents common abstract projectile
 ///
-UCLASS()
-class UProjectileBase : public USceneComponent, public IProjectile
+UCLASS(Abstract)
+class UProjectileBase : public UActorComponent, public IProjectile
 {
     GENERATED_BODY()
 
 public:
+    explicit UProjectileBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     // Sets projectile points from weapon or another projectile
-    UFUNCTION(Meta = (AllowOverride = true))
-    virtual void SetPoints(const FProjectilePoints& points) override;
+    UFUNCTION()
+    virtual void SetPoints(const FProjectilePoints& points) override final;
     
     // Sets weapon parameters to projectile
-    UFUNCTION(Meta = (AllowOverride = true))
-    virtual void SetParameters(const FWeaponParameters& parameters) override;
+    UFUNCTION()
+    virtual void SetParameters(const FWeaponParameters& parameters) override final;
     
     // Returns projectile parameters
-    UFUNCTION(Meta = (AllowOverride = true))
-    virtual const FWeaponParameters& GetParameters() const override;
+    UFUNCTION()
+    virtual const FWeaponParameters& GetParameters() const override final;
     
     // Returns projectile points
-    UFUNCTION(Meta = (AllowOverride = true))
-    virtual const FProjectilePoints& GetPoints() const override;
+    UFUNCTION()
+    virtual const FProjectilePoints& GetPoints() const override final;
     
     // Initializes base data and launches a projectile
     virtual void Launch() ABSTRACT_METHOD;

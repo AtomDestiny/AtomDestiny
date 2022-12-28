@@ -28,7 +28,7 @@ namespace AtomDestiny::Utils
     }
 
     template<typename Component>
-    [[maybe_unused]] Component* AddNewComponentToActor(const TStrongObjectPtr<AActor>& object)
+    [[maybe_unused]] Component* AddNewComponentToActor(const TWeakObjectPtr<AActor>& object)
     {
         return AddNewComponentToActor<Component>(object.Get());
     }
@@ -43,6 +43,20 @@ namespace AtomDestiny::Utils
         }
 
         return nullptr;
+    }
+
+    template <typename Component>
+    TWeakObjectPtr<Component> GetComponentFromReference(const FComponentReference& componentReference, AActor* actor)
+    {
+        UActorComponent* component = componentReference.GetComponent(actor);
+        
+        if (component == nullptr)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Can not get component from FComponentReference"));
+            return {};
+        }
+        
+        return MakeWeakObjectPtr(CastChecked<Component>(component));
     }
 
     template<typename Interface, typename UEInterface>

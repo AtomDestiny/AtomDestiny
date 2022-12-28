@@ -88,7 +88,7 @@ void FHttpAwaiter::await_suspend(FAsyncHandle InHandle)
 }
 
 template<typename T>
-void FHttpAwaiter::SetHandleAndUnlock(std::coroutine_handle<T> InHandle)
+void FHttpAwaiter::SetHandleAndUnlock(coro::coroutine_handle<T> InHandle)
 {
 	// This should be locked from await_ready
 	checkf(!Lock.TryLock(), TEXT("Internal error"));

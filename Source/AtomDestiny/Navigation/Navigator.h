@@ -2,6 +2,7 @@
 
 #include <Runtime/Engine/Classes/GameFramework/Actor.h>
 #include <Runtime/Engine/Classes/GameFramework/FloatingPawnMovement.h>
+
 #include <Runtime/AIModule/Classes/AIController.h>
 
 #include "Navigator.generated.h"
@@ -35,7 +36,19 @@ public:
     double GetRemainingDistance() const;
 
 private:
-    double m_stopDistance = 1.0f;
+    bool CheckMoveRequest(const AActor* target) const;
+    bool CheckMoveRequest(const FVector& point) const;
+
+    void CheckLogPrint(const FString& message) const;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Log navigation results", AllowPrivateAccess = "true"))
+    bool m_logMovingResults = false;
+
+    // Updates target navigation on every move request
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Every call update target", AllowPrivateAccess = "true"))
+    bool m_updateNavigationOnEveryCall = false; 
+    
+    double m_stopDistance = 1.0;
     
     TWeakObjectPtr<AActor> m_target;
     TWeakObjectPtr<UFloatingPawnMovement> m_pawnMovement;

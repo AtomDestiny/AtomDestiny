@@ -1,20 +1,30 @@
 ﻿#include "UnitBasicDestroy.h"
 
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
+#include <AtomDestiny/Core/Logger.h>
+
+UUnitBasicDestroy::UUnitBasicDestroy(const FObjectInitializer& objectInitializer):
+    UDestroyBase(objectInitializer)
+{
+}
 
 void UUnitBasicDestroy::Destroy()
 {
-    if (!m_explosionBlueprint.IsValid())
+    if (m_destroyed)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Unit base destroy has invalid explosion blueprint"));
+        LOG_ERROR(TEXT("Unit has a destroy status already"));
         return;
     }
     
-    FRotator rotator { FQuat::Identity };
-    TStrongObjectPtr blueprintPtr { m_explosionBlueprint.Get() };
-    
-    AtomDestiny::ObjectPool::Instance().Spawn(std::move(blueprintPtr), GetOwner()->GetTransform().GetLocation(), std::move(rotator));
+    if (!m_explosionBlueprint.IsValid())
+    {
+        LOG_WARNING(TEXT("Unit basic destroy has invalid explosion blueprint, so no explosion would be spawned"));
+    }
+    else
+    {
+        AtomDestiny::ObjectPool::Instance().Spawn(m_explosionBlueprint, GetOwner()->GetTransform().GetLocation(), FQuat::Identity);
+    }
 
-    TStrongObjectPtr currentActor { GetOwner() };
-    AtomDestiny::ObjectPool::Instance().Despawn(std::move(currentActor), m_deathDelay);
+    Super::Destroy();
+    AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(GetOwner()), m_deathDelay);
 }

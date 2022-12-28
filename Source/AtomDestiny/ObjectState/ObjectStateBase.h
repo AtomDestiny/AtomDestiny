@@ -12,12 +12,13 @@
 /// Represents base class for any object
 /// to have a parameters in Atom Destiny world.
 ///
-UCLASS(Abstract, Blueprintable)
+UCLASS(Abstract)
 class UObjectStateBase : public UADObject, public IObjectState
 {
     GENERATED_BODY()
     
 public:
+    explicit UObjectStateBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Adds damage to this object
     virtual void AddDamage(double damage, EWeaponType type, AActor* owner) ABSTRACT_METHOD;
@@ -61,6 +62,9 @@ protected:
     
     /// Calculates damage after defence type
     double GetDamageAfterDefenceType(float damage) const;
+
+    // use this standard algorithm to take a damage from Atom Destiny projectile
+    double GetResultDamage(EWeaponType type, double damage) const;
     
     // Recalculates speed parameter
     virtual void RecalculateParameter(EObjectParameters parameter) override;
@@ -95,7 +99,6 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Balance parameters"))
     FBalanceParameters m_balanceParameters;
     
-    // Dead state
     bool m_isDead = false;
     
     // Current object defence

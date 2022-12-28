@@ -14,7 +14,7 @@ ActorPool& ActorPool::Instance()
     return actorPool;
 }
 
-void ActorPool::Initialize(const TStrongObjectPtr<AActor>& object)
+void ActorPool::Initialize(const TWeakObjectPtr<AActor>& object)
 {
     if (!m_pools.count(object))
     {
@@ -23,22 +23,22 @@ void ActorPool::Initialize(const TStrongObjectPtr<AActor>& object)
     }
 }
 
-TStrongObjectPtr<AActor> ActorPool::Spawn(TStrongObjectPtr<AActor> object, FVector position, FRotator rotation)
+TWeakObjectPtr<AActor> ActorPool::Spawn(TWeakObjectPtr<AActor> object, const FVector& position, const FQuat& rotation)
 {
-    if (!object)
+    if (object.Get() == nullptr)
         return nullptr;
 
     Initialize(object);
     return m_pools[std::move(object)]->Spawn(position, rotation);
 }
 
-TStrongObjectPtr<AActor> ActorPool::Spawn(TStrongObjectPtr<AActor> object)
+TWeakObjectPtr<AActor> ActorPool::Spawn(TWeakObjectPtr<AActor> object)
 {
-    return Spawn(std::move(object), FVector::ZeroVector, FRotator::ZeroRotator);
+    return Spawn(std::move(object), FVector::ZeroVector, FQuat::Identity);
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic
-void ActorPool::Despawn(TStrongObjectPtr<AActor> object) const
+void ActorPool::Despawn(TWeakObjectPtr<AActor> object) const
 {
     if (const auto poolMember = object->FindComponentByClass<ActorPoolMember>(); poolMember == nullptr)
     {
@@ -49,7 +49,7 @@ void ActorPool::Despawn(TStrongObjectPtr<AActor> object) const
         poolMember->pool->Despawn(object);
 }
 
-void ActorPool::Despawn(TStrongObjectPtr<AActor> object, double time) const
+void ActorPool::Despawn(TWeakObjectPtr<AActor> object, double time) const
 {
     auto despawner = object->FindComponentByClass<UDespawner>();
 
@@ -64,33 +64,33 @@ void ActorPool::DestroyAll()
     m_pools.clear();
 }
 
-void ActorPool::Destroy(TStrongObjectPtr<AActor> object)
+void ActorPool::Destroy(TWeakObjectPtr<AActor> object)
 {
     m_pools.erase(std::move(object));
 }
 
-bool ActorPool::Contains(TStrongObjectPtr<AActor> object) const
+bool ActorPool::Contains(TWeakObjectPtr<AActor> object) const
 {
     return static_cast<bool>(m_pools.count(std::move(object)));
 }
 
-void ActorPool::Preload(const TStrongObjectPtr<AActor>& object, uint32_t size)
+void ActorPool::Preload(const TWeakObjectPtr<AActor>& object, uint32_t size)
 {
     if (object.IsValid() && m_preloadingActive)
     {
-        if (!m_pools.count(object))
+        if (!m_pools.contains(object))
         {
             Initialize(object);
 
             // Make an array to grab the objects we're about to pre-spawn
-            std::vector<TStrongObjectPtr<AActor>> objects;
+            std::vector<TWeakObjectPtr<AActor>> objects;
             objects.reserve(size);
 
             for (uint32_t i = 0; i < size; ++i)
                 objects.push_back(Spawn(object));
 
             // Now despawn them all
-            for (const TStrongObjectPtr<AActor>& poolObject : objects)
+            for (const TWeakObjectPtr<AActor>& poolObject : objects)
                 Despawn(poolObject);
         }
     }

@@ -5,8 +5,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Kismet/GameplayStatics.h"
 
-#include "AtomDestiny/UI/HealthBar.h"
 
 // Sets default values
 ATestActor::ATestActor(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -20,18 +20,11 @@ ATestActor::ATestActor(const FObjectInitializer& ObjectInitializer) : Super(Obje
         RootComponent = m_box;
     }
 
-    /*m_box = CreateDefaultSubobject<UBoxComponent>(TEXT("Box"));
-    SetRootComponent(m_box);*/
-
     m_mesh = ObjectInitializer.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("Mesh"));
     m_mesh->SetupAttachment(RootComponent);
 
-    /*m_bar = CreateDefaultSubobject<UHealthBar>(TEXT("HealthBar"));
-    m_bar->SetupAttachment(m_box);*/
-
     m_healthBar = ObjectInitializer.CreateDefaultSubobject<UWidgetComponent>(this, TEXT("HealthBar"));
     m_healthBar->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
-
     m_healthBar->SetUsingAbsoluteLocation(true);
 }
 
@@ -39,7 +32,6 @@ ATestActor::ATestActor(const FObjectInitializer& ObjectInitializer) : Super(Obje
 void ATestActor::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -47,11 +39,13 @@ void ATestActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-    UE_LOG(LogTemp, Display, TEXT("TestActor ticked"));
+	auto const& playerTfm = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetTransform();
+	if (!playerTfm.IsValid())
+		UE_LOG(LogTemp, Warning, TEXT("Invalid player transform!"));
+	
+	FVector const Up = playerTfm.TransformVector({0,0,1});
 
-   // m_mesh->AddRelativeRotation(FRotator(0, 0, 2));
-
-    /*if (m_healthBar != nullptr)
-        m_healthBar->SetRelativeLocation(GetActorLocation() + FVector(20, 0, 0));*/
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Axis is: %s"), *Up.ToString()));
+	
+	m_healthBar->SetWorldLocation(GetActorLocation() + Up * 420);
 }
-

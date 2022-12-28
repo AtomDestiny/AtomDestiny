@@ -15,14 +15,14 @@ class ATOMDESTINY_API UHealthBar : public UUserWidget
     GENERATED_BODY()
 
 public:
-    //UHealthBar(const FObjectInitializer& ObjectInitializer);
+   // UHealthBar(const FObjectInitializer& ObjectInitializer);
 
-    UFUNCTION()
+    UFUNCTION(BlueprintCallable)
     void SetPercent(float value);
-
+    
 protected:
     UPROPERTY(meta = (BindWidget))
-    class UProgressBar* Slider;
+    class UProgressBar* ProgressBar;
 
     virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 };

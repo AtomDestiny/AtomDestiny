@@ -7,14 +7,14 @@
 
 using namespace AtomDestiny;
 
-Pool::Pool(TStrongObjectPtr<AActor> object):
+Pool::Pool(TWeakObjectPtr<AActor> object):
     m_gameObjectToSpawn(std::move(object))
 {
 }
 
-TStrongObjectPtr<AActor> Pool::Spawn(FVector position, FRotator rotation)
+TWeakObjectPtr<AActor> Pool::Spawn(const FVector& position, const FQuat& rotation)
 {
-    TStrongObjectPtr<AActor> object;
+    TWeakObjectPtr<AActor> object;
 
     if (m_inactive.empty())
     {
@@ -22,17 +22,19 @@ TStrongObjectPtr<AActor> Pool::Spawn(FVector position, FRotator rotation)
         
         FActorSpawnParameters spawnParams;
         spawnParams.Template = m_gameObjectToSpawn.Get();
+
+        const FRotator rotator { rotation };
         
-        const auto newObject = world->SpawnActor<AActor>(m_gameObjectToSpawn->GetClass(), position, rotation, spawnParams);
-        TStrongObjectPtr sharedNewObject{ newObject };
+        const auto newObject = world->SpawnActor<AActor>(m_gameObjectToSpawn->GetClass(), position, rotator, spawnParams);
+        TWeakObjectPtr<AActor> newObjectPtr{ newObject };
 
         const FString str = m_gameObjectToSpawn->GetName() + TEXT(" (") + FString::FromInt(m_nextId++) + TEXT(") ");
-        sharedNewObject->Rename(GetData(str));
+        newObjectPtr->Rename(GetData(str));
         
         // Adds a PoolMember component so we know what pool we belong to.
-        Utils::AddNewComponentToActor<ActorPoolMember>(sharedNewObject)->pool = TSharedPtr<Pool>(this);
+        Utils::AddNewComponentToActor<ActorPoolMember>(newObjectPtr)->pool = TSharedPtr<Pool>(this);
 
-        object = std::move(sharedNewObject);
+        object = std::move(newObjectPtr);
     }
     else
     {
@@ -52,7 +54,7 @@ TStrongObjectPtr<AActor> Pool::Spawn(FVector position, FRotator rotation)
     return object;
 }
 
-void Pool::Despawn(TStrongObjectPtr<AActor> object)
+void Pool::Despawn(TWeakObjectPtr<AActor> object)
 {
     Utils::SetActorActive(object, false);
     m_inactive.push(std::move(object));

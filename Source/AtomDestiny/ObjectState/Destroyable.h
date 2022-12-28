@@ -18,8 +18,10 @@ class IDestroyable
     GENERATED_BODY()
 
 public:
+
+    UFUNCTION(Meta = (AllowOverride = true))
+    virtual bool IsDestroyed() const = 0;
     
-    // Destroys object
     UFUNCTION(Meta = (AllowOverride = true))
     virtual void Destroy() = 0;
 };

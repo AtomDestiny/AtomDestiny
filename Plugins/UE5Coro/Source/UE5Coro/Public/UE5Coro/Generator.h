@@ -60,9 +60,9 @@ struct [[nodiscard]] TGenerator
 	friend promise_type;
 
 private:
-	std::coroutine_handle<promise_type> Handle;
+	coro::coroutine_handle<promise_type> Handle;
 
-	explicit TGenerator(std::coroutine_handle<promise_type> Handle)
+	explicit TGenerator(coro::coroutine_handle<promise_type> Handle)
 		: Handle(Handle) { }
 
 public:
@@ -165,20 +165,20 @@ public:
 	FGeneratorPromise() = default;
 	FGeneratorPromise(const FGeneratorPromise&) = delete;
 
-	std::suspend_never initial_suspend() { return {}; }
-	std::suspend_always final_suspend() noexcept { return {}; }
+	coro::suspend_never initial_suspend() { return {}; }
+	coro::suspend_always final_suspend() noexcept { return {}; }
 	void return_void() { Current = nullptr; }
 	void unhandled_exception();
 
 	// co_await is not allowed in generators
-	std::suspend_never await_transform(auto&&) = delete;
+	coro::suspend_never await_transform(auto&&) = delete;
 };
 
 template<typename T>
 class [[nodiscard]] TGeneratorPromise : public FGeneratorPromise
 {
 	friend TGenerator<T>;
-	using handle_type = std::coroutine_handle<TGeneratorPromise>;
+	using handle_type = coro::coroutine_handle<TGeneratorPromise>;
 
 public:
 	TGenerator<T> get_return_object()
@@ -186,13 +186,13 @@ public:
 		return TGenerator<T>(handle_type::from_promise(*this));
 	}
 
-	std::suspend_always yield_value(std::remove_reference_t<T>& Value)
+	coro::suspend_always yield_value(std::remove_reference_t<T>& Value)
 	{
 		Current = std::addressof(Value);
 		return {};
 	}
 
-	std::suspend_always yield_value(std::remove_reference_t<T>&& Value)
+	coro::suspend_always yield_value(std::remove_reference_t<T>&& Value)
 	{
 		Current = std::addressof(Value);
 		return {};

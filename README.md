@@ -7,4 +7,4 @@ For contribution you should use [this style guide](https://github.com/AtomDestin
 
 ### Third-party libraries
 
-Project actively use C++20 coroutines, so basic realization used from [UE5Coro](https://github.com/landelare/ue5coro). UE5Coro works only for Windows, so we used some source modification for Mac and clang.
+Project actively uses C++20 coroutines, so basic realization used from [UE5Coro](https://github.com/landelare/ue5coro). UE5Coro works only for Windows, so we made some source modification for macOS and clang.

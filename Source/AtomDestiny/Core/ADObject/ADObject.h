@@ -4,7 +4,7 @@
 #include <utility>
 #include <unordered_map>
 
-#include <Engine/Classes/Components/SceneComponent.h>
+#include <Engine/Classes/Components/ActorComponent.h>
 
 #include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/Core/ADObject/Parameterizable.h>
@@ -16,8 +16,8 @@
 /// Minimal entity for any Parameterizable Atom Destiny object.
 /// (Units, Buildings, Abilities, Weapons and so on).
 ///
-UCLASS(Abstract, Blueprintable)
-class ATOMDESTINY_API UADObject : public USceneComponent, public IParameterizable
+UCLASS(Abstract)
+class ATOMDESTINY_API UADObject : public UActorComponent, public IParameterizable
 {
     GENERATED_BODY()
 
@@ -30,7 +30,7 @@ class ATOMDESTINY_API UADObject : public USceneComponent, public IParameterizabl
     using ObjectEnhancementParameters = std::unordered_map<EObjectParameters, GameObjectPairParameterList>;
 
 public:
-    explicit UADObject();
+    explicit UADObject(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     UFUNCTION(Meta = (AllowOverride = true))
     virtual void AddParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement) override;
@@ -77,6 +77,9 @@ protected:
     // Recalculates value from start value from all exists parameters.
     // GetParameterAvailable use before to check possible parameter problems.
     double CalculateParametersFromAll(const double startValue, EObjectParameters parameter) const;
+
+    // enables or disables tick by state
+    void SetTickEnabled(bool enable);
 
 private:
     

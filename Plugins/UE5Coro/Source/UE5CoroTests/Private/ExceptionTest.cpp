@@ -86,7 +86,7 @@ bool FExceptionTest::RunTest(const FString& Parameters)
 		auto Fn = [&]() -> FAsyncCoroutine
 		{
 			State = 1;
-			co_await std::suspend_always();
+			co_await coro::suspend_always();
 			throw FTestException("async");
 		};
 		auto Coro = Fn();
@@ -112,7 +112,7 @@ bool FExceptionTest::RunTest(const FString& Parameters)
 		auto Fn = [&](FLatentActionInfo) -> FAsyncCoroutine
 		{
 			State = 1;
-			co_await std::suspend_always();
+			co_await coro::suspend_always();
 			throw FTestException("latent");
 		};
 		auto Coro = World.Run(Fn);

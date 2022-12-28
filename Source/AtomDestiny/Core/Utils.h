@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <type_traits>
+
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 
 namespace AtomDestiny::Utils
@@ -9,9 +11,14 @@ namespace AtomDestiny::Utils
     {
         if (blueprint.IsValid())
         {
-            const TStrongObjectPtr ptr { blueprint.Get() };
-            ObjectPool::Instance().Preload(ptr, count);
+            ObjectPool::Instance().Preload(blueprint, count);
         }
     }
     
 } // namespace AtomDestiny::Utils
+
+#define NOT_NULLPTR_CALL(value, methodName, ...) \
+    static_assert(std::is_pointer_v<decltype(value)>, "Type should be a pointer"); \
+    if (value != nullptr) { \
+        value->methodName(__VA_ARGS__); \
+    } \

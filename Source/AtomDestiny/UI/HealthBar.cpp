@@ -3,20 +3,24 @@
 #include "HealthBar.h"
 
 #include "Components/ProgressBar.h"
+#include "Components/WidgetComponent.h"
+#include "Math/Vector.h"
 
-/*UHealthBar::UHealthBar(const FObjectInitializer& ObjectInitializer) : UUserWidget(ObjectInitializer)
+/*UHealthBar::UHealthBar(const FObjectInitializer& ObjectInitializer, AActor* root) : UUserWidget(ObjectInitializer)
 {
-   // slider = CreateDefaultSubobject<UProgressBar>(TEXT("ValueBar"));
+	ActorRoot = root;
 }*/
 
 void UHealthBar::SetPercent(float value)
 {
-    Slider->SetPercent(value);
+    ProgressBar->SetPercent(value);
 }
 
 void UHealthBar::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
     Super::NativeTick(MyGeometry, InDeltaTime);
-    UE_LOG(LogTemp, Display, TEXT("HealthBar ticked"));
+	
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Owner Location is: %s"), *ActorRoot->GetActorLocation().ToString()));
+	//UE_LOG(LogTemp, Display, ActorRoot->GetActorLocation().ToText());
 }
 
