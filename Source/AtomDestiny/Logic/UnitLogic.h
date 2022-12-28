@@ -9,12 +9,13 @@
 /// Represents base unit behaviour and AI.
 /// It controls over animation, weapon and movement.
 ///
-UCLASS(Abstract, Blueprintable)
+UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
 class ATOMDESTINY_API UUnitLogic final : public UUnitLogicBase
 {
     GENERATED_BODY()
 
 public:
+    explicit UUnitLogic(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Recalculates parameters params
     virtual void UpdateParameters() override;
@@ -31,7 +32,8 @@ protected:
     virtual void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func) override;
     
 private:
-
+    void CheckTargetDistance();
+    
     // Creates default navigation
     void CreateDestination();
     
@@ -43,6 +45,7 @@ private:
     
     // Updates navigation data
     void UpdateNavigationTarget();
+    void MoveNearestEnemyIfCan();
     
     // Try to search enemy at possible distance
     void ScanEnemy();
@@ -51,4 +54,7 @@ private:
     
     // Checks unit navigation and animation
     void CheckBehaviour(const TScriptInterface<IWeapon>& weapon);
+
+    // searches nearest enemy
+    TWeakObjectPtr<AActor> FindEnemy(double minScanDistance, double scanDistance) const;
 };

@@ -23,6 +23,7 @@ class ATOMDESTINY_API UUnitLogicBase : public UADObject, public ILogic
     DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FUnitAction, AActor*, actor, EGameSide, side, EUnitType, unitType);
     
 public:
+    explicit UUnitLogicBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Returns list of all unit weapons
     virtual const TArray<TScriptInterface<IWeapon>>& GetAllWeapon() const override;
@@ -112,7 +113,8 @@ protected:
     double m_attackAngle = 5.0;
     
     // Default stop distance (from navigation stop distance)
-    double m_defaultStopDistance = 0;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Default stop distance"))
+    double m_defaultStopDistance = 50.0;
     
     // Delta range for unit attack
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Try attack delta"))

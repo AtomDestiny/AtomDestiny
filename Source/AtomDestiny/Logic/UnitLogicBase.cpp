@@ -6,6 +6,11 @@
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/Logger.h>
 
+UUnitLogicBase::UUnitLogicBase(const FObjectInitializer& objectInitializer):
+    UADObject(objectInitializer)
+{
+}
+
 const TArray<TScriptInterface<IWeapon>>& UUnitLogicBase::GetAllWeapon() const
 {
     return m_weapons;
@@ -57,24 +62,29 @@ void UUnitLogicBase::BeginPlay()
     Super::BeginPlay();
 
     // navigation initialization
-    const APawn* pawn = CastChecked<APawn>(GetOwner());
+    APawn* pawn = CastChecked<APawn>(GetOwner());
     check(pawn->AIControllerClass != nullptr);
     
     if (ANavigator* navigator = Cast<ANavigator>(pawn->Controller.Get()); navigator != nullptr)
     {
         m_navigation = MakeWeakObjectPtr(navigator);
         m_navigation->SetMovementComponent(pawn->FindComponentByClass<UFloatingPawnMovement>());
+
+        m_navigation->AttachToActor(pawn, FAttachmentTransformRules::KeepRelativeTransform);
+        
+        m_navigation->SetPawn(pawn);
+        m_navigation->AActor::SetActorLocation(pawn->GetActorLocation());
     }
     else
     {
-        PrimaryComponentTick.bCanEverTick = false;
+        SetTickEnabled(false);
         LOG_ERROR(TEXT("Pawn AIControllerClass should be an ANavigator or derived from. Tick disabled"));
         return;
     }
     
     m_speed = m_navigation->GetSpeed();
     m_currentSpeed = m_speed;
-    m_defaultStopDistance = m_navigation->GetStopDistance();
+    m_navigation->SetStopDistance(m_defaultStopDistance);
     
     m_animation = GET_INTERFACE(Animation);
     m_scanDelay += FMath::RandRange(AtomDestiny::Unit::MinRandomScan, AtomDestiny::Unit::MaxRandomScan);
@@ -98,21 +108,10 @@ void UUnitLogicBase::RotateToTarget(float deltaTime)
         return;
     }
 
-    // calculate vector on target
-    const FVector weaponLocation = GetOwner()->GetTransform().GetLocation();
-    FVector targetVector = m_currentDestination->GetTransform().GetLocation() - weaponLocation;
-    targetVector.Y = 0;
-
-    // angle between unit and target
-    const auto angle = AtomDestiny::Vector::Angle(targetVector, weaponLocation.ForwardVector);
+    const auto [angle, rotation] = AtomDestiny::LerpRotation(GetOwner(), m_currentDestination.Get(), deltaTime, m_rotateSpeed);
+    
     m_isRotatedOnTarget = (FMath::Abs(angle) < m_attackAngle);
-
-    // TODO: check to swap last parameters
-    const FVector lookVector = FMath::VInterpNormalRotationTo(weaponLocation.ForwardVector, targetVector,
-                                                              m_rotateSpeed * deltaTime, 0.1f);
-    const FQuat lookRotation = FQuat::FindBetween(lookVector, FVector::UpVector);
-
-    GetOwner()->SetActorRotation(lookRotation);
+    GetOwner()->SetActorRotation(rotation);
 }
 
 void UUnitLogicBase::CheckScanDelay(float deltaTime)

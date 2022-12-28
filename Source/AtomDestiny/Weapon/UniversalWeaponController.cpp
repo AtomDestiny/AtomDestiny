@@ -5,6 +5,12 @@
 
 #include <AtomDestiny/Projectile/Projectile.h>
 
+UUniversalWeaponController::UUniversalWeaponController(const FObjectInitializer& objectInitializer):
+    UWeaponBase(objectInitializer)
+{
+    SetTickEnabled(true);
+}
+
 double UUniversalWeaponController::GetFireRate() const
 {
     return m_shotCount * m_shootingPositions.Num() / (m_shotDelay * (m_shotCount * m_shootingPositions.Num() - 1) + m_reloadTime);
@@ -12,6 +18,9 @@ double UUniversalWeaponController::GetFireRate() const
 
 bool UUniversalWeaponController::IsSeeTarget() const
 {
+    if (!m_target.IsValid())
+        return false;
+    
     if (!m_useRaycast)
         return true;
     
@@ -21,20 +30,18 @@ bool UUniversalWeaponController::IsSeeTarget() const
         
         for (const TWeakObjectPtr<USceneComponent>& position : m_shootingPositions)
         {
-            const FVector targetVector = m_target->GetActorLocation() - position->GetComponentLocation();
-            isTargetAtSight = CheckRaycastToTarget(position->GetComponentLocation(), targetVector, m_target);
+            isTargetAtSight = CheckRaycastToTarget(position->GetComponentLocation(), m_target->GetActorLocation(), m_target);
         }
 
         return isTargetAtSight;
     }
     
-    const FVector targetVector = m_target->GetActorLocation() - m_scanPosition->GetComponentLocation();
-    return CheckRaycastToTarget(m_scanPosition->GetComponentLocation(), targetVector, m_target);
+    return CheckRaycastToTarget(m_scanPosition->GetComponentLocation(), m_target->GetActorLocation(), m_target);
 }
 
 void UUniversalWeaponController::Fire(float deltaTime)
 {
-    if (!m_target.IsValid())
+    if (!m_target.IsValid() || m_forceFireDisable)
         return;
 
     const bool isValidShotDistance = (m_target->GetActorLocation() - m_weaponComponent->GetComponentLocation()).SquaredLength() > m_minShotSqrtDistance;
@@ -77,7 +84,7 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
     {
         for (int32 shootingIndex = 0; shootingIndex < m_shootingPositions.Num(); ++shootingIndex)
         {
-            if (!currentEnemy.IsValid())
+            if (!currentEnemy.IsValid() || !m_projectileBlueprint.IsValid())
             {
                 co_await FiringDelay();
                 co_return;

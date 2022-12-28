@@ -2,6 +2,11 @@
 
 #include <AtomDestiny/Core/Utils.h>
 
+UProjectileBase::UProjectileBase(const FObjectInitializer& objectInitializer):
+    UActorComponent(objectInitializer)
+{
+}
+
 void UProjectileBase::SetPoints(const FProjectilePoints& points)
 {
     m_points = points;

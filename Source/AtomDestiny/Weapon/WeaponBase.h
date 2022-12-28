@@ -19,6 +19,7 @@ class ATOMDESTINY_API UWeaponBase : public UADObject, public IWeapon
     GENERATED_BODY()
 
 protected:
+    explicit UWeaponBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Setups weapon
     virtual void InitializeComponent() override;
@@ -224,6 +225,9 @@ protected:
     // Layer mask
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Layer mask to ignore raycast hits"))
     TEnumAsByte<ECollisionChannel> m_layerMask;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Force fire disable"))
+    bool m_forceFireDisable = false;
     
     // Main weapon target, driven by ILogic
     TWeakObjectPtr<AActor> m_target = nullptr;

@@ -10,12 +10,13 @@
 /// Represents tank shot, that deals damage and spawns impact particle,
 /// driven by raycasted weapon controller.
 //
-UCLASS(Blueprintable)
+UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
 class ATOMDESTINY_API UPlasmaShotProjectile : public UProjectileBase
 {
     GENERATED_BODY()
 
 public:
+    explicit UPlasmaShotProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     // Base values initialization to projectile and generating impact blueprint
     virtual void Launch() override;

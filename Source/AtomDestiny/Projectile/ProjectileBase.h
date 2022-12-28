@@ -3,7 +3,7 @@
 #include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/Projectile/Projectile.h>
 
-#include <Engine/Classes/Components/SceneComponent.h>
+#include <Engine/Classes/Components/ActorComponent.h>
 
 #include "ProjectileBase.generated.h"
 
@@ -11,11 +11,12 @@
 /// Represents common abstract projectile
 ///
 UCLASS(Abstract)
-class UProjectileBase : public USceneComponent, public IProjectile
+class UProjectileBase : public UActorComponent, public IProjectile
 {
     GENERATED_BODY()
 
 public:
+    explicit UProjectileBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     // Sets projectile points from weapon or another projectile
     UFUNCTION()

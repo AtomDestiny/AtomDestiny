@@ -30,7 +30,7 @@ class ATOMDESTINY_API UADObject : public UActorComponent, public IParameterizabl
     using ObjectEnhancementParameters = std::unordered_map<EObjectParameters, GameObjectPairParameterList>;
 
 public:
-    explicit UADObject();
+    explicit UADObject(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     UFUNCTION(Meta = (AllowOverride = true))
     virtual void AddParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement) override;
@@ -47,8 +47,6 @@ public:
     static double InterpretParameterModifier(double baseValue, const FParameterEnhancement& enhancement);
 
 protected:
-
-    virtual void BeginPlay() override;
     
     // Recalculates parameter for implementor
     UFUNCTION(Meta = (AllowOverride = true))
@@ -79,6 +77,9 @@ protected:
     // Recalculates value from start value from all exists parameters.
     // GetParameterAvailable use before to check possible parameter problems.
     double CalculateParametersFromAll(const double startValue, EObjectParameters parameter) const;
+
+    // enables or disables tick by state
+    void SetTickEnabled(bool enable);
 
 private:
     

@@ -5,6 +5,11 @@
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
+UPlasmaShotProjectile::UPlasmaShotProjectile(const FObjectInitializer& objectInitializer):
+    UProjectileBase(objectInitializer)
+{
+}
+
 void UPlasmaShotProjectile::Launch()
 {
     GenerateImpact();
@@ -12,7 +17,7 @@ void UPlasmaShotProjectile::Launch()
 
 FAsyncCoroutine UPlasmaShotProjectile::GenerateImpact()
 {
-    co_await UE5Coro::Latent::Seconds(m_damageDelay);
+    co_await Coroutines::Latent::Seconds(m_damageDelay);
 
     if (m_parameters.target != nullptr)
     {

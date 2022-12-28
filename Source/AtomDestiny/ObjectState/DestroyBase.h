@@ -1,8 +1,7 @@
 ﻿#pragma once
 
-#include <Engine/Classes/Components/SceneComponent.h>
+#include <Engine/Classes/Components/ActorComponent.h>
 
-#include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/ObjectState/Destroyable.h>
 
 #include "DestroyBase.generated.h"
@@ -11,14 +10,15 @@
 /// Represents base class for any destroyable game object
 ///
 UCLASS(Abstract)
-class ATOMDESTINY_API UDestroyBase : public USceneComponent, public IDestroyable
+class ATOMDESTINY_API UDestroyBase : public UActorComponent, public IDestroyable
 {
     GENERATED_BODY()
 
 public:
-    
-    // Destroys attached actor
-    virtual void Destroy() ABSTRACT_METHOD;
+    explicit UDestroyBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+
+    virtual bool IsDestroyed() const override;
+    virtual void Destroy() override;
     
 protected:
     virtual void BeginPlay() override;

@@ -26,12 +26,15 @@ class ATOMDESTINY_API AAtomDestinyGameStateBase : public AGameStateBase
 public:
     
     AAtomDestinyGameStateBase();
-    virtual ~AAtomDestinyGameStateBase() override;
+    virtual ~AAtomDestinyGameStateBase() override = default;
     
     void AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
     void RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
 
     TWeakObjectPtr<AActor> GetDestination(EGameSide side) const;
+
+    // use this method to prevent crushes for GetEnemies reference
+    bool IsEnemiesExist(EGameSide side) const;
     const FEnemiesList& GetEnemies(EGameSide side) const;
     
     // Adds damage from projectile to object with explosion point parameters
@@ -43,6 +46,10 @@ public:
     static void AddDamageToState(const TScriptInterface<IObjectState>& objectState, const FWeaponParameters& parameters);
 
 protected:
+
+    // called by GameMode directly
+    virtual void HandleBeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
     
     ///
     /// Event callbacks
@@ -60,16 +67,19 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Game destination"))
     FGameDestination m_destination;
-    
-    struct GameStateBasePrivateData;
-    GameStateBasePrivateData* m_impl = nullptr; // not std::unique_ptr because of virtual destructor
+
+    // represents active units at overall battle
+    TMap<EGameSide, FSharedGameStateUnitList> m_activeUnits;
+
+    // represents references to Active units, that could be threaded as enemies
+    TMap<EGameSide, FEnemiesList> m_enemies;
 };
 
 namespace AtomDestiny
 {
-    inline AAtomDestinyGameStateBase* GetGameState(const AActor* actor)
+    inline TWeakObjectPtr<AAtomDestinyGameStateBase> GetGameState(const AActor* actor)
     {
-        return CastChecked<AAtomDestinyGameStateBase>(actor->GetWorld()->GetGameState());
+        return MakeWeakObjectPtr(Cast<AAtomDestinyGameStateBase>(actor->GetWorld()->GetGameState()));
     }
     
 } // namespace AtomDestiny
