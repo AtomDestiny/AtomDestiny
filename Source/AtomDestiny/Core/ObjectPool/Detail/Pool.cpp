@@ -22,14 +22,12 @@ TWeakObjectPtr<AActor> Pool::Spawn(const FVector& position, const FQuat& rotatio
         
         FActorSpawnParameters spawnParams;
         spawnParams.Template = m_gameObjectToSpawn.Get();
+        spawnParams.Name = FName{ m_gameObjectToSpawn->GetName() + TEXT(" (") + FString::FromInt(m_nextId++) + TEXT(") ") };
 
         const FRotator rotator { rotation };
         
         const auto newObject = world->SpawnActor<AActor>(m_gameObjectToSpawn->GetClass(), position, rotator, spawnParams);
         TWeakObjectPtr<AActor> newObjectPtr{ newObject };
-
-        const FString str = m_gameObjectToSpawn->GetName() + TEXT(" (") + FString::FromInt(m_nextId++) + TEXT(") ");
-        newObjectPtr->Rename(GetData(str));
         
         // Adds a PoolMember component so we know what pool we belong to.
         Utils::AddNewComponentToActor<UActorPoolMember>(newObjectPtr)->pool = shared_from_this();
