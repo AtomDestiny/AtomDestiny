@@ -217,7 +217,6 @@ protected:
     // Projectile blueprint with projectile interface that spawns by weapon
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Projectile blueprint"))
     TSubclassOf<AActor> m_projectileBlueprint;
-    TWeakObjectPtr<AActor> m_projectile;
 
     // Minimal distance to shot
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Minimal distance to shot"))

@@ -84,7 +84,7 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
     {
         for (int32 shootingIndex = 0; shootingIndex < m_shootingPositions.Num(); ++shootingIndex)
         {
-            if (!currentEnemy.IsValid() || !m_projectile.IsValid())
+            if (!currentEnemy.IsValid() || !IsValid(m_projectileBlueprint))
             {
                 co_await FiringDelay();
                 co_return;
@@ -96,7 +96,7 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
             
             if (CheckRaycastToTarget(shotPosition->GetComponentLocation(), currentEnemy, &hitResult))
             {
-                TWeakObjectPtr<AActor> blueprintProjectile = AtomDestiny::ObjectPool::Instance().Spawn(m_projectile,
+                TWeakObjectPtr<AActor> blueprintProjectile = AtomDestiny::ObjectPool::Instance().Spawn(m_projectileBlueprint.GetDefaultObject(),
                     shotPosition->GetComponentLocation(), shotPosition->GetComponentQuat());
                 
                 const TScriptInterface<IProjectile> projectile = GET_ACTOR_INTERFACE(Projectile, blueprintProjectile.Get());

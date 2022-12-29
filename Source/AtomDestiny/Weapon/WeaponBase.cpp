@@ -37,11 +37,6 @@ void UWeaponBase::InitializeComponent()
     };
     
     AddNewParameters(params);
-
-    if (IsValid(m_projectileBlueprint))
-    {
-        m_projectile = m_projectileBlueprint.GetDefaultObject();
-    }
 }
 
 void UWeaponBase::BeginPlay()
@@ -55,7 +50,10 @@ void UWeaponBase::BeginPlay()
         ExcludeSameLayer();
     }
 
-    AtomDestiny::Utils::PreloadBlueprint(m_projectile, BlueprintPreloadCount);
+    if (IsValid(m_projectileBlueprint))
+    {
+        AtomDestiny::Utils::PreloadBlueprint(m_projectileBlueprint.GetDefaultObject(), BlueprintPreloadCount);
+    }
 }
 
 void UWeaponBase::EndPlay(const EEndPlayReason::Type type)
