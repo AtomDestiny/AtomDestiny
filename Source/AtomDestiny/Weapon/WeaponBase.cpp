@@ -38,7 +38,10 @@ void UWeaponBase::InitializeComponent()
     
     AddNewParameters(params);
 
-    AtomDestiny::Utils::PreloadBlueprint(m_projectileBlueprint, BlueprintPreloadCount);
+    if (IsValid(m_projectileBlueprint))
+    {
+        m_projectile = m_projectileBlueprint.GetDefaultObject();
+    }
 }
 
 void UWeaponBase::BeginPlay()
@@ -48,7 +51,11 @@ void UWeaponBase::BeginPlay()
     m_weaponAnimation = GET_INTERFACE(WeaponAnimation);
 
     if (m_useRaycast && !m_useFriendlyFire)
+    {
         ExcludeSameLayer();
+    }
+
+    AtomDestiny::Utils::PreloadBlueprint(m_projectile, BlueprintPreloadCount);
 }
 
 void UWeaponBase::EndPlay(const EEndPlayReason::Type type)
@@ -207,14 +214,14 @@ void UWeaponBase::RotateToRoot(float deltaTime) const
     }
 }
 
-bool UWeaponBase::CheckRaycastToTarget(const FVector& origin, const FVector& direction, const TWeakObjectPtr<AActor>& target, FHitResult* hitResult) const
+bool UWeaponBase::CheckRaycastToTarget(const FVector& from, const TWeakObjectPtr<AActor>& target, FHitResult* hitResult) const
 {
     // You can use this to customize various properties about the trace
     FCollisionQueryParams params;
     params.AddIgnoredActor(GetOwner());
 
     // The hit result gets populated by the line trace
-    if (FHitResult hit; GetWorld()->LineTraceSingleByChannel(hit, origin, direction, m_layerMask, params))
+    if (FHitResult hit; GetWorld()->LineTraceSingleByChannel(hit, from, target->GetActorLocation(), m_layerMask, params))
     {
         if (hitResult != nullptr)
             *hitResult = hit;

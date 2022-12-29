@@ -139,8 +139,8 @@ protected:
     // Rotates weapon on root
     void RotateToRoot(float deltaTime) const;
     
-    // Throws raycast to target by origin along direction and checks hit transform
-    bool CheckRaycastToTarget(const FVector& origin, const FVector& direction, const TWeakObjectPtr<AActor>& target, FHitResult* hitResult = nullptr) const;
+    // Throws raycast to target from current point to target point and checks hit transform
+    bool CheckRaycastToTarget(const FVector& from, const TWeakObjectPtr<AActor>& target, FHitResult* hitResult = nullptr) const;
     
     // Reload coroutine for reset fire
     FAsyncCoroutine FiringDelay();
@@ -216,7 +216,8 @@ protected:
     
     // Projectile blueprint with projectile interface that spawns by weapon
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Projectile blueprint"))
-    TWeakObjectPtr<AActor> m_projectileBlueprint;
+    TSubclassOf<AActor> m_projectileBlueprint;
+    TWeakObjectPtr<AActor> m_projectile;
 
     // Minimal distance to shot
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Minimal distance to shot"))
