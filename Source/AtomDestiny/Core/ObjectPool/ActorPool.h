@@ -52,7 +52,7 @@ namespace AtomDestiny
         
     private:
         bool m_preloadingActive = true;
-        std::unordered_map<TWeakObjectPtr<AActor>, TSharedPtr<Pool>> m_pools;
+        std::unordered_map<TWeakObjectPtr<AActor>, std::shared_ptr<Pool>> m_pools;
     };
 
     // Redefinition to support classic pattern

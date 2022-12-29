@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <stack>
+#include <memory>
 
 #include <Engine/Classes/GameFramework/Actor.h>
 
@@ -11,7 +12,7 @@ namespace AtomDestiny
     ///
     /// The Pool class represents the pool for a particular blueprint class.
     ///
-    class ATOMDESTINY_API Pool
+    class ATOMDESTINY_API Pool : public std::enable_shared_from_this<Pool>
     {
     public:
         explicit Pool(TWeakObjectPtr<AActor> object);
