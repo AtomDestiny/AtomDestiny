@@ -26,5 +26,5 @@ void UUnitBasicDestroy::Destroy()
     }
 
     Super::Destroy();
-    AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(GetOwner()), m_deathDelay);
+    AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(GetOwner()));
 }

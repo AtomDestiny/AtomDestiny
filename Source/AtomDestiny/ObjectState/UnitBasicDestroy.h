@@ -18,9 +18,4 @@ public:
 
     // Destroys current actor
     virtual void Destroy() override;
-    
-protected:
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Death delay"))
-    double m_deathDelay = 0.2;
 };

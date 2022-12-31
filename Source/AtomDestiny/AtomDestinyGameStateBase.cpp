@@ -10,7 +10,8 @@
 
 #include <Engine/Classes/GameFramework/Actor.h>
 
-#include "Core/ActorComponentUtils.h"
+#include <AtomDestiny/Core/ActorComponentUtils.h>
+#include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 
 namespace
 {
@@ -177,6 +178,8 @@ void AAtomDestinyGameStateBase::EndPlay(const EEndPlayReason::Type EndPlayReason
 
     m_activeUnits.Reset();
     m_enemies.Reset();
+
+    AtomDestiny::ObjectPool::Instance().DestroyAll();
 }
 
 void AAtomDestinyGameStateBase::OnUnitCreated(AActor* actor, EGameSide side, EUnitType)
