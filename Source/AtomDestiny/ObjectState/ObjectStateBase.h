@@ -73,6 +73,7 @@ protected:
     virtual void ZeroizeParameter(EObjectParameters parameter) override;
     
     // Current object health
+    UPROPERTY(VisibleAnywhere, meta = (DisplayName = "Current health"))
     double m_currentHealth = 0;
     
     // Object max health
