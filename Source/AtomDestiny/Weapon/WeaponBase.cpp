@@ -7,6 +7,8 @@
 #include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
+#include <AtomDestiny/Core/ObjectPool/ActorPool.h>
+
 UWeaponBase::UWeaponBase(const FObjectInitializer& objectInitializer):
     UADObject(objectInitializer)
 {
