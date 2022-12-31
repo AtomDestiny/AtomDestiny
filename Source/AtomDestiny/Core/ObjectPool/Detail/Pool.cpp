@@ -18,21 +18,19 @@ TWeakObjectPtr<AActor> Pool::Spawn(const FVector& position, const FQuat& rotatio
 
     if (m_inactive.empty())
     {
-        const auto world = m_gameObjectToSpawn->GetWorld();
+        const auto world = GEngine->GetCurrentPlayWorld();
         
         FActorSpawnParameters spawnParams;
         spawnParams.Template = m_gameObjectToSpawn.Get();
+        spawnParams.Name = FName{ m_gameObjectToSpawn->GetName() + TEXT(" (") + FString::FromInt(m_nextId++) + TEXT(") ") };
 
         const FRotator rotator { rotation };
         
         const auto newObject = world->SpawnActor<AActor>(m_gameObjectToSpawn->GetClass(), position, rotator, spawnParams);
         TWeakObjectPtr<AActor> newObjectPtr{ newObject };
-
-        const FString str = m_gameObjectToSpawn->GetName() + TEXT(" (") + FString::FromInt(m_nextId++) + TEXT(") ");
-        newObjectPtr->Rename(GetData(str));
         
         // Adds a PoolMember component so we know what pool we belong to.
-        Utils::AddNewComponentToActor<ActorPoolMember>(newObjectPtr)->pool = TSharedPtr<Pool>(this);
+        Utils::AddNewComponentToActor<UActorPoolMember>(newObjectPtr)->pool = shared_from_this();
 
         object = std::move(newObjectPtr);
     }
@@ -43,7 +41,9 @@ TWeakObjectPtr<AActor> Pool::Spawn(const FVector& position, const FQuat& rotatio
         m_inactive.pop();
 
         if (!object.IsValid())
+        {
             return Spawn(position, rotation);
+        }
     }
 
     object->SetActorLocation(position);
@@ -57,5 +57,7 @@ TWeakObjectPtr<AActor> Pool::Spawn(const FVector& position, const FQuat& rotatio
 void Pool::Despawn(TWeakObjectPtr<AActor> object)
 {
     Utils::SetActorActive(object, false);
+    object->SetActorLocation(FVector::Zero());
+    
     m_inactive.push(std::move(object));
 }

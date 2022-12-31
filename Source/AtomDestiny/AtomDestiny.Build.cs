@@ -21,6 +21,8 @@ public class AtomDestiny : ModuleRules
             "AIModule",
             "NavigationSystem",
             "UE5Coro",
+            "Niagara",
+            "NiagaraCore"
         });
 
         PublicIncludePaths.AddRange(new string[] {

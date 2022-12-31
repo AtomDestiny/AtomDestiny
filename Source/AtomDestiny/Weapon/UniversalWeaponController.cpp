@@ -30,13 +30,13 @@ bool UUniversalWeaponController::IsSeeTarget() const
         
         for (const TWeakObjectPtr<USceneComponent>& position : m_shootingPositions)
         {
-            isTargetAtSight = CheckRaycastToTarget(position->GetComponentLocation(), m_target->GetActorLocation(), m_target);
+            isTargetAtSight = CheckRaycastToTarget(position->GetComponentLocation(), m_target);
         }
 
         return isTargetAtSight;
     }
     
-    return CheckRaycastToTarget(m_scanPosition->GetComponentLocation(), m_target->GetActorLocation(), m_target);
+    return CheckRaycastToTarget(m_scanPosition->GetComponentLocation(), m_target);
 }
 
 void UUniversalWeaponController::Fire(float deltaTime)
@@ -84,7 +84,7 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
     {
         for (int32 shootingIndex = 0; shootingIndex < m_shootingPositions.Num(); ++shootingIndex)
         {
-            if (!currentEnemy.IsValid() || !m_projectileBlueprint.IsValid())
+            if (!currentEnemy.IsValid() || !IsValid(m_projectileBlueprint))
             {
                 co_await FiringDelay();
                 co_return;
@@ -94,9 +94,9 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
             const FVector onTarget = currentEnemy->GetActorLocation() - shotPosition->GetComponentLocation();
             FHitResult hitResult;
             
-            if (CheckRaycastToTarget(shotPosition->GetComponentLocation(), onTarget, currentEnemy, &hitResult))
+            if (CheckRaycastToTarget(shotPosition->GetComponentLocation(), currentEnemy, &hitResult))
             {
-                TWeakObjectPtr<AActor> blueprintProjectile = AtomDestiny::ObjectPool::Instance().Spawn(m_projectileBlueprint,
+                TWeakObjectPtr<AActor> blueprintProjectile = AtomDestiny::ObjectPool::Instance().Spawn(m_projectileBlueprint.GetDefaultObject(),
                     shotPosition->GetComponentLocation(), shotPosition->GetComponentQuat());
                 
                 const TScriptInterface<IProjectile> projectile = GET_ACTOR_INTERFACE(Projectile, blueprintProjectile.Get());
@@ -111,21 +111,30 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
                 projectile->SetParameters(GetParameters());
                 projectile->Launch();
                 
-                if (m_shotParticleBlueprint.IsValid())
+                if (IsValid(m_shotParticleBlueprint))
                 {
-                    AtomDestiny::ObjectPool::Instance().Spawn(m_shotParticleBlueprint,
+                    AtomDestiny::ObjectPool::Instance().Spawn(m_shotParticleBlueprint.GetDefaultObject(),
                         shotPosition->GetComponentLocation(), shotPosition->GetComponentQuat());
                 }
 
                 if (m_weaponAnimation != nullptr)
+                {
                     m_weaponAnimation->Animate();
+                }
             }
             
             if (shootingIndex < m_shootingPositions.Num() - 1)
+            {
                 co_await Coroutines::Latent::Seconds(m_delayBetweenShots);
+            }
         }
 
         if (i < (m_shotCount - 1))
+        {
             co_await Coroutines::Latent::Seconds(m_shotDelay);
+        }
     }
+
+    co_await FiringDelay();
+    co_return;
 }

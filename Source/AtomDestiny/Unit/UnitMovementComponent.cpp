@@ -1,6 +1,5 @@
 ﻿#include "UnitMovementComponent.h"
 
-#include "Core/Logger.h"
 #include "DrawDebugHelpers.h"
 
 void UUnitMovementComponent::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction)
