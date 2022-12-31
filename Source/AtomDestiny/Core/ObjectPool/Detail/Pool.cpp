@@ -41,7 +41,9 @@ TWeakObjectPtr<AActor> Pool::Spawn(const FVector& position, const FQuat& rotatio
         m_inactive.pop();
 
         if (!object.IsValid())
+        {
             return Spawn(position, rotation);
+        }
     }
 
     object->SetActorLocation(position);
@@ -55,5 +57,7 @@ TWeakObjectPtr<AActor> Pool::Spawn(const FVector& position, const FQuat& rotatio
 void Pool::Despawn(TWeakObjectPtr<AActor> object)
 {
     Utils::SetActorActive(object, false);
+    object->SetActorLocation(FVector::Zero());
+    
     m_inactive.push(std::move(object));
 }
