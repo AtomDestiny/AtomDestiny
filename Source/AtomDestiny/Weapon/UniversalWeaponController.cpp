@@ -111,9 +111,9 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
                 projectile->SetParameters(GetParameters());
                 projectile->Launch();
                 
-                if (m_shotParticleBlueprint.IsValid())
+                if (IsValid(m_shotParticleBlueprint))
                 {
-                    AtomDestiny::ObjectPool::Instance().Spawn(m_shotParticleBlueprint,
+                    AtomDestiny::ObjectPool::Instance().Spawn(m_shotParticleBlueprint.GetDefaultObject(),
                         shotPosition->GetComponentLocation(), shotPosition->GetComponentQuat());
                 }
 

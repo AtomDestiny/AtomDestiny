@@ -48,9 +48,11 @@ namespace AtomDestiny
         bool Contains(TWeakObjectPtr<AActor> object) const;
 
         // Early objects preloading
-        void Preload(const TWeakObjectPtr<AActor>& object, uint32_t size = 1);
+        void Preload(const TSubclassOf<AActor>& object, uint32_t size = 1);
         
     private:
+        void Preload(const TWeakObjectPtr<AActor>& object, uint32_t size = 1);
+        
         bool m_preloadingActive = true;
         std::unordered_map<TWeakObjectPtr<AActor>, std::shared_ptr<Pool>> m_pools;
     };

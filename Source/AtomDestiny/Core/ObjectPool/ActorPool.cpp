@@ -80,6 +80,15 @@ bool ActorPool::Contains(TWeakObjectPtr<AActor> object) const
     return m_pools.contains(std::move(object));
 }
 
+void ActorPool::Preload(const TSubclassOf<AActor>& object, uint32_t size)
+{
+    if (IsValid(object))
+    {
+        const TWeakObjectPtr<AActor> defaultObject = object.GetDefaultObject();
+        Preload(defaultObject, size);
+    }
+}
+
 void ActorPool::Preload(const TWeakObjectPtr<AActor>& object, uint32_t size)
 {
     if (object.IsValid() && m_preloadingActive)

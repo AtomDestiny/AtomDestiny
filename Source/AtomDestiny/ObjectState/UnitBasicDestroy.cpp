@@ -16,13 +16,13 @@ void UUnitBasicDestroy::Destroy()
         return;
     }
     
-    if (!m_explosionBlueprint.IsValid())
+    if (!IsValid(m_explosionBlueprint))
     {
         LOG_WARNING(TEXT("Unit basic destroy has invalid explosion blueprint, so no explosion would be spawned"));
     }
     else
     {
-        AtomDestiny::ObjectPool::Instance().Spawn(m_explosionBlueprint, GetOwner()->GetTransform().GetLocation(), FQuat::Identity);
+        AtomDestiny::ObjectPool::Instance().Spawn(m_explosionBlueprint.GetDefaultObject(), GetOwner()->GetTransform().GetLocation(), FQuat::Identity);
     }
 
     Super::Destroy();

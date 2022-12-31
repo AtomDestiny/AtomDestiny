@@ -25,7 +25,7 @@ protected:
     
     // Explosion particle prefab
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Explosion blueprint"))
-    TWeakObjectPtr<AActor> m_explosionBlueprint;
+    TSubclassOf<AActor> m_explosionBlueprint;
     
     // Destroyed state
     bool m_destroyed = false;

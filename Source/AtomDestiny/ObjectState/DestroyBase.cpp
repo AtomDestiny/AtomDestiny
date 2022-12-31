@@ -1,6 +1,6 @@
 ﻿#include "DestroyBase.h"
 
-#include <AtomDestiny/Core/Utils.h>
+#include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 
 UDestroyBase::UDestroyBase(const FObjectInitializer& objectInitializer):
     UActorComponent(objectInitializer)
@@ -21,5 +21,5 @@ void UDestroyBase::BeginPlay()
 {
     Super::BeginPlay();
     
-    AtomDestiny::Utils::PreloadBlueprint(m_explosionBlueprint, BlueprintExplosionPreloadCount);
+    AtomDestiny::ObjectPool::Instance().Preload(m_explosionBlueprint, BlueprintExplosionPreloadCount);
 }

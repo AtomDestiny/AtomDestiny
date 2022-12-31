@@ -49,7 +49,7 @@ private:
     /// projectile blueprints should make a real damage to target.
     /// 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shot particle blueprint", AllowPrivateAccess = "true"))
-    TWeakObjectPtr<AActor> m_shotParticleBlueprint;
+    TSubclassOf<AActor> m_shotParticleBlueprint;
 
     ///
     /// Shot points where projectiles will be spawned.

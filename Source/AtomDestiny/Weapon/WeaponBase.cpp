@@ -51,11 +51,8 @@ void UWeaponBase::BeginPlay()
     {
         ExcludeSameLayer();
     }
-
-    if (IsValid(m_projectileBlueprint))
-    {
-        AtomDestiny::Utils::PreloadBlueprint(m_projectileBlueprint.GetDefaultObject(), BlueprintPreloadCount);
-    }
+    
+    AtomDestiny::ObjectPool::Instance().Preload(m_projectileBlueprint, BlueprintPreloadCount);
 }
 
 void UWeaponBase::EndPlay(const EEndPlayReason::Type type)

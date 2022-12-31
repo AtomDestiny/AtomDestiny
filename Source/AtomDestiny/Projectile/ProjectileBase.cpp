@@ -1,6 +1,6 @@
 ﻿#include "ProjectileBase.h"
 
-#include <AtomDestiny/Core/Utils.h>
+#include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 
 UProjectileBase::UProjectileBase(const FObjectInitializer& objectInitializer):
     UActorComponent(objectInitializer)
@@ -29,5 +29,5 @@ const FProjectilePoints& UProjectileBase::GetPoints() const
 
 void UProjectileBase::InitializeComponent()
 {
-    AtomDestiny::Utils::PreloadBlueprint(m_impactBlueprint, ImpactPreloadCount);
+    AtomDestiny::ObjectPool::Instance().Preload(m_impactBlueprint, ImpactPreloadCount);
 }
