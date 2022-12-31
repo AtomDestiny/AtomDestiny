@@ -15,7 +15,6 @@ AParticle::AParticle(const FObjectInitializer& objectInitializer):
     }
 
     m_niagaraComponent = objectInitializer.CreateDefaultSubobject<UNiagaraComponent>(this, TEXT("NiagaraComponent"));
-    m_niagaraComponent->SetUsingAbsoluteLocation(true);
 
     PrimaryActorTick.bCanEverTick = true;
     PrimaryActorTick.bStartWithTickEnabled = true;

@@ -59,5 +59,5 @@ void UUnitParameters::RenderBar()
     const double value = m_healthBar->GetMaxValue() * m_currentHealth / m_currentMaxHealth;
     
     m_healthBar->SetValue(static_cast<float>(value));
-    m_healthBlueprint->SetIsEnabled(m_currentHealth != m_currentMaxHealth);
+    m_healthBar->SetIsEnabled(m_currentHealth != m_currentMaxHealth);
 }
