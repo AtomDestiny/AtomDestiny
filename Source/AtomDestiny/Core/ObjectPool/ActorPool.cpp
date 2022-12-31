@@ -67,6 +67,16 @@ void ActorPool::Despawn(TWeakObjectPtr<AActor> object, double time) const
 
 void ActorPool::DestroyAll()
 {
+    for (const auto& [actor, pool] : m_pools)
+    {
+        if (actor.IsValid())
+        {
+            actor->Destroy();
+        }
+
+        (void)pool;
+    }
+    
     m_pools.clear();
 }
 
