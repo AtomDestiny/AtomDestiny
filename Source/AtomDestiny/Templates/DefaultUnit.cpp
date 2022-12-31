@@ -15,8 +15,6 @@
 ADefaultUnit::ADefaultUnit(const FObjectInitializer& objectInitializer):
     APawn(objectInitializer)
 {
-    
-    
     if (RootComponent == nullptr)
     {
         m_boxComponent = objectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("BoxCollider"));
