@@ -4,6 +4,7 @@
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
 #include <AtomDestiny/Projectile/Projectile.h>
+#include <AtomDestiny/Templates/Particle.h>
 
 UUniversalWeaponController::UUniversalWeaponController(const FObjectInitializer& objectInitializer):
     UWeaponBase(objectInitializer)
