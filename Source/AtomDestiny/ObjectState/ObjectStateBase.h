@@ -51,11 +51,10 @@ public:
     // Returns additional params
     virtual const FBalanceParameters& GetDefenceAdditionalParameters() const override;
 
-private:
+protected:
 
     virtual void InitializeComponent() override;
-    
-protected:
+    virtual void BeginPlay() override;
     
     // Calculates damage with defence additional parameters
     double GetDamageAfterDefenceParameters(EWeaponType type, double damage) const;
