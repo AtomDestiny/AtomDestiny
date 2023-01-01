@@ -7,10 +7,10 @@
 
 #include "ShieldObjectStateBase.generated.h"
 
-/// 
+///
 /// Represents base class for any object with shield.
 /// It stores all parameters for shields.
-/// 
+///
 UCLASS(Abstract)
 class UShieldObjectStateBase : public UUnitParameters, public IShield
 {
@@ -68,11 +68,11 @@ protected:
     /// Used by every tick, if possible by regeneration time.
     /// 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shield regeneration value"))
-    double m_shieldRegenerateValue = 0.5f;
+    double m_shieldRegenerateValue = 0.5;
     
     // Shield regeneration cool dawn. Time between possible regeneration.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shield regeneration cool dawn"))
-    double m_shieldRegenerateTime = 0.1f;
+    double m_shieldRegenerateTime = 0.1;
     
     // Regeneration state access
     bool m_regenerationAccess = true;

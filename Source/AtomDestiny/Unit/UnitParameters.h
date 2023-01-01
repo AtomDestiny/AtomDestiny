@@ -22,6 +22,6 @@ protected:
     virtual void TickComponent(float deltaTime, ELevelTick levelTick, FActorComponentTickFunction* func) override;
 
 private:
-    void RenderBar();
+    void RenderHeathBar();
     void CheckHealthState();
 };
