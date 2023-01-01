@@ -30,10 +30,10 @@ void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActo
 {
     Super::TickComponent(deltaTime, levelTick, func);
     
-    RenderBar();
+    RenderHeathBar();
 }
 
-void UUnitParameters::RenderBar()
+void UUnitParameters::RenderHeathBar()
 {
     if (!m_healthBar.IsValid() || m_hideBar)
     {

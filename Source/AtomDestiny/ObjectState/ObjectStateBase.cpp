@@ -71,10 +71,17 @@ void UObjectStateBase::InitializeComponent()
     {
         m_healthBar = CastChecked<USlider>(m_healthBlueprint);
     }
-
+    
     AddNewParameter(EObjectParameters::Health);
     AddNewParameter(EObjectParameters::MaxHealth);
     AddNewParameter(EObjectParameters::Defence);
+}
+
+void UObjectStateBase::BeginPlay()
+{
+    Super::BeginPlay();
+    
+    m_balanceParameters = AtomDestiny::Balance::CorrectBalanceParameters(m_balanceParameters);
 }
 
 double UObjectStateBase::GetDamageAfterDefenceParameters(EWeaponType type, double damage) const
@@ -84,19 +91,19 @@ double UObjectStateBase::GetDamageAfterDefenceParameters(EWeaponType type, doubl
     switch (type)
     {
     case EWeaponType::Ballistic:
-        calculateResistanceValue = damage * m_balanceParameters.ballisticResistance / 100.0f;
+        calculateResistanceValue = damage * m_balanceParameters.ballisticResistance / 100.0;
         break;
 
     case EWeaponType::Energy:
-        calculateResistanceValue = damage * m_balanceParameters.energyResistance / 100.0f;
+        calculateResistanceValue = damage * m_balanceParameters.energyResistance / 100.0;
         break;
 
     case EWeaponType::Explosive:
-        calculateResistanceValue = damage * m_balanceParameters.explosiveResistance / 100.0f;
+        calculateResistanceValue = damage * m_balanceParameters.explosiveResistance / 100.0;
         break;
 
     case EWeaponType::Elemental:
-        calculateResistanceValue = damage * m_balanceParameters.elementalResistance / 100.0f;
+        calculateResistanceValue = damage * m_balanceParameters.elementalResistance / 100.0;
         break;
 
     default:
@@ -131,8 +138,7 @@ double UObjectStateBase::GetDamageAfterDefenceType(float damage) const
 
 double UObjectStateBase::GetResultDamage(EWeaponType type, double damage) const
 {
-    double resultDamage = std::abs(damage) - m_currentDefence;
-    resultDamage = std::max(resultDamage, AtomDestiny::Balance::MinDamageValue);
+    double resultDamage = std::max(std::abs(damage) - m_currentDefence, AtomDestiny::Balance::MinDamageValue);
     resultDamage = GetDamageAfterDefenceType(resultDamage);
     resultDamage = GetDamageAfterDefenceParameters(type, resultDamage);
 
@@ -143,7 +149,7 @@ void UObjectStateBase::RecalculateParameter(EObjectParameters parameter)
 {
     if (!GetParameterAvailable(parameter))
     {
-        LOG_WARNING(TEXT("U try to recalculate not available parameter"));
+        LOG_WARNING(TEXT("Recalculate not available parameter at UObjectStateBase"));
         return;
     }
     

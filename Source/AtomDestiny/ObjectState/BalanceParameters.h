@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <algorithm>
+
 #include "BalanceParameters.generated.h"
 
 ///
@@ -61,5 +63,18 @@ namespace AtomDestiny::Balance
     inline static constexpr double VsLightDefenceCoefficient = 1.0;
     inline static constexpr double VsMediumDefenceCoefficient = 0.9;
     inline static constexpr double VsHeavyDefenceCoefficient = 0.8;
+
+    /**
+     * @brief Balance parameters may be only at range [0, 100];
+     */
+    static FBalanceParameters CorrectBalanceParameters(const FBalanceParameters& parameters)
+    {
+        return FBalanceParameters {
+            .ballisticResistance = std::clamp(parameters.ballisticResistance, 0.0, 100.0),
+            .energyResistance = std::clamp(parameters.energyResistance, 0.0, 100.0),
+            .explosiveResistance = std::clamp(parameters.explosiveResistance, 0.0, 100.0),
+            .elementalResistance = std::clamp(parameters.elementalResistance, 0.0, 100.0),
+        };
+    }
     
 } // namespace AtomDestiny::Balance
