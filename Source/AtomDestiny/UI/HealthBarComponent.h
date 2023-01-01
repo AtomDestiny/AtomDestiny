@@ -12,11 +12,9 @@
 UCLASS()
 class ATOMDESTINY_API UHealthBarComponent : public UWidgetComponent
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	UHealthBarComponent();
-	
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-	
+    explicit UHealthBarComponent(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+    virtual void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction) override;
 };

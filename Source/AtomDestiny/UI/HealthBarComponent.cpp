@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "UI/HealthBarComponent.h"
 
 #include "Core/Logger.h"
@@ -8,49 +5,44 @@
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 
-
-UHealthBarComponent::UHealthBarComponent()
+UHealthBarComponent::UHealthBarComponent(const FObjectInitializer& objectInitializer):
+    UWidgetComponent(objectInitializer)
 {
-	ConstructorHelpers::FClassFinder<UHealthBar> HBarClassFinder(TEXT("/Game/Blueprint/GUI/Widgets/WBP_HealthBar.WBP_HealthBar_C"));
+    const ConstructorHelpers::FClassFinder<UHealthBar> heathBarClassFinder(TEXT("/Game/Blueprint/GUI/Widgets/WBP_HealthBar.WBP_HealthBar_C"));
+    const TSubclassOf<UHealthBar> heathBarClass = heathBarClassFinder.Class;
 
-	//LOG_INFO(TEXT("HealthBar found: %i"), HBarClassFinder.Succeeded()) 
-	TSubclassOf<UHealthBar> HBarClass = HBarClassFinder.Class;
-	
-	SetWidgetSpace(EWidgetSpace::Screen);
-	SetWidgetClass(HBarClass);
-	SetDrawAtDesiredSize(true);
-	SetUsingAbsoluteLocation(true);
+    SetWidgetSpace(EWidgetSpace::Screen);
+    SetWidgetClass(heathBarClass);
+    SetDrawAtDesiredSize(true);
+    SetUsingAbsoluteLocation(true);
 }
 
-void UHealthBarComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-                                        FActorComponentTickFunction* ThisTickFunction)
+void UHealthBarComponent::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+    Super::TickComponent(deltaTime, tickType, thisTickFunction);
 
-	auto pWorld = GetWorld();
-	if (!pWorld)
-	{
-		//LOG_WARNING(TEXT("Invalid world!"));
-		return;
-	}
+    const auto world = GetWorld();
+    
+    if (!world)
+    {
+        return;
+    }
 
-	auto pCamManager = UGameplayStatics::GetPlayerCameraManager(pWorld, 0);
-	if (!pCamManager)
-	{
-		//LOG_WARNING(TEXT("Invalid cam manager!"));
-		return;
-	}
-	
-	auto const& playerTfm = pCamManager->GetTransform();
-	if (!playerTfm.IsValid())
-	{
-		LOG_WARNING(TEXT("Invalid player transform!"));
-		return;
-	}
-	
-	FVector const Up = playerTfm.TransformVector({0,0,1});
-
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Axis is: %s"), *Up.ToString()));
-	
-	SetWorldLocation(GetOwner()->GetActorLocation() + Up * 420);
+    const auto cameraManager = UGameplayStatics::GetPlayerCameraManager(world, 0);
+    
+    if (!cameraManager)
+    {
+        return;
+    }
+    
+    const auto& playerTransform = cameraManager->GetTransform();
+    
+    if (!playerTransform.IsValid())
+    {
+        LOG_WARNING(TEXT("Invalid player transform!"));
+        return;
+    }
+    
+    const FVector up = playerTransform.TransformVector({0,0,1});
+    SetWorldLocation(GetOwner()->GetActorLocation() + up * 420);
 }

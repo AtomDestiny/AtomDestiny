@@ -6,10 +6,10 @@
 
 void UHealthBar::SetHealthPercent(float value)
 {
-	Health->SetPercent(value);
+    m_health->SetPercent(value);
 }
 
 void UHealthBar::SetEnergyPercent(float value)
 {
-	Energy->SetPercent(value);
+    m_energy->SetPercent(value);
 }

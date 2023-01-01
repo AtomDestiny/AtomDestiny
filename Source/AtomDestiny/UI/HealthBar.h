@@ -1,34 +1,32 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+
 #include "HealthBar.generated.h"
 
 class UProgressBar;
 
 /**
- * A HealthBar which is auto-oriented in the sreen space
+ * A HealthBar which is auto-oriented in the screen space
  */
-UCLASS(Abstract)
+UCLASS(Blueprintable)
 class ATOMDESTINY_API UHealthBar : public UUserWidget
 {
     GENERATED_BODY()
 
 public:
-	
+    
     UFUNCTION(BlueprintCallable)
     void SetHealthPercent(float value);
 
-	UFUNCTION(BlueprintCallable)
-	void SetEnergyPercent(float value);
+    UFUNCTION(BlueprintCallable)
+    void SetEnergyPercent(float value);
     
 protected:
-    UPROPERTY(meta = (BindWidget))
-    UProgressBar* Health;
+    UPROPERTY(meta = (BindWidget, DisplayName = "Health bar blueprint"))
+    UProgressBar* m_health;
 
-	UPROPERTY(meta = (BindWidget))
-	UProgressBar* Energy;
-	
+    UPROPERTY(meta = (BindWidget, DisplayName = "Shield bar blueprint"))
+    UProgressBar* m_energy;
 };
