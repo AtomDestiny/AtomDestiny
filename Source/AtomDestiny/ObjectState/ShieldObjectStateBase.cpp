@@ -64,6 +64,91 @@ void UShieldObjectStateBase::BeginPlay()
     m_shieldBalanceParameters = AtomDestiny::Balance::CorrectBalanceParameters(m_shieldBalanceParameters);
 }
 
+void UShieldObjectStateBase::RecalculateParameter(EObjectParameters parameter)
+{
+    Super::RecalculateParameter(parameter);
+
+    if (!GetParameterAvailable(parameter))
+    {
+        LOG_WARNING(TEXT("Recalculate not available parameter at UShieldObjectStateBase"));
+        return;
+    }
+    
+    switch (parameter)
+    {
+    case EObjectParameters::MaxShield:
+        {
+            m_currentShieldValue = CalculateParametersFromAll(m_maxShieldValue, parameter);
+
+            if (m_currentShieldValue == m_maxShieldValue)
+            {
+                m_currentShieldValue = m_maxShieldValue;
+            }
+            else
+            {
+                m_currentShieldValue *= (m_maxShieldValue < m_currentMaxShield
+                                             ? m_currentMaxShield / m_maxShieldValue
+                                             : m_maxShieldValue / m_currentMaxShield);
+            }
+        }
+        break;
+
+    case EObjectParameters::Shield:
+        {
+            std::vector<FParameterEnhancement>& parameters = GetParameterEnhancementList(parameter);
+            const double value = InterpretParameterModifier(m_currentShieldValue, parameters.empty() ? FParameterEnhancement{} : parameters.front());
+
+            parameters.clear();
+
+            m_currentShieldValue += value;
+
+            if (m_currentShieldValue > m_currentMaxShield)
+            {
+                m_currentShieldValue = m_currentMaxShield;
+            }
+            else if (m_currentShieldValue < 0)
+            {
+                m_currentShieldValue = 0;
+            }
+        }
+        break;
+
+    case EObjectParameters::Absorbation:
+        {
+            m_currentAbsorbation = CalculateParametersFromAll(m_shieldAbsorbation, parameter);
+        }
+        break;
+
+    default:
+        break;
+    }
+}
+
+void UShieldObjectStateBase::ZeroizeParameter(EObjectParameters parameter)
+{
+    Super::ZeroizeParameter(parameter);
+
+    switch (parameter)
+    {
+    case EObjectParameters::MaxShield:
+        m_currentMaxShield = 0;
+        m_currentShieldValue = 0;
+        break;
+
+    case EObjectParameters::Shield:
+        GetParameterZeroList(parameter).clear();
+        m_currentShieldValue = 0;
+        break;
+
+    case EObjectParameters::Absorbation:
+        m_currentAbsorbation = 0;
+        break;
+
+    default:
+        break;
+    }
+}
+
 void UShieldObjectStateBase::RegenerateShield()
 {
     if (m_currentShieldValue + m_shieldRegenerateValue >= m_currentMaxShield)

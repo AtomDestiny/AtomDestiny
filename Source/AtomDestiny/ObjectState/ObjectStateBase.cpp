@@ -149,7 +149,7 @@ void UObjectStateBase::RecalculateParameter(EObjectParameters parameter)
 {
     if (!GetParameterAvailable(parameter))
     {
-        LOG_WARNING(TEXT("U try to recalculate not available parameter"));
+        LOG_WARNING(TEXT("Recalculate not available parameter at UObjectStateBase"));
         return;
     }
     

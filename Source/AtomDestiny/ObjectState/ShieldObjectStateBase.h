@@ -36,12 +36,16 @@ public:
     // Returns start shield absorbation value
     virtual double GetBaseShieldAbsorbation() const override;
     
-    /// Returns additional balance parameters, by default its empty
+    // Returns additional balance parameters, by default its empty
     virtual const FBalanceParameters& GetShieldAdditionalParameters() const override;
 
 protected:
     virtual void InitializeComponent() override;
     virtual void BeginPlay() override;
+
+    // ADObject interface
+    virtual void RecalculateParameter(EObjectParameters parameter) override;
+    virtual void ZeroizeParameter(EObjectParameters parameter) override;
     
     void RegenerateShield();
     FAsyncCoroutine StartShieldCoolDown();
@@ -50,6 +54,7 @@ protected:
     double GetDamageAfterShieldParameters(EWeaponType type, double damage) const;
     
     // Current shield value
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (DisplayName = "Current shield value"))
     double m_currentShieldValue = 0;
     
     // Shield max value
