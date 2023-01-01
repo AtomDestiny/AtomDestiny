@@ -6,6 +6,8 @@
 #include "Blueprint/UserWidget.h"
 #include "HealthBar.generated.h"
 
+class UProgressBar;
+
 /**
  * A HealthBar which is auto-oriented in the sreen space
  */
@@ -15,14 +17,18 @@ class ATOMDESTINY_API UHealthBar : public UUserWidget
     GENERATED_BODY()
 
 public:
-   // UHealthBar(const FObjectInitializer& ObjectInitializer);
-
+	
     UFUNCTION(BlueprintCallable)
-    void SetPercent(float value);
+    void SetHealthPercent(float value);
+
+	UFUNCTION(BlueprintCallable)
+	void SetEnergyPercent(float value);
     
 protected:
     UPROPERTY(meta = (BindWidget))
-    class UProgressBar* ProgressBar;
+    UProgressBar* Health;
 
-    virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	UPROPERTY(meta = (BindWidget))
+	UProgressBar* Energy;
+	
 };
