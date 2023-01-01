@@ -138,8 +138,7 @@ double UObjectStateBase::GetDamageAfterDefenceType(float damage) const
 
 double UObjectStateBase::GetResultDamage(EWeaponType type, double damage) const
 {
-    double resultDamage = std::abs(damage) - m_currentDefence;
-    resultDamage = std::max(resultDamage, AtomDestiny::Balance::MinDamageValue);
+    double resultDamage = std::max(std::abs(damage) - m_currentDefence, AtomDestiny::Balance::MinDamageValue);
     resultDamage = GetDamageAfterDefenceType(resultDamage);
     resultDamage = GetDamageAfterDefenceParameters(type, resultDamage);
 

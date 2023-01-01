@@ -17,7 +17,23 @@ void UUnitShieldParameters::TickComponent(float deltaTime, ELevelTick tickType, 
 
 void UUnitShieldParameters::AddDamage(double damage, EWeaponType type, AActor* owner)
 {
-    Super::AddDamage(damage, type, owner);
+    // checks shield absorbation
+    if (m_currentShieldValue > 0)
+    {
+        double shieldDmg = std::max(FMath::Abs(damage) - m_currentAbsorbation, AtomDestiny::Balance::MinDamageValue);
+        shieldDmg = GetDamageAfterShieldParameters(type, shieldDmg);
+        
+        m_currentShieldValue -= shieldDmg;
+
+        if (m_currentShieldValue < 0)
+        {
+            Super::AddDamage(damage, type, owner);
+        }
+    }
+    else
+    {
+        Super::AddDamage(damage, type, owner);
+    }
 }
 
 void UUnitShieldParameters::RenderShieldBar()
