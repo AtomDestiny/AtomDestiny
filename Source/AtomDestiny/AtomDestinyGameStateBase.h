@@ -60,7 +60,6 @@ protected:
     
     UFUNCTION()
     void OnUnitDestroyed(AActor* actor, EGameSide side, EUnitType unitType);
-
     
     void InitializeSides();
     void InitializeEnemies();

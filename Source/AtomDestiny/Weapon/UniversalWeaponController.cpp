@@ -4,7 +4,7 @@
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
 #include <AtomDestiny/Projectile/Projectile.h>
-#include <AtomDestiny/Templates/Particle.h>
+#include <AtomDestiny/Particle/Particle.h>
 
 UUniversalWeaponController::UUniversalWeaponController(const FObjectInitializer& objectInitializer):
     UWeaponBase(objectInitializer)
@@ -20,16 +20,20 @@ double UUniversalWeaponController::GetFireRate() const
 bool UUniversalWeaponController::IsSeeTarget() const
 {
     if (!m_target.IsValid())
+    {
         return false;
+    }
     
     if (!m_useRaycast)
+    {
         return true;
+    }
     
     if (!m_scanPosition.IsValid())
     {
         bool isTargetAtSight = false;
         
-        for (const TWeakObjectPtr<USceneComponent>& position : m_shootingPositions)
+        for (const auto& position : m_shootingPositions)
         {
             isTargetAtSight = CheckRaycastToTarget(position->GetComponentLocation(), m_target);
         }
@@ -43,7 +47,9 @@ bool UUniversalWeaponController::IsSeeTarget() const
 void UUniversalWeaponController::Fire(float deltaTime)
 {
     if (!m_target.IsValid() || m_forceFireDisable)
+    {
         return;
+    }
 
     const bool isValidShotDistance = (m_target->GetActorLocation() - m_weaponComponent->GetComponentLocation()).SquaredLength() > m_minShotSqrtDistance;
     
@@ -52,15 +58,21 @@ void UUniversalWeaponController::Fire(float deltaTime)
         RotateToTarget(deltaTime);
 
         if (!m_firing && isValidShotDistance && m_isRotatedOnTarget)
+        {
             MakeShot();
+        }
     }
     else
     {
         if (m_weaponAnimation != nullptr && !m_weaponAnimation->IsReady())
+        {
             return;
+        }
         
         if (!m_firing && isValidShotDistance)
+        {
             MakeShot();
+        }
     }
 }
 

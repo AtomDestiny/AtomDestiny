@@ -22,13 +22,32 @@ void UUnitParameters::AddDamage(double damage, EWeaponType type, AActor* owner)
     // calculate result damage change current health
     const double resultDamage = GetResultDamage(type, damage);
     m_currentHealth -= resultDamage;
+
+    CheckHealthState();
 }
 
 void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActorComponentTickFunction* func)
 {
     Super::TickComponent(deltaTime, levelTick, func);
+    
     RenderBar();
+}
 
+void UUnitParameters::RenderBar()
+{
+    if (!m_healthBar.IsValid() || m_hideBar)
+    {
+        return;
+    }
+    
+    const double value = m_healthBar->GetMaxValue() * m_currentHealth / m_currentMaxHealth;
+    
+    m_healthBar->SetValue(static_cast<float>(value));
+    m_healthBar->SetIsEnabled(m_currentHealth != m_currentMaxHealth);
+}
+
+void UUnitParameters::CheckHealthState()
+{
     // check current health on death
     if (m_currentHealth <= 0 && !m_isDead)
     {
@@ -47,17 +66,4 @@ void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActo
 
         m_isDead = true;
     }
-}
-
-void UUnitParameters::RenderBar()
-{
-    if (!m_healthBar.IsValid() || m_hideBar)
-    {
-        return;
-    }
-    
-    const double value = m_healthBar->GetMaxValue() * m_currentHealth / m_currentMaxHealth;
-    
-    m_healthBar->SetValue(static_cast<float>(value));
-    m_healthBar->SetIsEnabled(m_currentHealth != m_currentMaxHealth);
 }
