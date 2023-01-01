@@ -59,6 +59,7 @@ void UWeaponBase::EndPlay(const EEndPlayReason::Type type)
 {
     Super::EndPlay(type);
     m_firing = false;
+    
     // StopAllCoroutines();
 }
 
@@ -234,7 +235,9 @@ FAsyncCoroutine UWeaponBase::FiringDelay()
     co_await Coroutines::Latent::Seconds(m_reloadTime);
 
     if (m_weaponAnimation != nullptr)
+    {
         m_weaponAnimation->SetDefaultState();
+    }
         
     m_firing = false;
 }
