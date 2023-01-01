@@ -5,10 +5,10 @@
 #include <AtomDestiny/Unit/UnitState.h>
 #include <AtomDestiny/Unit/UnitParameters.h>
 #include <AtomDestiny/Unit/UnitMovementComponent.h>
+#include <AtomDestiny/Unit/UnitBasicDestroy.h>
 #include <AtomDestiny/UI/HealthBarComponent.h>
 
 #include <AtomDestiny/Logic/UnitLogic.h>
-#include <AtomDestiny/ObjectState/UnitBasicDestroy.h>
 
 ADefaultUnit::ADefaultUnit(const FObjectInitializer& objectInitializer):
     APawn(objectInitializer)
