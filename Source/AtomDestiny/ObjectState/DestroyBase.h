@@ -3,6 +3,7 @@
 #include <Engine/Classes/Components/ActorComponent.h>
 
 #include <AtomDestiny/ObjectState/Destroyable.h>
+#include <AtomDestiny/Particle/Particle.h>
 
 #include "DestroyBase.generated.h"
 
@@ -25,7 +26,7 @@ protected:
     
     // Explosion particle prefab
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Explosion blueprint"))
-    TSubclassOf<AActor> m_explosionBlueprint;
+    TSubclassOf<AParticle> m_explosionBlueprint;
     
     // Destroyed state
     bool m_destroyed = false;

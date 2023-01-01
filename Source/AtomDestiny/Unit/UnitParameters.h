@@ -23,4 +23,5 @@ protected:
 
 private:
     void RenderBar();
+    void CheckHealthState();
 };
