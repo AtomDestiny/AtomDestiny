@@ -7,6 +7,8 @@
 
 #include "ProjectileBase.generated.h"
 
+class AParticle;
+
 ///
 /// Represents common abstract projectile
 ///
@@ -46,7 +48,7 @@ protected:
     
     // Impact prefab spawns by projectile when explodes target
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Impact blueprint"))
-    TSubclassOf<AActor> m_impactBlueprint;
+    TSubclassOf<AParticle> m_impactBlueprint;
     
     // Preload impact blueprint count
     inline static int ImpactPreloadCount = 5;

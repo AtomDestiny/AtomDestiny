@@ -1,5 +1,7 @@
 ﻿#include "ProjectileBase.h"
 
+// ReSharper disable once CppUnusedIncludeDirective
+#include <AtomDestiny/Particle/Particle.h>
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 
 UProjectileBase::UProjectileBase(const FObjectInitializer& objectInitializer):
