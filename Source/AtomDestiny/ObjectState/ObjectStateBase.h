@@ -1,11 +1,9 @@
 ﻿#pragma once
 
-#include <Runtime/UMG/Public/Components/Widget.h>
-#include <Runtime/UMG/Public/Components/Slider.h>
-
 #include <AtomDestiny/Core/ADObject/ADObject.h>
 #include <AtomDestiny/ObjectState/ObjectState.h>
 
+#include <UI/HealthBar.h>
 #include "ObjectStateBase.generated.h"
 
 ///
@@ -51,6 +49,8 @@ public:
     // Returns additional params
     virtual const FBalanceParameters& GetDefenceAdditionalParameters() const override;
 
+    void SetHealthBarWidget(TWeakObjectPtr<UHealthBar> widget);
+
 protected:
 
     virtual void InitializeComponent() override;
@@ -83,9 +83,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Defence"))
     double m_defence = 0;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Heath bar blueprint"))
-    TWeakObjectPtr<UWidget> m_healthBlueprint;
-    TWeakObjectPtr<USlider> m_healthBar = nullptr;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Health bar widget"))
+    TWeakObjectPtr<UHealthBar> m_healthBarWidget;
+    //TWeakObjectPtr<USlider> m_healthBar = nullptr;
     
     // Show/hide bar when current health is max
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Hide bar"))

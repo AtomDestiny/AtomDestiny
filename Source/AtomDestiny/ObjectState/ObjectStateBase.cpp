@@ -59,18 +59,16 @@ const FBalanceParameters& UObjectStateBase::GetDefenceAdditionalParameters() con
     return m_balanceParameters;
 }
 
+void UObjectStateBase::SetHealthBarWidget(TWeakObjectPtr<UHealthBar> widget)
+{
+    m_healthBarWidget = widget;
+}
+
 void UObjectStateBase::InitializeComponent()
 {
     m_currentHealth = m_maxHealth;
     m_currentMaxHealth = m_currentHealth;
     m_currentDefence = m_defence;
-
-    LOG_CHECK_WARNING(m_healthBlueprint != nullptr, TEXT("No health bar blueprint at Object state"));
-
-    if (m_healthBlueprint.IsValid())
-    {
-        m_healthBar = CastChecked<USlider>(m_healthBlueprint);
-    }
     
     AddNewParameter(EObjectParameters::Health);
     AddNewParameter(EObjectParameters::MaxHealth);
@@ -82,6 +80,8 @@ void UObjectStateBase::BeginPlay()
     Super::BeginPlay();
     
     m_balanceParameters = AtomDestiny::Balance::CorrectBalanceParameters(m_balanceParameters);
+
+    LOG_CHECK_WARNING(m_healthBarWidget != nullptr, TEXT("[ObjectStateBase::BeginPlay] HealthBar is NULL"));
 }
 
 double UObjectStateBase::GetDamageAfterDefenceParameters(EWeaponType type, double damage) const
@@ -149,7 +149,7 @@ void UObjectStateBase::RecalculateParameter(EObjectParameters parameter)
 {
     if (!GetParameterAvailable(parameter))
     {
-        LOG_WARNING(TEXT("Recalculate not available parameter at UObjectStateBase"));
+        LOG_WARNING(TEXT("[UObjectStateBase] Parameter is not available for recalculation"));
         return;
     }
     
@@ -160,13 +160,9 @@ void UObjectStateBase::RecalculateParameter(EObjectParameters parameter)
             m_currentMaxHealth = CalculateParametersFromAll(m_maxHealth, parameter);
             
             if (m_currentHealth == m_maxHealth)
-            {
                 m_currentHealth = m_currentMaxHealth;
-            }
             else
-            {
                 m_currentHealth *= (m_maxHealth < m_currentMaxHealth ? m_currentMaxHealth / m_maxHealth : m_maxHealth / m_currentMaxHealth);
-            }
         }
 
         break;
@@ -180,13 +176,9 @@ void UObjectStateBase::RecalculateParameter(EObjectParameters parameter)
             m_currentHealth += value;
 
             if (m_currentHealth > m_currentMaxHealth)
-            {
                 m_currentHealth = m_currentMaxHealth;
-            }
             else if (m_currentHealth < 0)
-            {
                 m_currentHealth = 0;
-            }
 
             break;
         }

@@ -5,6 +5,8 @@
 #include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
+#include "Core/Logger.h"
+
 UUnitParameters::UUnitParameters(const FObjectInitializer& objectInitializer):
     UObjectStateBase(objectInitializer)
 {
@@ -26,24 +28,30 @@ void UUnitParameters::AddDamage(double damage, EWeaponType type, AActor* owner)
     CheckHealthState();
 }
 
+void UUnitParameters::BeginPlay()
+{
+    Super::BeginPlay();
+
+    if (m_healthBarWidget != nullptr)
+        m_healthBarWidget->SetEnergyVisible(false);
+    else
+        LOG_WARNING(TEXT("[BeginPlay] Health bar widget was not set"));
+}
+
 void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActorComponentTickFunction* func)
 {
     Super::TickComponent(deltaTime, levelTick, func);
     
-    RenderHeathBar();
+    RenderHealthBar();
 }
 
-void UUnitParameters::RenderHeathBar()
+void UUnitParameters::RenderHealthBar()
 {
-    if (!m_healthBar.IsValid() || m_hideBar)
-    {
+    if (m_healthBarWidget == nullptr || !m_healthBarWidget.IsValid() || m_hideBar)
         return;
-    }
-    
-    const double value = m_healthBar->GetMaxValue() * m_currentHealth / m_currentMaxHealth;
-    
-    m_healthBar->SetValue(static_cast<float>(value));
-    m_healthBar->SetIsEnabled(m_currentHealth != m_currentMaxHealth);
+
+    m_healthBarWidget->SetHealthPercent(m_currentHealth / m_currentMaxHealth);
+    m_healthBarWidget->SetHealthVisible(m_currentHealth != m_currentMaxHealth);
 }
 
 void UUnitParameters::CheckHealthState()
@@ -60,9 +68,7 @@ void UUnitParameters::CheckHealthState()
         }
 
         if (!destroyable->IsDestroyed())
-        {
             destroyable->Destroy();
-        }
 
         m_isDead = true;
     }

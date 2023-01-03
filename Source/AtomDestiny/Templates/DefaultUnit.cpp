@@ -30,8 +30,18 @@ ADefaultUnit::ADefaultUnit(const FObjectInitializer& objectInitializer):
     m_unitLogic = objectInitializer.CreateDefaultSubobject<UUnitLogic>(this, TEXT("UnitLogic"));
     m_unitMovement = objectInitializer.CreateDefaultSubobject<UUnitMovementComponent>(this, TEXT("UnitMovement"));
     m_unitDestroy = objectInitializer.CreateDefaultSubobject<UUnitBasicDestroy>(this, TEXT("UnitDestroy"));
-
+    
     // setup ground point and default AI controller
     m_unitState->SetGroundPoint(MakeWeakObjectPtr(m_groundPoint.Get()));
     AIControllerClass = ANavigator::StaticClass();
+}
+
+void ADefaultUnit::BeginPlay()
+{
+    Super::BeginPlay();
+    
+    // Setup Health bar here because HealthBarComponent creates it after BeginPlay 
+    auto hb = Cast<UHealthBar>(m_healthBar->GetUserWidgetObject());
+    hb->SetEnergyVisible(false);
+    m_unitParameters->SetHealthBarWidget(hb);
 }

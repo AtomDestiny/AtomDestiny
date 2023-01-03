@@ -25,6 +25,8 @@ class ADefaultUnit : public APawn
     
 public:
     explicit ADefaultUnit(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+
+    virtual void BeginPlay() override;
     
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Box collider"))
@@ -42,7 +44,7 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit logic"))
     TObjectPtr<UUnitLogic> m_unitLogic;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit paremeters"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit parameters"))
     TObjectPtr<UUnitParameters> m_unitParameters;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit movement"))

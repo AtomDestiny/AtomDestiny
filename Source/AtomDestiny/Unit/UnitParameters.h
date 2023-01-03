@@ -17,11 +17,12 @@ public:
     virtual void AddDamage(double damage, EWeaponType type, AActor* owner) override;
    
 protected:
+    virtual void BeginPlay() override;
     
     // Called every frame
     virtual void TickComponent(float deltaTime, ELevelTick levelTick, FActorComponentTickFunction* func) override;
 
 private:
-    void RenderHeathBar();
+    void RenderHealthBar();
     void CheckHealthState();
 };
