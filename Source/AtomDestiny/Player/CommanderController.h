@@ -5,6 +5,9 @@
 
 #include "CommanderController.generated.h"
 
+class UInputAction;
+class UInputMappingContext;
+
 ///
 /// Class which contains actions & Movement setup for CommanderPawn
 ///
@@ -16,11 +19,12 @@ class ATOMDESTINY_API ACommanderController : public APlayerController
 public:
     virtual void SetupInputComponent() override;
 
-    class UInputMappingContext* GetPawnMappingContext() const { return m_pawnMappingContext; }
+    UInputMappingContext* GetPawnMappingContext() const { return m_pawnMappingContext; }
 
-    class UInputAction* GetActionMove() const { return m_actionMove; }
-    class UInputAction* GetActionRotate() const { return m_actionRotate; }
-    class UInputAction* GetActionReset() const { return m_actionReset; }
+    UInputAction* GetActionMove() const { return m_actionMove; }
+    UInputAction* GetActionLook() const { return m_actionLook; }
+    UInputAction* GetActionRoll() const { return m_actionRoll; }
+    UInputAction* GetActionReset() const { return m_actionReset; }
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Enable mouse look"))
     bool EnableMouseLook = true;
@@ -34,8 +38,17 @@ protected:
     UInputAction* m_actionMove;
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Action rotate"))
-    UInputAction* m_actionRotate;
+    UInputAction* m_actionLook;
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Action rotate"))
+    UInputAction* m_actionRoll;
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Action reset"))
     UInputAction* m_actionReset;
+    
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Action LClick"))
+    UInputAction* m_actionLClick;
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Action RClick"))
+    UInputAction* m_actionRClick;
 };

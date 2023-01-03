@@ -19,23 +19,18 @@ class ATOMDESTINY_API ACommanderPawn : public APawn
     GENERATED_BODY()
 
 public:
-    
-    // Sets default values for this character's properties
     ACommanderPawn();
 
 protected:
-    
     // Called when the game starts or when spawned
     virtual void BeginPlay() override;
 
 public:
-    // Called every frame
-    virtual void Tick(float deltaTime) override;
-
     void OnMoveAction(const FInputActionValue& actionValue);
-    void OnRotateAction(const FInputActionValue& actionValue);
-    void OnResetAction(const FInputActionValue& actionValue);
-
+    void OnLookAction(const FInputActionValue& actionValue);
+    void OnRollAction(const FInputActionValue& actionValue);
+    void OnResetAction(const FInputActionValue&);
+    
     // Called to bind functionality to input
     virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
 
@@ -72,4 +67,5 @@ private:
     FBox m_worldBox;
     FVector m_startPos;
     FRotator m_startRot;
+    bool m_mouseEnabled;
 };
