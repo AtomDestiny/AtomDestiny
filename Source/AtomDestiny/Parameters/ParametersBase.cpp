@@ -1,13 +1,13 @@
-﻿#include "ObjectStateBase.h"
+﻿#include "ParametersBase.h"
 
 #include <AtomDestiny/Core/Logger.h>
 
-UObjectStateBase::UObjectStateBase(const FObjectInitializer& objectInitializer):
+UParametersBase::UParametersBase(const FObjectInitializer& objectInitializer):
     UADObject(objectInitializer)
 {
 }
 
-void UObjectStateBase::RegenerateHealth(double health)
+void UParametersBase::RegenerateHealth(double health)
 {
     if (const auto value = FMath::Abs(health); m_currentHealth + value >= m_currentMaxHealth)
     {
@@ -19,47 +19,47 @@ void UObjectStateBase::RegenerateHealth(double health)
     }
 }
 
-bool UObjectStateBase::IsHealthMax() const
+bool UParametersBase::IsHealthMax() const
 {
     return m_currentHealth == m_currentMaxHealth;
 }
 
-double UObjectStateBase::GetHealth() const
+double UParametersBase::GetHealth() const
 {
     return m_currentHealth;
 }
 
-EDefenceType UObjectStateBase::GetDefenceType() const
+EDefenceType UParametersBase::GetDefenceType() const
 {
     return m_defenceType;
 }
 
-double UObjectStateBase::GetDefence() const
+double UParametersBase::GetDefence() const
 {
     return m_currentDefence;
 }
 
-double UObjectStateBase::GetMaxHealth() const
+double UParametersBase::GetMaxHealth() const
 {
     return m_currentMaxHealth;
 }
 
-double UObjectStateBase::GetBaseMaxHealth() const
+double UParametersBase::GetBaseMaxHealth() const
 {
     return m_maxHealth;
 }
 
-double UObjectStateBase::GetBaseDefence() const
+double UParametersBase::GetBaseDefence() const
 {
     return m_defence;
 }
 
-const FBalanceParameters& UObjectStateBase::GetDefenceAdditionalParameters() const
+const FBalanceParameters& UParametersBase::GetDefenceAdditionalParameters() const
 {
     return m_balanceParameters;
 }
 
-void UObjectStateBase::InitializeComponent()
+void UParametersBase::InitializeComponent()
 {
     m_currentHealth = m_maxHealth;
     m_currentMaxHealth = m_currentHealth;
@@ -77,14 +77,14 @@ void UObjectStateBase::InitializeComponent()
     AddNewParameter(EObjectParameters::Defence);
 }
 
-void UObjectStateBase::BeginPlay()
+void UParametersBase::BeginPlay()
 {
     Super::BeginPlay();
     
     m_balanceParameters = AtomDestiny::Balance::CorrectBalanceParameters(m_balanceParameters);
 }
 
-double UObjectStateBase::GetDamageAfterDefenceParameters(EWeaponType type, double damage) const
+double UParametersBase::GetDamageAfterDefenceParameters(EWeaponType type, double damage) const
 {
     double calculateResistanceValue = 0.0f;
 
@@ -113,7 +113,7 @@ double UObjectStateBase::GetDamageAfterDefenceParameters(EWeaponType type, doubl
     return damage - calculateResistanceValue;
 }
 
-double UObjectStateBase::GetDamageAfterDefenceType(float damage) const
+double UParametersBase::GetDamageAfterDefenceType(float damage) const
 {
     switch (m_defenceType)
     {
@@ -136,7 +136,7 @@ double UObjectStateBase::GetDamageAfterDefenceType(float damage) const
     return damage;
 }
 
-double UObjectStateBase::GetResultDamage(EWeaponType type, double damage) const
+double UParametersBase::GetResultDamage(EWeaponType type, double damage) const
 {
     double resultDamage = std::max(std::abs(damage) - m_currentDefence, AtomDestiny::Balance::MinDamageValue);
     resultDamage = GetDamageAfterDefenceType(resultDamage);
@@ -145,7 +145,7 @@ double UObjectStateBase::GetResultDamage(EWeaponType type, double damage) const
     return resultDamage;
 }
 
-void UObjectStateBase::RecalculateParameter(EObjectParameters parameter)
+void UParametersBase::RecalculateParameter(EObjectParameters parameter)
 {
     if (!GetParameterAvailable(parameter))
     {
@@ -200,7 +200,7 @@ void UObjectStateBase::RecalculateParameter(EObjectParameters parameter)
     }
 }
 
-void UObjectStateBase::ZeroizeParameter(EObjectParameters parameter)
+void UParametersBase::ZeroizeParameter(EObjectParameters parameter)
 {
     switch (parameter)
     {

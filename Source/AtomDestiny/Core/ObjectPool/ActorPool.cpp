@@ -45,7 +45,9 @@ void ActorPool::Despawn(TWeakObjectPtr<AActor> object) const
     if (const auto poolMember = object->FindComponentByClass<UActorPoolMember>(); poolMember == nullptr)
     {
         UE_LOG(LogTemp, Warning, TEXT("The Actor %s wasn't spawned from a pool. Destroying it instead."), GetData(object->GetName()));
-        object->SetLifeSpan(1);
+        
+        object->SetLifeSpan(0);
+        object->Destroy();
     }
     else
     {

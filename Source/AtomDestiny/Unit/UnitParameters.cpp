@@ -1,12 +1,12 @@
 ﻿#include "UnitParameters.h"
 
-#include <AtomDestiny/ObjectState/Destroyable.h>
+#include <AtomDestiny/Behaviour/Destroyable.h>
 
 #include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
 UUnitParameters::UUnitParameters(const FObjectInitializer& objectInitializer):
-    UObjectStateBase(objectInitializer)
+    UParametersBase(objectInitializer)
 {
     SetTickEnabled(true);
 }

@@ -3,9 +3,9 @@
 #include <Runtime/CoreUObject/Public/UObject/Interface.h>
 
 #include <AtomDestiny/Weapon/WeaponParameters.h>
-#include <AtomDestiny/ObjectState/BalanceParameters.h>
+#include <AtomDestiny/Parameters/BalanceParameters.h>
 
-#include "ObjectState.generated.h"
+#include "Parameters.generated.h"
 
 ///
 /// Defence type of ADObject.
@@ -20,7 +20,7 @@ enum class EDefenceType : uint8
 };
 
 UINTERFACE(MinimalAPI, Blueprintable)
-class UObjectState : public UInterface
+class UParameters : public UInterface
 {
     GENERATED_BODY()
 };
@@ -31,7 +31,7 @@ class UObjectState : public UInterface
 /// Realize to have a destroyable object with parameters.
 /// Can be used together with IShield.
 ///
-class IObjectState
+class IParameters
 {
     GENERATED_BODY()
 

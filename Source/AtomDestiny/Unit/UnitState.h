@@ -28,7 +28,7 @@ public:
     TScriptInterface<ILogic> GetLogic() const { return m_logic; }
     
     // Returns unit parameters
-    TScriptInterface<IObjectState> GetObjectState() const { return m_objectState; }
+    TScriptInterface<IParameters> GetObjectState() const { return m_objectState; }
     
     // Returns unit shield
     TScriptInterface<IShield> GetShield() const { return m_shield; }
@@ -159,7 +159,7 @@ private:
     TScriptInterface<ILogic> m_logic = nullptr;
     
     // Hashed unit parameters
-    TScriptInterface<IObjectState> m_objectState = nullptr;
+    TScriptInterface<IParameters> m_objectState = nullptr;
     
     // Hashed unit shield
     TScriptInterface<IShield> m_shield = nullptr;

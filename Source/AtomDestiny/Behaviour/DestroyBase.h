@@ -2,7 +2,7 @@
 
 #include <Engine/Classes/Components/ActorComponent.h>
 
-#include <AtomDestiny/ObjectState/Destroyable.h>
+#include <AtomDestiny/Behaviour/Destroyable.h>
 #include <AtomDestiny/Particle/Particle.h>
 
 #include "DestroyBase.generated.h"

@@ -39,7 +39,9 @@ namespace AtomDestiny::Utils
         for (UActorComponent* const component : actor->GetComponents())
         {
             if (component->GetName() == name)
+            {
                 return component;
+            }
         }
 
         return nullptr;
@@ -72,7 +74,10 @@ namespace AtomDestiny::Utils
     template<typename Interface, typename UEInterface>
     [[nodiscard]] TScriptInterface<Interface> GetInterface(AActor* actor)
     {
-        check(actor != nullptr);
+        if (actor == nullptr)
+        {
+            return nullptr;
+        }
         
         static_assert(std::is_base_of_v<UInterface, UEInterface>, "Component parameter is not an UInterface");
         
@@ -85,14 +90,19 @@ namespace AtomDestiny::Utils
     template<typename Interface, typename UEInterface>
     [[nodiscard]] TArray<TScriptInterface<Interface>> GetInterfaces(AActor* actor)
     {
-        check(actor != nullptr);
+        if (actor == nullptr)
+        {
+            return {};
+        }
         
         TArray<TScriptInterface<Interface>> interfaces;
 
         for (UActorComponent* component : actor->GetComponents())
         {
             if (component && component->GetClass()->ImplementsInterface(UEInterface::StaticClass()))
+            {
                 interfaces.Add(CreateInterface<Interface>(component));
+            }
         }
         
         return interfaces;

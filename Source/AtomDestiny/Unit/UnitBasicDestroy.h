@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <AtomDestiny/ObjectState/DestroyBase.h>
+#include <AtomDestiny/Behaviour/DestroyBase.h>
 
 #include "UnitBasicDestroy.generated.h"
 

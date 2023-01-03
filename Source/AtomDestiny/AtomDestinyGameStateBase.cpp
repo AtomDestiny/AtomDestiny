@@ -140,9 +140,9 @@ void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& p
                 {
                     filteredActors.insert(actor);
 
-                    if (const TScriptInterface<IObjectState> objectState = GET_ACTOR_INTERFACE(ObjectState, actor); objectState != nullptr)
+                    if (const TScriptInterface<IParameters> parameters = GET_ACTOR_INTERFACE(Parameters, actor); parameters != nullptr)
                     {
-                        AddDamageToState(objectState, weaponParameters);
+                        AddDamageToState(parameters, weaponParameters);
                     }
                 }
             }
@@ -150,14 +150,14 @@ void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& p
     }
     else
     {
-        if (const TScriptInterface<IObjectState> objectState = GET_ACTOR_INTERFACE(ObjectState, weaponParameters.target.Get()); objectState != nullptr)
+        if (const TScriptInterface<IParameters> parameters = GET_ACTOR_INTERFACE(Parameters, weaponParameters.target.Get()); parameters != nullptr)
         {
-            AddDamageToState(objectState, weaponParameters);
+            AddDamageToState(parameters, weaponParameters);
         }
     }
 }
 
-void AAtomDestinyGameStateBase::AddDamageToState(const TScriptInterface<IObjectState>& objectState, const FWeaponParameters& parameters)
+void AAtomDestinyGameStateBase::AddDamageToState(const TScriptInterface<IParameters>& objectState, const FWeaponParameters& parameters)
 {
     double resultDamage = parameters.damage;
 

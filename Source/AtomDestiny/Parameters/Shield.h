@@ -2,7 +2,7 @@
 
 #include <Runtime/CoreUObject/Public/UObject/Interface.h>
 
-#include <AtomDestiny/ObjectState/BalanceParameters.h>
+#include <AtomDestiny/Parameters/BalanceParameters.h>
 
 #include "Shield.generated.h"
 

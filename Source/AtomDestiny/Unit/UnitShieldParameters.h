@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <AtomDestiny/ObjectState/ShieldObjectStateBase.h>
+#include <AtomDestiny/Parameters/ShieldParametersBase.h>
 
 #include "UnitShieldParameters.generated.h"
 
@@ -8,7 +8,7 @@
 /// Represents base units parameters with health and shield.
 ///
 UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
-class UUnitShieldParameters final : public UShieldObjectStateBase
+class UUnitShieldParameters final : public UShieldParametersBase
 {
     GENERATED_BODY()
     

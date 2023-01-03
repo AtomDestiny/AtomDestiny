@@ -1,43 +1,43 @@
-﻿#include "ShieldObjectStateBase.h"
+﻿#include "ShieldParametersBase.h"
 
 #include <AtomDestiny/Core/Logger.h>
 
-double UShieldObjectStateBase::GetUnitShield() const
+double UShieldParametersBase::GetUnitShield() const
 {
     return m_currentShieldValue;
 }
 
-EShieldType UShieldObjectStateBase::GetShieldType() const
+EShieldType UShieldParametersBase::GetShieldType() const
 {
     return m_shieldType;
 }
 
-double UShieldObjectStateBase::GetMaxUnitShield() const
+double UShieldParametersBase::GetMaxUnitShield() const
 {
     return m_currentMaxShield;
 }
 
-double UShieldObjectStateBase::GetShieldAbsorbation() const
+double UShieldParametersBase::GetShieldAbsorbation() const
 {
     return m_currentAbsorbation;
 }
 
-double UShieldObjectStateBase::GetBaseMaxUnitShield() const
+double UShieldParametersBase::GetBaseMaxUnitShield() const
 {
     return m_maxShieldValue;
 }
 
-double UShieldObjectStateBase::GetBaseShieldAbsorbation() const
+double UShieldParametersBase::GetBaseShieldAbsorbation() const
 {
     return m_shieldAbsorbation;
 }
 
-const FBalanceParameters& UShieldObjectStateBase::GetShieldAdditionalParameters() const
+const FBalanceParameters& UShieldParametersBase::GetShieldAdditionalParameters() const
 {
     return m_shieldBalanceParameters;
 }
 
-void UShieldObjectStateBase::InitializeComponent()
+void UShieldParametersBase::InitializeComponent()
 {
     Super::InitializeComponent();
 
@@ -57,14 +57,14 @@ void UShieldObjectStateBase::InitializeComponent()
     AddNewParameter(EObjectParameters::Absorbation);
 }
 
-void UShieldObjectStateBase::BeginPlay()
+void UShieldParametersBase::BeginPlay()
 {
     Super::BeginPlay();
 
     m_shieldBalanceParameters = AtomDestiny::Balance::CorrectBalanceParameters(m_shieldBalanceParameters);
 }
 
-void UShieldObjectStateBase::RecalculateParameter(EObjectParameters parameter)
+void UShieldParametersBase::RecalculateParameter(EObjectParameters parameter)
 {
     Super::RecalculateParameter(parameter);
 
@@ -124,7 +124,7 @@ void UShieldObjectStateBase::RecalculateParameter(EObjectParameters parameter)
     }
 }
 
-void UShieldObjectStateBase::ZeroizeParameter(EObjectParameters parameter)
+void UShieldParametersBase::ZeroizeParameter(EObjectParameters parameter)
 {
     Super::ZeroizeParameter(parameter);
 
@@ -149,7 +149,7 @@ void UShieldObjectStateBase::ZeroizeParameter(EObjectParameters parameter)
     }
 }
 
-void UShieldObjectStateBase::RegenerateShield()
+void UShieldParametersBase::RegenerateShield()
 {
     if (m_currentShieldValue + m_shieldRegenerateValue >= m_currentMaxShield)
     {
@@ -161,13 +161,13 @@ void UShieldObjectStateBase::RegenerateShield()
     }
 }
 
-FAsyncCoroutine UShieldObjectStateBase::StartShieldCoolDown()
+FAsyncCoroutine UShieldParametersBase::StartShieldCoolDown()
 {
     co_await Coroutines::Latent::Seconds(m_shieldRegenerateTime);
     m_regenerationAccess = true;
 }
 
-double UShieldObjectStateBase::GetDamageAfterShieldParameters(EWeaponType type, double damage) const
+double UShieldParametersBase::GetDamageAfterShieldParameters(EWeaponType type, double damage) const
 {
     double result = 0.0;
 

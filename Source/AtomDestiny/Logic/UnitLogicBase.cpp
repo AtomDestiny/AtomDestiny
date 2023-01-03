@@ -91,13 +91,13 @@ void UUnitLogicBase::BeginPlay()
 
     // new layer
     // Utils.SetLayerRecursively(gameObject, LayerMask.NameToLayer(Core.GetLayerNameFromSide(side)));
-    CreateMessage();
+    CreateEvent();
 }
 
 void UUnitLogicBase::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
     Super::EndPlay(endPlayReason);
-    DestroyMessage();
+    DestroyEvent();
 }
 
 void UUnitLogicBase::RotateToTarget(float deltaTime)
@@ -195,12 +195,12 @@ void UUnitLogicBase::ZeroizeParameter(EObjectParameters parameter)
     }
 }
 
-void UUnitLogicBase::CreateMessage() const
+void UUnitLogicBase::CreateEvent() const
 {
     unitCreated.Broadcast(GetOwner(), m_side, m_unitType);
 }
 
-void UUnitLogicBase::DestroyMessage() const
+void UUnitLogicBase::DestroyEvent() const
 {
     unitDestroyed.Broadcast(GetOwner(), m_side, m_unitType);
 }

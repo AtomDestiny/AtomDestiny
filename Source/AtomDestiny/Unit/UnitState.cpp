@@ -283,7 +283,7 @@ void UUnitState::BeginPlay()
     Super::BeginPlay();
 
     m_logic = GET_INTERFACE(Logic);
-    m_objectState = GET_INTERFACE(ObjectState);
+    m_objectState = GET_INTERFACE(Parameters);
     m_shield = GET_INTERFACE(Shield);
     m_animation = GET_INTERFACE(Animation);
     

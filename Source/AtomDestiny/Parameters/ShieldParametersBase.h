@@ -1,18 +1,18 @@
 ﻿#pragma once
 
 #include <AtomDestiny/Unit/UnitParameters.h>
-#include <AtomDestiny/ObjectState/Shield.h>
+#include <AtomDestiny/Parameters/Shield.h>
 
 #include <UE5Coro/Public/UE5Coro.h>
 
-#include "ShieldObjectStateBase.generated.h"
+#include "ShieldParametersBase.generated.h"
 
 ///
 /// Represents base class for any object with shield.
 /// It stores all parameters for shields.
 ///
 UCLASS(Abstract)
-class UShieldObjectStateBase : public UUnitParameters, public IShield
+class UShieldParametersBase : public UUnitParameters, public IShield
 {
     GENERATED_BODY()
     

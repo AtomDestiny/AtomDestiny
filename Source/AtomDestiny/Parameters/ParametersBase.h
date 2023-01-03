@@ -4,21 +4,21 @@
 #include <Runtime/UMG/Public/Components/Slider.h>
 
 #include <AtomDestiny/Core/ADObject/ADObject.h>
-#include <AtomDestiny/ObjectState/ObjectState.h>
+#include <AtomDestiny/Parameters/Parameters.h>
 
-#include "ObjectStateBase.generated.h"
+#include "ParametersBase.generated.h"
 
 ///
 /// Represents base class for any object
 /// to have a parameters in Atom Destiny world.
 ///
 UCLASS(Abstract)
-class UObjectStateBase : public UADObject, public IObjectState
+class UParametersBase : public UADObject, public IParameters
 {
     GENERATED_BODY()
     
 public:
-    explicit UObjectStateBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+    explicit UParametersBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Adds damage to this object
     virtual void AddDamage(double damage, EWeaponType type, AActor* owner) ABSTRACT_METHOD;
