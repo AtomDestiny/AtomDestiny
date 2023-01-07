@@ -22,11 +22,17 @@ public:
 
     UFUNCTION(BlueprintCallable)
     void SetEnergyPercent(float value);
+
+    UFUNCTION(BlueprintCallable)
+    void SetHealthVisible(bool visible);
+
+    UFUNCTION(BlueprintCallable)
+    void SetEnergyVisible(bool visible);
     
 protected:
-    UPROPERTY(meta = (BindWidget, DisplayName = "Health bar blueprint"))
+    UPROPERTY(meta = (BindWidget, DisplayName = "Health bar (widget part)"))
     UProgressBar* m_health;
 
-    UPROPERTY(meta = (BindWidget, DisplayName = "Shield bar blueprint"))
+    UPROPERTY(meta = (BindWidget, DisplayName = "Shield bar (widget part)"))
     UProgressBar* m_energy;
 };

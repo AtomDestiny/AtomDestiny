@@ -1,13 +1,13 @@
-﻿#include "ParametersBase.h"
+﻿#include "ObjectStateBase.h"
 
 #include <AtomDestiny/Core/Logger.h>
 
-UParametersBase::UParametersBase(const FObjectInitializer& objectInitializer):
+UObjectStateBase::UObjectStateBase(const FObjectInitializer& objectInitializer):
     UADObject(objectInitializer)
 {
 }
 
-void UParametersBase::RegenerateHealth(double health)
+void UObjectStateBase::RegenerateHealth(double health)
 {
     if (const auto value = FMath::Abs(health); m_currentHealth + value >= m_currentMaxHealth)
     {
@@ -19,72 +19,72 @@ void UParametersBase::RegenerateHealth(double health)
     }
 }
 
-bool UParametersBase::IsHealthMax() const
+bool UObjectStateBase::IsHealthMax() const
 {
     return m_currentHealth == m_currentMaxHealth;
 }
 
-double UParametersBase::GetHealth() const
+double UObjectStateBase::GetHealth() const
 {
     return m_currentHealth;
 }
 
-EDefenceType UParametersBase::GetDefenceType() const
+EDefenceType UObjectStateBase::GetDefenceType() const
 {
     return m_defenceType;
 }
 
-double UParametersBase::GetDefence() const
+double UObjectStateBase::GetDefence() const
 {
     return m_currentDefence;
 }
 
-double UParametersBase::GetMaxHealth() const
+double UObjectStateBase::GetMaxHealth() const
 {
     return m_currentMaxHealth;
 }
 
-double UParametersBase::GetBaseMaxHealth() const
+double UObjectStateBase::GetBaseMaxHealth() const
 {
     return m_maxHealth;
 }
 
-double UParametersBase::GetBaseDefence() const
+double UObjectStateBase::GetBaseDefence() const
 {
     return m_defence;
 }
 
-const FBalanceParameters& UParametersBase::GetDefenceAdditionalParameters() const
+const FBalanceParameters& UObjectStateBase::GetDefenceAdditionalParameters() const
 {
     return m_balanceParameters;
 }
 
-void UParametersBase::InitializeComponent()
+void UObjectStateBase::SetHealthBarWidget(TWeakObjectPtr<UHealthBar> widget)
+{
+    m_healthBarWidget = widget;
+}
+
+void UObjectStateBase::InitializeComponent()
 {
     m_currentHealth = m_maxHealth;
     m_currentMaxHealth = m_currentHealth;
     m_currentDefence = m_defence;
-
-    LOG_CHECK_WARNING(m_healthBlueprint != nullptr, TEXT("No health bar blueprint at Object state"));
-
-    if (m_healthBlueprint.IsValid())
-    {
-        m_healthBar = CastChecked<USlider>(m_healthBlueprint);
-    }
     
     AddNewParameter(EObjectParameters::Health);
     AddNewParameter(EObjectParameters::MaxHealth);
     AddNewParameter(EObjectParameters::Defence);
 }
 
-void UParametersBase::BeginPlay()
+void UObjectStateBase::BeginPlay()
 {
     Super::BeginPlay();
     
     m_balanceParameters = AtomDestiny::Balance::CorrectBalanceParameters(m_balanceParameters);
+
+    LOG_CHECK_WARNING(m_healthBarWidget != nullptr, TEXT("[ObjectStateBase::BeginPlay] HealthBar is NULL"));
 }
 
-double UParametersBase::GetDamageAfterDefenceParameters(EWeaponType type, double damage) const
+double UObjectStateBase::GetDamageAfterDefenceParameters(EWeaponType type, double damage) const
 {
     double calculateResistanceValue = 0.0f;
 
@@ -113,7 +113,7 @@ double UParametersBase::GetDamageAfterDefenceParameters(EWeaponType type, double
     return damage - calculateResistanceValue;
 }
 
-double UParametersBase::GetDamageAfterDefenceType(float damage) const
+double UObjectStateBase::GetDamageAfterDefenceType(float damage) const
 {
     switch (m_defenceType)
     {
@@ -136,7 +136,7 @@ double UParametersBase::GetDamageAfterDefenceType(float damage) const
     return damage;
 }
 
-double UParametersBase::GetResultDamage(EWeaponType type, double damage) const
+double UObjectStateBase::GetResultDamage(EWeaponType type, double damage) const
 {
     double resultDamage = std::max(std::abs(damage) - m_currentDefence, AtomDestiny::Balance::MinDamageValue);
     resultDamage = GetDamageAfterDefenceType(resultDamage);
@@ -145,11 +145,11 @@ double UParametersBase::GetResultDamage(EWeaponType type, double damage) const
     return resultDamage;
 }
 
-void UParametersBase::RecalculateParameter(EObjectParameters parameter)
+void UObjectStateBase::RecalculateParameter(EObjectParameters parameter)
 {
     if (!GetParameterAvailable(parameter))
     {
-        LOG_WARNING(TEXT("Recalculate not available parameter at UObjectStateBase"));
+        LOG_WARNING(TEXT("[UObjectStateBase] Parameter is not available for recalculation"));
         return;
     }
     
@@ -160,13 +160,9 @@ void UParametersBase::RecalculateParameter(EObjectParameters parameter)
             m_currentMaxHealth = CalculateParametersFromAll(m_maxHealth, parameter);
             
             if (m_currentHealth == m_maxHealth)
-            {
                 m_currentHealth = m_currentMaxHealth;
-            }
             else
-            {
                 m_currentHealth *= (m_maxHealth < m_currentMaxHealth ? m_currentMaxHealth / m_maxHealth : m_maxHealth / m_currentMaxHealth);
-            }
         }
 
         break;
@@ -180,13 +176,9 @@ void UParametersBase::RecalculateParameter(EObjectParameters parameter)
             m_currentHealth += value;
 
             if (m_currentHealth > m_currentMaxHealth)
-            {
                 m_currentHealth = m_currentMaxHealth;
-            }
             else if (m_currentHealth < 0)
-            {
                 m_currentHealth = 0;
-            }
 
             break;
         }
@@ -200,7 +192,7 @@ void UParametersBase::RecalculateParameter(EObjectParameters parameter)
     }
 }
 
-void UParametersBase::ZeroizeParameter(EObjectParameters parameter)
+void UObjectStateBase::ZeroizeParameter(EObjectParameters parameter)
 {
     switch (parameter)
     {

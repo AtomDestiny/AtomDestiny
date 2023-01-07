@@ -1,24 +1,22 @@
 ﻿#pragma once
 
-#include <Runtime/UMG/Public/Components/Widget.h>
-#include <Runtime/UMG/Public/Components/Slider.h>
-
 #include <AtomDestiny/Core/ADObject/ADObject.h>
-#include <AtomDestiny/Parameters/Parameters.h>
+#include <AtomDestiny/ObjectState/ObjectState.h>
 
-#include "ParametersBase.generated.h"
+#include <UI/HealthBar.h>
+#include "ObjectStateBase.generated.h"
 
 ///
 /// Represents base class for any object
 /// to have a parameters in Atom Destiny world.
 ///
 UCLASS(Abstract)
-class UParametersBase : public UADObject, public IParameters
+class UObjectStateBase : public UADObject, public IObjectState
 {
     GENERATED_BODY()
     
 public:
-    explicit UParametersBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+    explicit UObjectStateBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Adds damage to this object
     virtual void AddDamage(double damage, EWeaponType type, AActor* owner) ABSTRACT_METHOD;
@@ -50,6 +48,8 @@ public:
     
     // Returns additional params
     virtual const FBalanceParameters& GetDefenceAdditionalParameters() const override;
+
+    void SetHealthBarWidget(TWeakObjectPtr<UHealthBar> widget);
 
 protected:
 
@@ -83,9 +83,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Defence"))
     double m_defence = 0;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Heath bar blueprint"))
-    TWeakObjectPtr<UWidget> m_healthBlueprint;
-    TWeakObjectPtr<USlider> m_healthBar = nullptr;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Health bar widget"))
+    TWeakObjectPtr<UHealthBar> m_healthBarWidget;
+    //TWeakObjectPtr<USlider> m_healthBar = nullptr;
     
     // Show/hide bar when current health is max
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Hide bar"))

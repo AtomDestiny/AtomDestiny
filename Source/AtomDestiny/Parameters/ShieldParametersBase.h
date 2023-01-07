@@ -82,11 +82,6 @@ protected:
     // Regeneration state access
     bool m_regenerationAccess = true;
     
-    // Object shield bar. Should be set manually.
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shield bar blueprint"))
-    TWeakObjectPtr<UWidget> m_shieldBlueprint;
-    TWeakObjectPtr<USlider> m_shieldBar = nullptr;
-    
     // Object shield type
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shield type"))
     EShieldType m_shieldType = EShieldType::Electrical;

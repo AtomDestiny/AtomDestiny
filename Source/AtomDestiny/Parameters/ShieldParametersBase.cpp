@@ -44,13 +44,6 @@ void UShieldParametersBase::InitializeComponent()
     m_currentShieldValue = m_maxShieldValue;
     m_currentMaxShield = m_currentShieldValue;
     m_currentAbsorbation = m_shieldAbsorbation;
-    
-    LOG_CHECK_WARNING(m_shieldBlueprint != nullptr, TEXT("No shield bar blueprint at Shield Object state"));
-
-    if (m_shieldBlueprint.IsValid())
-    {
-        m_shieldBar = CastChecked<USlider>(m_shieldBlueprint);
-    }
 
     AddNewParameter(EObjectParameters::MaxShield);
     AddNewParameter(EObjectParameters::Shield);
@@ -152,13 +145,9 @@ void UShieldParametersBase::ZeroizeParameter(EObjectParameters parameter)
 void UShieldParametersBase::RegenerateShield()
 {
     if (m_currentShieldValue + m_shieldRegenerateValue >= m_currentMaxShield)
-    {
         m_currentShieldValue = m_currentMaxShield;
-    }
     else
-    {
         m_currentShieldValue += m_shieldRegenerateValue;
-    }
 }
 
 FAsyncCoroutine UShieldParametersBase::StartShieldCoolDown()

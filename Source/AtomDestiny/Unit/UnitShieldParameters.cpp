@@ -38,13 +38,9 @@ void UUnitShieldParameters::AddDamage(double damage, EWeaponType type, AActor* o
 
 void UUnitShieldParameters::RenderShieldBar()
 {
-    if (!m_shieldBar.IsValid() || m_hideBar)
-    {
+    if (m_healthBarWidget == nullptr || !m_healthBarWidget.IsValid() || m_hideBar)
         return;
-    }
-    
-    const double value = m_shieldBar->GetMaxValue() * m_currentShieldValue / m_currentMaxShield;
-    
-    m_shieldBar->SetValue(static_cast<float>(value));
-    m_shieldBar->SetIsEnabled(m_currentShieldValue != m_currentMaxShield);
+
+    m_healthBarWidget->SetEnergyPercent(m_currentShieldValue / m_currentMaxShield);
+    m_healthBarWidget->SetEnergyVisible(m_currentShieldValue != m_currentMaxShield);
 }

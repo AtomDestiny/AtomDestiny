@@ -8,11 +8,11 @@
 UHealthBarComponent::UHealthBarComponent(const FObjectInitializer& objectInitializer):
     UWidgetComponent(objectInitializer)
 {
-    const ConstructorHelpers::FClassFinder<UHealthBar> heathBarClassFinder(TEXT("/Game/Blueprint/GUI/Widgets/WBP_HealthBar.WBP_HealthBar_C"));
-    const TSubclassOf<UHealthBar> heathBarClass = heathBarClassFinder.Class;
+    const ConstructorHelpers::FClassFinder<UHealthBar> healthBarClassFinder(TEXT("/Game/Blueprint/GUI/Widgets/WBP_HealthBar.WBP_HealthBar_C"));
+    const TSubclassOf<UHealthBar> healthBarClass = healthBarClassFinder.Class;
 
     SetWidgetSpace(EWidgetSpace::Screen);
-    SetWidgetClass(heathBarClass);
+    SetWidgetClass(healthBarClass);
     SetDrawAtDesiredSize(true);
     SetUsingAbsoluteLocation(true);
 }
@@ -20,20 +20,16 @@ UHealthBarComponent::UHealthBarComponent(const FObjectInitializer& objectInitial
 void UHealthBarComponent::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction)
 {
     Super::TickComponent(deltaTime, tickType, thisTickFunction);
-
+    
     const auto world = GetWorld();
     
     if (!world)
-    {
         return;
-    }
 
     const auto cameraManager = UGameplayStatics::GetPlayerCameraManager(world, 0);
     
     if (!cameraManager)
-    {
         return;
-    }
     
     const auto& playerTransform = cameraManager->GetTransform();
     
