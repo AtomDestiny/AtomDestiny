@@ -22,7 +22,7 @@ void UUnitBasicDestroy::Destroy()
     }
     else
     {
-        AtomDestiny::ObjectPool::Instance().Spawn(m_explosionBlueprint.GetDefaultObject(), GetOwner()->GetTransform().GetLocation(), FQuat::Identity);
+        SpawnExplosion(GetOwner()->GetTransform().GetLocation(), FQuat::Identity);
     }
 
     Super::Destroy();

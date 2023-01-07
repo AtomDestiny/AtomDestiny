@@ -23,6 +23,8 @@ public:
     
 protected:
     virtual void BeginPlay() override;
+
+    void SpawnExplosion(const FVector& location, const FQuat& rotation);
     
     // Explosion particle prefab
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Explosion blueprint"))
