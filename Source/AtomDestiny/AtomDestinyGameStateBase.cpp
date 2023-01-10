@@ -10,7 +10,8 @@
 
 #include <Engine/Classes/GameFramework/Actor.h>
 
-#include "Core/ActorComponentUtils.h"
+#include <AtomDestiny/Core/ActorComponentUtils.h>
+#include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 
 namespace
 {
@@ -39,9 +40,16 @@ namespace
     double CalculatePossibleCriticalDamage(double criticalChance, double criticalRate, double damage)
     {
         if (const double generatedValue = FMath::RandRange(MinimalCriticalRange, MaximumCriticalRange); generatedValue < criticalChance)
+        {
             damage *= criticalRate;
+        }
 
         return damage;
+    }
+
+    UWorld* GetWorldFromWeaponParameters(const FWeaponParameters& parameters)
+    {
+        return parameters.owner != nullptr ? parameters.owner->GetWorld() : GEngine->GetCurrentPlayWorld();
     }
     
 } // namespace
@@ -107,14 +115,16 @@ const FEnemiesList& AAtomDestinyGameStateBase::GetEnemies(EGameSide side) const
 void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& projectile, EProjectileDamageOptions options)
 {
     if (projectile == nullptr)
+    {
         return;
+    }
     
     const FWeaponParameters& weaponParameters = projectile->GetParameters();
 
     if (weaponParameters.explosionRadius > 0)
     {
         const FVector impactPoint = GetImpactPoint(projectile, options);
-        const UWorld* world = projectile->GetParameters().owner->GetWorld();
+        const UWorld* world = GetWorldFromWeaponParameters(weaponParameters);
 
         TArray<FOverlapResult> collisionResult;
         FCollisionShape sphere;
@@ -126,26 +136,28 @@ void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& p
 
             for (const FOverlapResult& overlapResult : collisionResult)
             {
-                AActor* actor = overlapResult.GetActor();
-                
-                if (!filteredActors.contains(actor))
+                if (AActor* actor = overlapResult.GetActor(); !filteredActors.contains(actor))
                 {
                     filteredActors.insert(actor);
 
-                    if (const TScriptInterface<IObjectState> objectState = GET_ACTOR_INTERFACE(ObjectState, actor); objectState != nullptr)
-                        AddDamageToState(objectState, weaponParameters);
+                    if (const TScriptInterface<IParameters> parameters = GET_ACTOR_INTERFACE(Parameters, actor); parameters != nullptr)
+                    {
+                        AddDamageToState(parameters, weaponParameters);
+                    }
                 }
             }
         }
     }
     else
     {
-        if (const TScriptInterface<IObjectState> objectState = GET_ACTOR_INTERFACE(ObjectState, weaponParameters.target.Get()); objectState != nullptr)
-            AddDamageToState(objectState, weaponParameters);
+        if (const TScriptInterface<IParameters> parameters = GET_ACTOR_INTERFACE(Parameters, weaponParameters.target.Get()); parameters != nullptr)
+        {
+            AddDamageToState(parameters, weaponParameters);
+        }
     }
 }
 
-void AAtomDestinyGameStateBase::AddDamageToState(const TScriptInterface<IObjectState>& objectState, const FWeaponParameters& parameters)
+void AAtomDestinyGameStateBase::AddDamageToState(const TScriptInterface<IParameters>& objectState, const FWeaponParameters& parameters)
 {
     double resultDamage = parameters.damage;
 
@@ -155,7 +167,9 @@ void AAtomDestinyGameStateBase::AddDamageToState(const TScriptInterface<IObjectS
     }
 
     if (objectState != nullptr)
+    {
         objectState->AddDamage(resultDamage, parameters.weaponType, parameters.owner.Get());
+    }
 }
 
 void AAtomDestinyGameStateBase::HandleBeginPlay()
@@ -177,6 +191,8 @@ void AAtomDestinyGameStateBase::EndPlay(const EEndPlayReason::Type EndPlayReason
 
     m_activeUnits.Reset();
     m_enemies.Reset();
+
+    AtomDestiny::ObjectPool::Instance().DestroyAll();
 }
 
 void AAtomDestinyGameStateBase::OnUnitCreated(AActor* actor, EGameSide side, EUnitType)
@@ -212,7 +228,9 @@ void AAtomDestinyGameStateBase::InitializeEnemies()
         for (const auto& [s, l] : m_activeUnits)
         {
             if (side != s && side != EGameSide::None)
+            {
                 m_enemies[side].Add(m_activeUnits[s]);
+            }
         }
     }
 }

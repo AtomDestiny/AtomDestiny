@@ -6,7 +6,7 @@
 #include <AtomDestiny/Gameplay/GameDestination.h>
 
 #include <AtomDestiny/Projectile/Projectile.h>
-#include <AtomDestiny/ObjectState/ObjectState.h>
+#include <AtomDestiny/Parameters/Parameters.h>
 
 #include <Runtime/Engine/Classes/GameFramework/GameStateBase.h>
 #include <Core/Public/Templates/UnrealTemplate.h>
@@ -43,7 +43,7 @@ public:
 
     // Adds damage to ObjectState directly
     UFUNCTION()
-    static void AddDamageToState(const TScriptInterface<IObjectState>& objectState, const FWeaponParameters& parameters);
+    static void AddDamageToState(const TScriptInterface<IParameters>& objectState, const FWeaponParameters& parameters);
 
 protected:
 
@@ -60,7 +60,6 @@ protected:
     
     UFUNCTION()
     void OnUnitDestroyed(AActor* actor, EGameSide side, EUnitType unitType);
-
     
     void InitializeSides();
     void InitializeEnemies();

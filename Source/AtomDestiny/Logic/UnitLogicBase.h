@@ -86,8 +86,8 @@ protected:
     // Sets parameter to zero value
     virtual void ZeroizeParameter(EObjectParameters parameter) override;
     
-    void CreateMessage() const;
-    void DestroyMessage() const;
+    void CreateEvent() const;
+    void DestroyEvent() const;
     
     // All unit weapons references
     TArray<TScriptInterface<IWeapon>> m_weapons;

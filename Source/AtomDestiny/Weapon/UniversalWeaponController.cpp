@@ -4,6 +4,7 @@
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
 #include <AtomDestiny/Projectile/Projectile.h>
+#include <AtomDestiny/Particle/Particle.h>
 
 UUniversalWeaponController::UUniversalWeaponController(const FObjectInitializer& objectInitializer):
     UWeaponBase(objectInitializer)
@@ -19,30 +20,36 @@ double UUniversalWeaponController::GetFireRate() const
 bool UUniversalWeaponController::IsSeeTarget() const
 {
     if (!m_target.IsValid())
+    {
         return false;
+    }
     
     if (!m_useRaycast)
+    {
         return true;
+    }
     
     if (!m_scanPosition.IsValid())
     {
         bool isTargetAtSight = false;
         
-        for (const TWeakObjectPtr<USceneComponent>& position : m_shootingPositions)
+        for (const auto& position : m_shootingPositions)
         {
-            isTargetAtSight = CheckRaycastToTarget(position->GetComponentLocation(), m_target->GetActorLocation(), m_target);
+            isTargetAtSight = CheckRaycastToTarget(position->GetComponentLocation(), m_target);
         }
 
         return isTargetAtSight;
     }
     
-    return CheckRaycastToTarget(m_scanPosition->GetComponentLocation(), m_target->GetActorLocation(), m_target);
+    return CheckRaycastToTarget(m_scanPosition->GetComponentLocation(), m_target);
 }
 
 void UUniversalWeaponController::Fire(float deltaTime)
 {
     if (!m_target.IsValid() || m_forceFireDisable)
+    {
         return;
+    }
 
     const bool isValidShotDistance = (m_target->GetActorLocation() - m_weaponComponent->GetComponentLocation()).SquaredLength() > m_minShotSqrtDistance;
     
@@ -51,15 +58,21 @@ void UUniversalWeaponController::Fire(float deltaTime)
         RotateToTarget(deltaTime);
 
         if (!m_firing && isValidShotDistance && m_isRotatedOnTarget)
+        {
             MakeShot();
+        }
     }
     else
     {
         if (m_weaponAnimation != nullptr && !m_weaponAnimation->IsReady())
+        {
             return;
+        }
         
         if (!m_firing && isValidShotDistance)
+        {
             MakeShot();
+        }
     }
 }
 
@@ -84,7 +97,7 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
     {
         for (int32 shootingIndex = 0; shootingIndex < m_shootingPositions.Num(); ++shootingIndex)
         {
-            if (!currentEnemy.IsValid() || !m_projectileBlueprint.IsValid())
+            if (!currentEnemy.IsValid() || !IsValid(m_projectileBlueprint))
             {
                 co_await FiringDelay();
                 co_return;
@@ -94,9 +107,9 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
             const FVector onTarget = currentEnemy->GetActorLocation() - shotPosition->GetComponentLocation();
             FHitResult hitResult;
             
-            if (CheckRaycastToTarget(shotPosition->GetComponentLocation(), onTarget, currentEnemy, &hitResult))
+            if (CheckRaycastToTarget(shotPosition->GetComponentLocation(), currentEnemy, &hitResult))
             {
-                TWeakObjectPtr<AActor> blueprintProjectile = AtomDestiny::ObjectPool::Instance().Spawn(m_projectileBlueprint,
+                TWeakObjectPtr<AActor> blueprintProjectile = AtomDestiny::ObjectPool::Instance().Spawn(m_projectileBlueprint.GetDefaultObject(),
                     shotPosition->GetComponentLocation(), shotPosition->GetComponentQuat());
                 
                 const TScriptInterface<IProjectile> projectile = GET_ACTOR_INTERFACE(Projectile, blueprintProjectile.Get());
@@ -111,21 +124,30 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
                 projectile->SetParameters(GetParameters());
                 projectile->Launch();
                 
-                if (m_shotParticleBlueprint.IsValid())
+                if (IsValid(m_shotParticleBlueprint))
                 {
-                    AtomDestiny::ObjectPool::Instance().Spawn(m_shotParticleBlueprint,
+                    AtomDestiny::ObjectPool::Instance().Spawn(m_shotParticleBlueprint.GetDefaultObject(),
                         shotPosition->GetComponentLocation(), shotPosition->GetComponentQuat());
                 }
 
                 if (m_weaponAnimation != nullptr)
+                {
                     m_weaponAnimation->Animate();
+                }
             }
             
             if (shootingIndex < m_shootingPositions.Num() - 1)
+            {
                 co_await Coroutines::Latent::Seconds(m_delayBetweenShots);
+            }
         }
 
         if (i < (m_shotCount - 1))
+        {
             co_await Coroutines::Latent::Seconds(m_shotDelay);
+        }
     }
+
+    co_await FiringDelay();
+    co_return;
 }

@@ -1,8 +1,10 @@
 ﻿#pragma once
 
-#include <AtomDestiny/Unit/Shield.h>
 #include <AtomDestiny/Unit/Unit.h>
-#include <AtomDestiny/ObjectState/ObjectState.h>
+
+#include <AtomDestiny/Parameters/Parameters.h>
+#include <AtomDestiny/Parameters/Shield.h>
+
 #include <AtomDestiny/Weapon/Weapon.h>
 
 #include "UnitStateParameters.generated.h"

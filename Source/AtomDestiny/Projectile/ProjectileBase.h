@@ -7,6 +7,8 @@
 
 #include "ProjectileBase.generated.h"
 
+class AParticle;
+
 ///
 /// Represents common abstract projectile
 ///
@@ -38,17 +40,15 @@ public:
     virtual void Launch() ABSTRACT_METHOD;
 
 private:
-
     virtual void InitializeComponent() override;
     
 protected:
-
     FWeaponParameters m_parameters;
     FProjectilePoints m_points;
     
     // Impact prefab spawns by projectile when explodes target
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Impact blueprint"))
-    TWeakObjectPtr<AActor> m_impactBlueprint;
+    TSubclassOf<AParticle> m_impactBlueprint;
     
     // Preload impact blueprint count
     inline static int ImpactPreloadCount = 5;

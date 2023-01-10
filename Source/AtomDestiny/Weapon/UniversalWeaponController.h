@@ -4,6 +4,8 @@
 
 #include "UniversalWeaponController.generated.h"
 
+class AParticle;
+
 ///
 /// Represent common controller for base projectiles
 /// (laser projectiles should used only by laser controller, 
@@ -49,7 +51,7 @@ private:
     /// projectile blueprints should make a real damage to target.
     /// 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shot particle blueprint", AllowPrivateAccess = "true"))
-    TWeakObjectPtr<AActor> m_shotParticleBlueprint;
+    TSubclassOf<AParticle> m_shotParticleBlueprint;
 
     ///
     /// Shot points where projectiles will be spawned.
@@ -57,7 +59,7 @@ private:
     /// Weapon would not make firing without shooting position.
     /// 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shooting position", AllowPrivateAccess = "true"))
-    TArray<USceneComponent*> m_shootingPositions;
+    TArray<TObjectPtr<USceneComponent>> m_shootingPositions;
 
     ///
     /// Weapon scan point, it can be nullptr.

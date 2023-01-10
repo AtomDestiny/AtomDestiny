@@ -1,12 +1,14 @@
 ﻿#include "UnitParameters.h"
 
-#include <AtomDestiny/ObjectState/Destroyable.h>
+#include <AtomDestiny/Behaviour/Destroyable.h>
 
 #include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
+#include "Core/Logger.h"
+
 UUnitParameters::UUnitParameters(const FObjectInitializer& objectInitializer):
-    UObjectStateBase(objectInitializer)
+    UParametersBase(objectInitializer)
 {
     SetTickEnabled(true);
 }
@@ -22,13 +24,38 @@ void UUnitParameters::AddDamage(double damage, EWeaponType type, AActor* owner)
     // calculate result damage change current health
     const double resultDamage = GetResultDamage(type, damage);
     m_currentHealth -= resultDamage;
+
+    CheckHealthState();
+}
+
+void UUnitParameters::BeginPlay()
+{
+    Super::BeginPlay();
+
+    if (m_healthBarWidget != nullptr)
+        m_healthBarWidget->SetEnergyVisible(false);
+    else
+        LOG_WARNING(TEXT("[BeginPlay] Health bar widget was not set"));
 }
 
 void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActorComponentTickFunction* func)
 {
     Super::TickComponent(deltaTime, levelTick, func);
-    RenderBar();
+    
+    RenderHealthBar();
+}
 
+void UUnitParameters::RenderHealthBar()
+{
+    if (m_healthBarWidget == nullptr || !m_healthBarWidget.IsValid() || m_hideBar)
+        return;
+
+    m_healthBarWidget->SetHealthPercent(m_currentHealth / m_currentMaxHealth);
+    m_healthBarWidget->SetHealthVisible(m_currentHealth != m_currentMaxHealth);
+}
+
+void UUnitParameters::CheckHealthState()
+{
     // check current health on death
     if (m_currentHealth <= 0 && !m_isDead)
     {
@@ -41,23 +68,8 @@ void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActo
         }
 
         if (!destroyable->IsDestroyed())
-        {
             destroyable->Destroy();
-        }
 
         m_isDead = true;
     }
-}
-
-void UUnitParameters::RenderBar()
-{
-    if (!m_healthBar.IsValid() || m_hideBar)
-    {
-        return;
-    }
-    
-    const double value = m_healthBar->GetMaxValue() * m_currentHealth / m_currentMaxHealth;
-    
-    m_healthBar->SetValue(static_cast<float>(value));
-    m_healthBlueprint->SetIsEnabled(m_currentHealth != m_currentMaxHealth);
 }

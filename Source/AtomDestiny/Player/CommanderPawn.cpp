@@ -8,15 +8,16 @@
 #include "GameFramework/FloatingPawnMovement.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Core/Logger.h"
 
-#include "Kismet/KismetMathLibrary.h"
 
 // Sets default values
 ACommanderPawn::ACommanderPawn()
 {
     // Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
     //PrimaryActorTick.bCanEverTick = true;
-
+    m_mouseEnabled = true;
+    
     m_sphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
     SetRootComponent(m_sphere);
 
@@ -46,22 +47,13 @@ ACommanderPawn::ACommanderPawn()
     );
 
     m_startPos = FVector(3000, 0, 10000);
-    m_startRot = FRotator(0, 0, 180);
+    m_startRot = FRotator(-90, 0, 0);
 }
 
 // Called when the game starts or when spawned
 void ACommanderPawn::BeginPlay()
 {
     Super::BeginPlay();
-    
-    ACommanderController* cmdController = Cast<ACommanderController>(Controller);
-    cmdController->EnableMouseLook = false;
-}
-
-// Called every frame
-void ACommanderPawn::Tick(float deltaTime)
-{
-    Super::Tick(deltaTime);
 }
 
 void ACommanderPawn::OnMoveAction(const FInputActionValue& actionValue)
@@ -69,9 +61,13 @@ void ACommanderPawn::OnMoveAction(const FInputActionValue& actionValue)
     FVector&& input = actionValue.Get<FInputActionValue::Axis3D>();
     FVector vec(input);
 
+    /// ***  TODO: Limit pawn moving ***
     vec = GetActorRotation().RotateVector(vec);
+    AddMovementInput(vec, m_moveScale);
+
+    
    // if (UKismetMathLibrary::IsPointInBox_Box(vec, worldBox))
-        AddMovementInput(vec, m_moveScale);
+   //     AddMovementInput(vec, m_moveScale);
    /* else
     {
         auto&& loc = ClampVector(GetActorLocation(),
@@ -83,17 +79,25 @@ void ACommanderPawn::OnMoveAction(const FInputActionValue& actionValue)
     }*/
 }
 
-void ACommanderPawn::OnRotateAction(const FInputActionValue& actionValue)
+void ACommanderPawn::OnLookAction(const FInputActionValue& actionValue)
 {
-    FRotator rot = FRotator(actionValue[0], actionValue[1], actionValue[2]);
+    FRotator rot = FRotator(
+        m_mouseEnabled ? actionValue[0] : 0,
+        m_mouseEnabled ? actionValue[1] : 0,
+        0);
 
     rot *= GetWorld()->GetDeltaSeconds() * m_rotateScale;
-    rot += GetActorRotation();
     //rot.Pitch = FMath::ClampAngle(rot.Pitch, -89.9f, 89.9f);
-    SetActorRotation(rot);
+    
+    AddActorLocalRotation(rot);
 }
 
-void ACommanderPawn::OnResetAction(const FInputActionValue& actionValue)
+void ACommanderPawn::OnRollAction(const FInputActionValue& actionValue)
+{
+    AddActorLocalRotation(FRotator(0,0, actionValue[0]));
+}
+
+void ACommanderPawn::OnResetAction(const FInputActionValue&)
 {
     SetActorLocation(m_startPos);
     SetActorRotation(m_startRot);
@@ -104,22 +108,22 @@ void ACommanderPawn::SetupPlayerInputComponent(UInputComponent* playerInputCompo
 {
     Super::SetupPlayerInputComponent(playerInputComponent);
 
-    UEnhancedInputComponent* enhancedInputComponent = Cast<UEnhancedInputComponent>(playerInputComponent);
-    const ACommanderController* commanderController = Cast<ACommanderController>(Controller);
+    UEnhancedInputComponent* inputComp = Cast<UEnhancedInputComponent>(playerInputComponent);
+    const ACommanderController* cmdCtrl = Cast<ACommanderController>(Controller);
 
-    check(enhancedInputComponent && commanderController)
+    check(inputComp && cmdCtrl)
 
-    enhancedInputComponent->BindAction(commanderController->GetActionMove(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnMoveAction);
-    enhancedInputComponent->BindAction(commanderController->GetActionRotate(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnRotateAction);
-    enhancedInputComponent->BindAction(commanderController->GetActionReset(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnResetAction);
-
-    const ULocalPlayer* localPlayer = commanderController->GetLocalPlayer();
+    inputComp->BindAction(cmdCtrl->GetActionMove(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnMoveAction);
+    inputComp->BindAction(cmdCtrl->GetActionLook(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnLookAction);
+    inputComp->BindAction(cmdCtrl->GetActionRoll(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnRollAction);
+    inputComp->BindAction(cmdCtrl->GetActionReset(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnResetAction);
+    
+    const ULocalPlayer* localPlayer = cmdCtrl->GetLocalPlayer();
     check(localPlayer)
 
     UEnhancedInputLocalPlayerSubsystem* subSys = localPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
     check(subSys)
 
     subSys->ClearAllMappings();
-    subSys->AddMappingContext(commanderController->GetPawnMappingContext(), 0);
+    subSys->AddMappingContext(cmdCtrl->GetPawnMappingContext(), 0);
 }
-

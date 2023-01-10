@@ -1,11 +1,11 @@
 ﻿#pragma once
 
-#include <AtomDestiny/ObjectState/ObjectStateBase.h>
+#include <AtomDestiny/Parameters/ParametersBase.h>
 
 #include "UnitParameters.generated.h"
 
 UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
-class ATOMDESTINY_API UUnitParameters final : public UObjectStateBase
+class ATOMDESTINY_API UUnitParameters : public UParametersBase
 {
     GENERATED_BODY()
 
@@ -17,10 +17,12 @@ public:
     virtual void AddDamage(double damage, EWeaponType type, AActor* owner) override;
    
 protected:
+    virtual void BeginPlay() override;
     
     // Called every frame
     virtual void TickComponent(float deltaTime, ELevelTick levelTick, FActorComponentTickFunction* func) override;
 
 private:
-    void RenderBar();
+    void RenderHealthBar();
+    void CheckHealthState();
 };

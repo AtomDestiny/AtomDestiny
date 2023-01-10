@@ -7,6 +7,8 @@
 #include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
+#include <AtomDestiny/Core/ObjectPool/ActorPool.h>
+
 UWeaponBase::UWeaponBase(const FObjectInitializer& objectInitializer):
     UADObject(objectInitializer)
 {
@@ -37,8 +39,6 @@ void UWeaponBase::InitializeComponent()
     };
     
     AddNewParameters(params);
-
-    AtomDestiny::Utils::PreloadBlueprint(m_projectileBlueprint, BlueprintPreloadCount);
 }
 
 void UWeaponBase::BeginPlay()
@@ -48,13 +48,18 @@ void UWeaponBase::BeginPlay()
     m_weaponAnimation = GET_INTERFACE(WeaponAnimation);
 
     if (m_useRaycast && !m_useFriendlyFire)
+    {
         ExcludeSameLayer();
+    }
+    
+    AtomDestiny::ObjectPool::Instance().Preload(m_projectileBlueprint, BlueprintPreloadCount);
 }
 
 void UWeaponBase::EndPlay(const EEndPlayReason::Type type)
 {
     Super::EndPlay(type);
     m_firing = false;
+    
     // StopAllCoroutines();
 }
 
@@ -207,14 +212,14 @@ void UWeaponBase::RotateToRoot(float deltaTime) const
     }
 }
 
-bool UWeaponBase::CheckRaycastToTarget(const FVector& origin, const FVector& direction, const TWeakObjectPtr<AActor>& target, FHitResult* hitResult) const
+bool UWeaponBase::CheckRaycastToTarget(const FVector& from, const TWeakObjectPtr<AActor>& target, FHitResult* hitResult) const
 {
     // You can use this to customize various properties about the trace
     FCollisionQueryParams params;
     params.AddIgnoredActor(GetOwner());
 
     // The hit result gets populated by the line trace
-    if (FHitResult hit; GetWorld()->LineTraceSingleByChannel(hit, origin, direction, m_layerMask, params))
+    if (FHitResult hit; GetWorld()->LineTraceSingleByChannel(hit, from, target->GetActorLocation(), m_layerMask, params))
     {
         if (hitResult != nullptr)
             *hitResult = hit;
@@ -230,7 +235,9 @@ FAsyncCoroutine UWeaponBase::FiringDelay()
     co_await Coroutines::Latent::Seconds(m_reloadTime);
 
     if (m_weaponAnimation != nullptr)
+    {
         m_weaponAnimation->SetDefaultState();
+    }
         
     m_firing = false;
 }

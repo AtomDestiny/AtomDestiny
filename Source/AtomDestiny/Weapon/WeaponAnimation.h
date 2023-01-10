@@ -21,7 +21,7 @@ public:
     
     // Returns weapon ready status
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual bool IsReady() = 0;
+    virtual bool IsReady() const = 0;
 
     // Plays animation
     UFUNCTION(Meta = (AllowOverride = true))
