@@ -42,4 +42,7 @@ void UUnitScrapDestroy::Destroy()
         component->AddRadialImpulse(component->GetComponentLocation(), m_explosionRadius, static_cast<float>(power),
                                     ERadialImpulseFalloff::RIF_Constant, true);
     }
+
+    AtomDestiny::ObjectPool::Instance().Despawn(scrap, m_partsDestroyTime);
+    AtomDestiny::ObjectPool::Instance().Despawn(GetOwner());
 }
