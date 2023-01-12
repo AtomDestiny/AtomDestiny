@@ -7,7 +7,7 @@
 ///
 /// Destroys unit with scrap.
 /// It spawns explosion, than spawns scrap with added force.
-/// Despawn explosion, scrap and destroys driven unit
+/// Despawns explosion, scrap and destroys driven unit
 /// 
 UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
 class UUnitScrapDestroy : public UDestroyBase

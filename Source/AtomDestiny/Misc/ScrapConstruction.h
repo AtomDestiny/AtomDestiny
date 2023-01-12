@@ -5,6 +5,11 @@
 
 #include "ScrapConstruction.generated.h"
 
+///
+/// Represents starter scrap component to save local
+/// static meshes components transforms.
+/// It constructs every static mesh after explosion on every spawn.
+///
 UCLASS(Blueprintable)
 class UScrapConstruction : public UActorComponent
 {
