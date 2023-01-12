@@ -61,6 +61,16 @@ namespace AtomDestiny::Utils
         return MakeWeakObjectPtr(CastChecked<Component>(component));
     }
 
+    template <typename Component>
+    TArray<Component*> GetComponents(const AActor* actor)
+    {
+        TArray<Component*> components;
+        actor->GetComponents<Component>(components);
+
+        return components;
+    }
+        
+
     template<typename Interface, typename UEInterface>
     TScriptInterface<Interface> CreateInterface(UEInterface* object)
     {
