@@ -20,20 +20,26 @@ void UUnitScrapDestroy::Destroy()
     Super::Destroy();
     SpawnExplosion(GetOwner()->GetTransform().GetLocation(), FQuat::Identity);
 
-    if (IsValid(m_scrapBlueprint))
+    if (!IsValid(m_scrapBlueprint))
     {
-        const AActor* owner = GetOwner();
-        const TWeakObjectPtr<AActor> scrap = AtomDestiny::ObjectPool::Instance().Spawn(m_scrapBlueprint.GetDefaultObject(), owner->GetActorLocation(), owner->GetActorRotation().Quaternion());
+        return;
+    }
+    
+    const AActor* owner = GetOwner();
+    const TWeakObjectPtr<AActor> scrap = AtomDestiny::ObjectPool::Instance().Spawn(
+        m_scrapBlueprint.GetDefaultObject(), owner->GetActorLocation(), owner->GetActorRotation().Quaternion());
 
-        if (scrap.IsValid())
-        {
-            const TArray<UStaticMeshComponent*> components = AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(scrap.Get());
+    if (!scrap.IsValid())
+    {
+        return;
+    }
+    
+    const TArray<UStaticMeshComponent*> components = AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(scrap.Get());
 
-            for (UStaticMeshComponent* component : components)
-            {
-                const double power = FMath::FRandRange(m_minExplosionPower, m_maxExplosionPower);
-                component->AddRadialImpulse(component->GetComponentLocation(), m_explosionRadius, static_cast<float>(power), ERadialImpulseFalloff::RIF_Constant, true);
-            }
-        }
+    for (UStaticMeshComponent* component : components)
+    {
+        const double power = FMath::FRandRange(m_minExplosionPower, m_maxExplosionPower);
+        component->AddRadialImpulse(component->GetComponentLocation(), m_explosionRadius, static_cast<float>(power),
+                                    ERadialImpulseFalloff::RIF_Constant, true);
     }
 }
