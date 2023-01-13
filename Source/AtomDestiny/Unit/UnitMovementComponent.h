@@ -9,7 +9,7 @@
 /// Should be used for all base Atom Destiny units, which controlled by AI and ANavigator.
 /// 
 UCLASS(ClassGroup = Movement, Blueprintable, meta = (BlueprintSpawnableComponent))
-class UUnitMovementComponent : public UFloatingPawnMovement
+class ATOMDESTINY_API UUnitMovementComponent : public UFloatingPawnMovement
 {
     GENERATED_BODY()
     

@@ -10,7 +10,7 @@
 /// Despawns explosion, scrap and destroys driven unit
 /// 
 UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
-class UUnitScrapDestroy : public UDestroyBase
+class ATOMDESTINY_API UUnitScrapDestroy : public UDestroyBase
 {
     GENERATED_BODY()
 
