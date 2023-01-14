@@ -17,6 +17,11 @@ namespace AtomDestiny::Utils
         actor->SetActorHiddenInGame(!status);
         actor->SetActorEnableCollision(status);
         actor->SetActorTickEnabled(status);
+
+        for (const auto component : actor->GetComponents())
+        {
+            component->SetActive(status);
+        }
     }
 
     inline void SetActorActive(const TStrongObjectPtr<AActor>& object, const bool status)

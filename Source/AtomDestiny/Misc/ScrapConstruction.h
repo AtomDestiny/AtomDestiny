@@ -17,7 +17,7 @@ class UScrapConstruction : public UActorComponent
 
 protected:
     virtual void BeginPlay() override;
-    virtual void SetActive(bool newActive, bool reset) override;
+    virtual void Activate(bool reset) override;
     
 private:
     TMap<TWeakObjectPtr<UStaticMeshComponent>, FTransform> m_localTransforms;

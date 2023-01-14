@@ -12,14 +12,9 @@ void UScrapConstruction::BeginPlay()
     }
 }
 
-void UScrapConstruction::SetActive(bool newActive, bool reset)
+void UScrapConstruction::Activate(bool reset)
 {
-    Super::SetActive(newActive, reset);
-
-    if (!newActive)
-    {
-        return;
-    }
+    Super::Activate(reset);
     
     for (auto& [component, localTransform] : m_localTransforms)
     {
