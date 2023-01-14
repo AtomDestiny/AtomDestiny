@@ -21,6 +21,7 @@ public:
     virtual void Destroy() override;
     
 private:
+    void RenderDebugSphere();
     
     // Rigidbody min explosion power. Random value between min and max values
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Min explosion power", AllowPrivateAccess = "true"))
@@ -41,4 +42,7 @@ private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Scrap blueprint", AllowPrivateAccess = "true"))
     TSubclassOf<AActor> m_scrapBlueprint;
     constexpr static uint32_t ScrapPreloadCount = 3;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Render debug explosion sphere", AllowPrivateAccess = "true"))
+    bool m_renderExplosionSphere = true;
 };

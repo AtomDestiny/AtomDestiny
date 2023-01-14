@@ -32,14 +32,7 @@ void UUnitScrapDestroy::Destroy()
     
     const TWeakObjectPtr<AActor> scrap = AtomDestiny::ObjectPool::Instance().Spawn(
         m_scrapBlueprint.GetDefaultObject(), owner->GetActorLocation(), owner->GetActorRotation().Quaternion());
-
-    if (!scrap.IsValid())
-    {
-        return;
-    }
-
-    DrawDebugSphere(GetWorld(), owner->GetActorLocation(), m_explosionRadius, 50, FColor::Cyan, true);
-
+    
     const TArray<UStaticMeshComponent*> components = AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(scrap.Get());
     
     for (UStaticMeshComponent* component : components)
@@ -49,5 +42,18 @@ void UUnitScrapDestroy::Destroy()
                                     ERadialImpulseFalloff::RIF_Constant, true);
     }
 
+    RenderDebugSphere();
     AtomDestiny::ObjectPool::Instance().Despawn(scrap, m_partsDestroyTime);
+}
+
+void UUnitScrapDestroy::RenderDebugSphere()
+{
+    if (!m_renderExplosionSphere)
+    {
+        return;
+    }
+
+#ifdef ENABLE_DRAW_DEBUG
+    DrawDebugSphere(GetWorld(), GetOwner()->GetActorLocation(), m_explosionRadius, 50, FColor::Cyan, false, m_partsDestroyTime + 1.0f);
+#endif // ENABLE_DRAW_DEBUG
 }
