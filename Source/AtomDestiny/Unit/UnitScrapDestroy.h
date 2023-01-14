@@ -7,10 +7,10 @@
 ///
 /// Destroys unit with scrap.
 /// It spawns explosion, than spawns scrap with added force.
-/// Despawns explosion, scrap and destroys driven unit
+/// Des-pawns explosion, scrap and destroys driven unit
 /// 
 UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
-class ATOMDESTINY_API UUnitScrapDestroy : public UDestroyBase
+class ATOMDESTINY_API UUnitScrapDestroy final : public UDestroyBase
 {
     GENERATED_BODY()
 
@@ -40,5 +40,5 @@ private:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Scrap blueprint", AllowPrivateAccess = "true"))
     TSubclassOf<AActor> m_scrapBlueprint;
-    uint32_t ScrapPreloadCount = 3;
+    constexpr static uint32_t ScrapPreloadCount = 3;
 };
