@@ -35,9 +35,11 @@ void UUnitScrapDestroy::Destroy()
     
     const TArray<UStaticMeshComponent*> components = AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(scrap.Get());
     
-    for (UStaticMeshComponent* component : components)
+    for (const auto component : components)
     {
         const double power = FMath::FRandRange(m_minExplosionPower, m_maxExplosionPower);
+
+        component->SetSimulatePhysics(true);
         component->AddRadialImpulse(owner->GetActorLocation(), m_explosionRadius, static_cast<float>(power),
                                     ERadialImpulseFalloff::RIF_Constant, true);
     }

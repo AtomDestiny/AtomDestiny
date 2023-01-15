@@ -4,7 +4,7 @@
 #include <vector>
 
 #include <AtomDestiny/Core/ActorComponentUtils.h>
-#include <AtomDestiny/Core/ObjectPool/Detail/ActorPoolMember.h>
+#include <AtomDestiny/Core/ObjectPool/Details/ActorPoolMember.h>
 
 using namespace AtomDestiny;
 

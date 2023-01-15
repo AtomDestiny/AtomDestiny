@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include <Engine/Classes/GameFramework/Actor.h>
+#include <AtomDestiny/Core/Details/ActorUtilsHelper.h>
 
 namespace AtomDestiny::Utils
 {
@@ -21,6 +22,11 @@ namespace AtomDestiny::Utils
         for (const auto component : actor->GetComponents())
         {
             component->SetActive(status);
+
+            if (!status)
+            {
+                Details::SetSimulatePhysics(component, status);
+            }
         }
     }
 
