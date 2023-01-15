@@ -20,5 +20,5 @@ protected:
     virtual void Deactivate() override;
     
 private:
-    TMap<TStrongObjectPtr<UStaticMeshComponent>, FTransform> m_localTransforms;
+    TArray<FTransform> m_localTransforms;
 };

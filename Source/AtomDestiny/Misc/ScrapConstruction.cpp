@@ -6,10 +6,9 @@ void UScrapConstruction::BeginPlay()
 {
     Super::BeginPlay();
     
-    for (UStaticMeshComponent* component : AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(GetOwner()))
+    for (const UStaticMeshComponent* component : AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(GetOwner()))
     {
-        TStrongObjectPtr componentPtr { component};
-        m_localTransforms.Add(std::move(componentPtr), component->GetRelativeTransform());
+        m_localTransforms.Add(component->GetRelativeTransform());
     }
 }
 
@@ -18,14 +17,17 @@ void UScrapConstruction::Deactivate()
     Super::Deactivate();
 
     const auto rootComponent = GetOwner()->GetRootComponent();
-    
-    for (auto& [component, localTransform] : m_localTransforms)
+    const TArray<UStaticMeshComponent*> components = AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(GetOwner());
+
+    for (uint64_t index = 0; index < components.Num(); ++index)
     {
-        if (component.IsValid())
-        {
-            component->SetSimulatePhysics(false);
-            component->AttachToComponent(rootComponent, FAttachmentTransformRules::KeepRelativeTransform);
-            component->SetRelativeTransform(localTransform);
-        }
+        check(index < m_localTransforms.Num());
+
+        UStaticMeshComponent* component = components[index];
+        const FTransform& localTransform = m_localTransforms[index];
+
+        component->SetSimulatePhysics(false);
+        component->AttachToComponent(rootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+        component->SetRelativeTransform(localTransform);
     }
 }
