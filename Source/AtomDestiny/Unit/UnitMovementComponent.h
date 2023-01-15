@@ -8,7 +8,7 @@
 /// Represents movement component for unit.
 /// Should be used for all base Atom Destiny units, which controlled by AI and ANavigator.
 /// 
-UCLASS(ClassGroup = Movement, Blueprintable, meta = (BlueprintSpawnableComponent))
+UCLASS(ClassGroup = Movement, meta = (BlueprintSpawnableComponent))
 class ATOMDESTINY_API UUnitMovementComponent : public UFloatingPawnMovement
 {
     GENERATED_BODY()

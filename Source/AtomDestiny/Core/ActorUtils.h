@@ -21,12 +21,12 @@ namespace AtomDestiny::Utils
 
         for (const auto component : actor->GetComponents())
         {
-            component->SetActive(status);
-
             if (!status)
             {
-                Details::SetSimulatePhysics(component, status);
+                Details::SetSimulatePhysics(component, false);
             }
+            
+            component->SetActive(status);
         }
     }
 

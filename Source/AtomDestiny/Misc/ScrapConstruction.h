@@ -10,15 +10,15 @@
 /// static meshes components transforms.
 /// It constructs every static mesh after explosion on every spawn.
 ///
-UCLASS(Blueprintable)
+UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
 class UScrapConstruction : public UActorComponent
 {
     GENERATED_BODY()
 
 protected:
     virtual void BeginPlay() override;
-    virtual void Activate(bool reset) override;
+    virtual void Deactivate() override;
     
 private:
-    TMap<TWeakObjectPtr<UStaticMeshComponent>, FTransform> m_localTransforms;
+    TMap<TStrongObjectPtr<UStaticMeshComponent>, FTransform> m_localTransforms;
 };

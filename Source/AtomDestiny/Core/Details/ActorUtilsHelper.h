@@ -12,4 +12,4 @@ namespace AtomDestiny::Utils::Details
         }
     }
     
-} // AtomDestiny::Utils::Details
+} // namespace AtomDestiny::Utils::Details

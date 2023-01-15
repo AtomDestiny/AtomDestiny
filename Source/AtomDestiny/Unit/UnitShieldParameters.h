@@ -7,7 +7,7 @@
 ///
 /// Represents base units parameters with health and shield.
 ///
-UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
+UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
 class ATOMDESTINY_API UUnitShieldParameters final : public UShieldParametersBase
 {
     GENERATED_BODY()

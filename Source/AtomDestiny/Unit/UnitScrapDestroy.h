@@ -9,7 +9,7 @@
 /// It spawns explosion, than spawns scrap with added force.
 /// Des-pawns explosion, scrap and destroys driven unit
 /// 
-UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
+UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
 class ATOMDESTINY_API UUnitScrapDestroy final : public UDestroyBase
 {
     GENERATED_BODY()
@@ -21,19 +21,18 @@ public:
     virtual void Destroy() override;
     
 private:
-    void RenderDebugSphere();
     
     // Rigidbody min explosion power. Random value between min and max values
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Min explosion power", AllowPrivateAccess = "true"))
-    double m_minExplosionPower = 100.0;
+    double m_minExplosionPower = 1000.0;
     
     // Rigidbody max explosion power. Random value between min and max values
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Max explosion power", AllowPrivateAccess = "true"))
-    double m_maxExplosionPower = 500.0;
+    double m_maxExplosionPower = 3000.0;
     
     // Rigidbody explosion radius
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Explosion radius", AllowPrivateAccess = "true"))
-    double m_explosionRadius = 25.0;
+    double m_explosionRadius = 125.0;
     
     // Destroy time for parts after explosion
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Scrap parts destroy time", AllowPrivateAccess = "true"))
@@ -42,7 +41,4 @@ private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Scrap blueprint", AllowPrivateAccess = "true"))
     TSubclassOf<AActor> m_scrapBlueprint;
     constexpr static uint32_t ScrapPreloadCount = 3;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Render debug explosion sphere", AllowPrivateAccess = "true"))
-    bool m_renderExplosionSphere = true;
 };

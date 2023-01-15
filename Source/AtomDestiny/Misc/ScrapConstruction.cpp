@@ -8,16 +8,24 @@ void UScrapConstruction::BeginPlay()
     
     for (UStaticMeshComponent* component : AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(GetOwner()))
     {
-        m_localTransforms.Add(MakeWeakObjectPtr(component), component->GetRelativeTransform());
+        TStrongObjectPtr componentPtr { component};
+        m_localTransforms.Add(std::move(componentPtr), component->GetRelativeTransform());
     }
 }
 
-void UScrapConstruction::Activate(bool reset)
+void UScrapConstruction::Deactivate()
 {
-    Super::Activate(reset);
+    Super::Deactivate();
+
+    const auto rootComponent = GetOwner()->GetRootComponent();
     
     for (auto& [component, localTransform] : m_localTransforms)
     {
-        component->SetRelativeTransform(localTransform);
+        if (component.IsValid())
+        {
+            component->SetSimulatePhysics(false);
+            component->AttachToComponent(rootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+            component->SetRelativeTransform(localTransform);
+        }
     }
 }

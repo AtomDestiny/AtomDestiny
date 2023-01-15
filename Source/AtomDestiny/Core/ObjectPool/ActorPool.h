@@ -28,9 +28,11 @@ namespace AtomDestiny
         
         // Spawns a copy of the specified actor (instantiating one if required)
         TWeakObjectPtr<AActor> Spawn(TWeakObjectPtr<AActor> object, const FVector& position, const FQuat& rotation);
+        TWeakObjectPtr<AActor> Spawn(const TSubclassOf<AActor>& object, const FVector& position, const FQuat& rotation);
         
         // Spawns a copy of the specified prefab, with zero pos and identity rotation
         TWeakObjectPtr<AActor> Spawn(TWeakObjectPtr<AActor> object);
+        TWeakObjectPtr<AActor> Spawn(const TSubclassOf<AActor>& object);
         
         // Des-pawns the specified AActor back into its pool.
         void Despawn(TWeakObjectPtr<AActor> object) const;

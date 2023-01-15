@@ -11,7 +11,7 @@ class UAnimSingleNodeInstance;
 ///
 /// Represents phase cannon animation controller for Lancer
 ///
-UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
+UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
 class ATOMDESTINY_API ULancerCannonAnimation final : public UWeaponAnimationBase
 {
     GENERATED_BODY()

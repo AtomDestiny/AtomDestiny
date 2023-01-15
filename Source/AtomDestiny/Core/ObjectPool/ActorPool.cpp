@@ -34,9 +34,29 @@ TWeakObjectPtr<AActor> ActorPool::Spawn(TWeakObjectPtr<AActor> object, const FVe
     return m_pools[std::move(object)]->Spawn(position, rotation);
 }
 
+TWeakObjectPtr<AActor> ActorPool::Spawn(const TSubclassOf<AActor>& object, const FVector& position, const FQuat& rotation)
+{
+    if (!IsValid(object))
+    {
+        return nullptr;
+    }
+    
+    return Spawn(MakeWeakObjectPtr(object.GetDefaultObject()), position, rotation);
+}
+
 TWeakObjectPtr<AActor> ActorPool::Spawn(TWeakObjectPtr<AActor> object)
 {
     return Spawn(std::move(object), FVector::ZeroVector, FQuat::Identity);
+}
+
+TWeakObjectPtr<AActor> ActorPool::Spawn(const TSubclassOf<AActor>& object)
+{
+    if (!IsValid(object))
+    {
+        return nullptr;
+    }
+
+    return Spawn(MakeWeakObjectPtr(object.GetDefaultObject()));
 }
 
 // ReSharper disable once CppMemberFunctionMayBeStatic

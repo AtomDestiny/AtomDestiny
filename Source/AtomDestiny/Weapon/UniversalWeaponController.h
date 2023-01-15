@@ -11,7 +11,7 @@ class AParticle;
 /// (laser projectiles should used only by laser controller, 
 /// because of local/world matrix transforms)
 ///
-UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
+UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
 class ATOMDESTINY_API UUniversalWeaponController final : public UWeaponBase
 {
     GENERATED_BODY()
