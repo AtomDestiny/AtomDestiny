@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 
-#include "Detail/Pool.h"
+#include "Details/Pool.h"
 
 #include "AtomDestiny/Core/Hash.h"
 
@@ -28,14 +28,16 @@ namespace AtomDestiny
         
         // Spawns a copy of the specified actor (instantiating one if required)
         TWeakObjectPtr<AActor> Spawn(TWeakObjectPtr<AActor> object, const FVector& position, const FQuat& rotation);
+        TWeakObjectPtr<AActor> Spawn(const TSubclassOf<AActor>& object, const FVector& position, const FQuat& rotation);
         
         // Spawns a copy of the specified prefab, with zero pos and identity rotation
         TWeakObjectPtr<AActor> Spawn(TWeakObjectPtr<AActor> object);
+        TWeakObjectPtr<AActor> Spawn(const TSubclassOf<AActor>& object);
         
-        // Despawns the specified AActor back into its pool.
+        // Des-pawns the specified AActor back into its pool.
         void Despawn(TWeakObjectPtr<AActor> object) const;
         
-        // Despawns the specified AActor back into its pool after time
+        // Des-pawns the specified AActor back into its pool after time
         void Despawn(TWeakObjectPtr<AActor> object, double time) const;
         
         // Cleans all pooled members

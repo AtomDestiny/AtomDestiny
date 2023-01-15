@@ -32,10 +32,8 @@ void ULancerCannonAnimation::Animate()
 
 void ULancerCannonAnimation::SetDefaultState()
 {
-    if (!m_animation.IsValid())
+    if (m_animation.IsValid())
     {
-        return;
+        m_animation->StopAnim();
     }
-
-    m_animation->StopAnim();
 }
