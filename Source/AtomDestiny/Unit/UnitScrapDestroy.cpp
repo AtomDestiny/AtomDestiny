@@ -4,6 +4,8 @@
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/Logger.h>
 
+#include "Misc/ScrapConstruction.h"
+
 UUnitScrapDestroy::UUnitScrapDestroy(const FObjectInitializer& objectInitializer):
     UDestroyBase(objectInitializer)
 {
@@ -41,6 +43,11 @@ void UUnitScrapDestroy::Destroy()
 
         component->SetSimulatePhysics(true);
         component->AddRadialImpulse(scrap->GetActorLocation(), m_explosionRadius, static_cast<float>(power), ERadialImpulseFalloff::RIF_Constant, true);
+    }
+
+    if (UScrapConstruction* construction = scrap->FindComponentByClass<UScrapConstruction>(); construction != nullptr)
+    {
+        construction->Construct();
     }
     
     AtomDestiny::ObjectPool::Instance().Despawn(scrap, m_partsDestroyTime);

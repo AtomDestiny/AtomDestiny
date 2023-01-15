@@ -15,6 +15,10 @@ class UScrapConstruction : public UActorComponent
 {
     GENERATED_BODY()
 
+public:
+    UFUNCTION()
+    void Construct();
+
 protected:
     virtual void BeginPlay() override;
     virtual void Deactivate() override;
