@@ -6,7 +6,7 @@ class UUnitLogic;
 class USceneComponent;
 class UHealthBarComponent;
 class UUnitMovementComponent;
-class UUnitBasicDestroy;
+class UUnitScrapDestroy;
 
 #include <Runtime/Engine/Classes/GameFramework/Pawn.h>
 
@@ -51,5 +51,5 @@ protected:
     TObjectPtr<UUnitMovementComponent> m_unitMovement;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit destroy behaviour"))
-    TObjectPtr<UUnitBasicDestroy> m_unitDestroy;
+    TObjectPtr<UUnitScrapDestroy> m_unitDestroy;
 };

@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include <Engine/Classes/GameFramework/Actor.h>
+#include <AtomDestiny/Core/Details/ActorUtilsHelper.h>
 
 namespace AtomDestiny::Utils
 {
@@ -17,6 +18,16 @@ namespace AtomDestiny::Utils
         actor->SetActorHiddenInGame(!status);
         actor->SetActorEnableCollision(status);
         actor->SetActorTickEnabled(status);
+
+        for (const auto component : actor->GetComponents())
+        {
+            if (!status)
+            {
+                Details::SetSimulatePhysics(component, false);
+            }
+            
+            component->SetActive(status);
+        }
     }
 
     inline void SetActorActive(const TStrongObjectPtr<AActor>& object, const bool status)
