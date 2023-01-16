@@ -15,10 +15,14 @@ class UScrapConstruction : public UActorComponent
 {
     GENERATED_BODY()
 
+public:
+    UFUNCTION()
+    void Construct();
+
 protected:
     virtual void BeginPlay() override;
     virtual void Deactivate() override;
     
 private:
-    TMap<TStrongObjectPtr<UStaticMeshComponent>, FTransform> m_localTransforms;
+    TArray<FTransform> m_localTransforms;
 };
