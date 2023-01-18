@@ -10,7 +10,7 @@
 /// Represents tank shot, that deals damage and spawns impact particle,
 /// driven by raycasted weapon controller.
 //
-UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
+UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
 class ATOMDESTINY_API UPlasmaShotProjectile : public UProjectileBase
 {
     GENERATED_BODY()

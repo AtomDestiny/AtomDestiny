@@ -1,6 +1,10 @@
 #include "UnitScrapDestroy.h"
 
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
+#include <AtomDestiny/Core/ActorComponentUtils.h>
+#include <AtomDestiny/Core/Logger.h>
+
+#include "Misc/ScrapConstruction.h"
 
 UUnitScrapDestroy::UUnitScrapDestroy(const FObjectInitializer& objectInitializer):
     UDestroyBase(objectInitializer)
@@ -17,13 +21,34 @@ void UUnitScrapDestroy::BeginPlay()
 void UUnitScrapDestroy::Destroy()
 {
     Super::Destroy();
-    SpawnExplosion(GetOwner()->GetTransform().GetLocation(), FQuat::Identity);
+    SpawnExplosion(GetOwner()->GetActorLocation(), FQuat::Identity);
+    
+    const FVector actorLocation = GetOwner()->GetActorLocation();
+    const FQuat actorRotation = GetOwner()->GetActorQuat();
+    
+    AtomDestiny::ObjectPool::Instance().Despawn(GetOwner());
 
-    if (m_scrapBlueprint)
+    if (!IsValid(m_scrapBlueprint))
     {
-        const AActor* owner = GetOwner();
-        // AtomDestiny::ObjectPool::Instance().Spawn(m_scrapBlueprint.GetDefaultObject(),
-        //     owner->GetActorLocation(), owner->GetActorRotation());
-        // for (const UActorComponent* component : m_)
+        LOG_ERROR(TEXT("Scrap blueprint is empty"));
+        return;
     }
+    
+    const TWeakObjectPtr<AActor> scrap = AtomDestiny::ObjectPool::Instance().Spawn(m_scrapBlueprint.GetDefaultObject(), actorLocation, actorRotation);
+    const TArray<UStaticMeshComponent*> components = AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(scrap.Get());
+    
+    for (const auto component : components)
+    {
+        const double power = FMath::FRandRange(m_minExplosionPower, m_maxExplosionPower);
+
+        component->SetSimulatePhysics(true);
+        component->AddRadialImpulse(scrap->GetActorLocation(), m_explosionRadius, static_cast<float>(power), ERadialImpulseFalloff::RIF_Constant, true);
+    }
+
+    if (UScrapConstruction* construction = scrap->FindComponentByClass<UScrapConstruction>(); construction != nullptr)
+    {
+        construction->Construct();
+    }
+    
+    AtomDestiny::ObjectPool::Instance().Despawn(scrap, m_partsDestroyTime);
 }

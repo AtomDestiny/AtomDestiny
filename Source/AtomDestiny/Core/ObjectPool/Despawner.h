@@ -6,7 +6,7 @@
 
 ///
 /// Actor despawner by timer.
-/// Actor would be despawned to Actor's Pool
+/// Actor would be des-pawned to Actor's Pool
 ///
 UCLASS(Blueprintable)
 class ATOMDESTINY_API UDespawner final : public UActorComponent
