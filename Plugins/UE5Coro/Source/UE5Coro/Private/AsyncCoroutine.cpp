@@ -38,6 +38,14 @@ TMulticastDelegate<void()>& FAsyncCoroutine::OnCompletion()
 	return Handle.promise().OnCompletion();
 }
 
+void FAsyncCoroutine::Cancel()
+{
+	if (!Handle.done())
+	{
+		Handle.destroy();
+	}
+}
+
 void FAsyncCoroutine::SetDebugName(const TCHAR* Name)
 {
 #if UE5CORO_DEBUG

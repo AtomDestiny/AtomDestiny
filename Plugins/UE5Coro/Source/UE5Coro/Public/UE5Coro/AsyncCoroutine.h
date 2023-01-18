@@ -102,6 +102,9 @@ public:
     /** Sets a debug name for the currently-executing coroutine.
      *  Only valid to call from within a coroutine returning FAsyncCoroutine. */
     static void SetDebugName(const TCHAR* Name);
+
+    /** Cancels current coroutine. */
+    void Cancel();
 };
 
 template<typename... Args>
