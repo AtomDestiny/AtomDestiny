@@ -211,6 +211,12 @@ void UADObject::SetTickEnabled(bool enable)
     Super::SetComponentTickEnabled(enable);
 }
 
+void UADObject::Deactivate()
+{
+    Super::Deactivate();
+    StopAllCoroutines();
+}
+
 void UADObject::RemoveNullParameters(EObjectParameters parameter)
 {
     if (const auto iter = m_enhancementParameters.find(parameter); iter != m_enhancementParameters.cend())
