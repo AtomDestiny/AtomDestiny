@@ -32,6 +32,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/StreamableManager.h"
 #include "UE5Coro/Definitions.h"
 #include <functional>
 #include "UE5Coro/AsyncCoroutine.h"
@@ -43,7 +44,7 @@ class FLatentAwaiter;
 class FLatentCancellation;
 class FLatentPromise;
 class FPackageLoadAwaiter;
-template<std::derived_from<UObject>> class TAsyncLoadAwaiter;
+template<typename> class TAsyncLoadAwaiter;
 template<typename> class TAsyncQueryAwaiter;
 }
 
@@ -93,6 +94,7 @@ UE5CORO_API Private::FLatentAwaiter AudioSeconds(double);
 
 #pragma region Chain
 
+#if UE5CORO_CPP20
 /** Resumes the coroutine once the chained static latent action has finished,
  *  with automatic parameter matching.<br>Example usage:<br>
  *  co_await Latent::Chain(&UKismetSystemLibrary::Delay, 1.0f); */
@@ -106,13 +108,15 @@ Private::FLatentAwaiter Chain(auto (*Function)(FnParams...), auto&&... Args);
 template<std::derived_from<UObject> Class, typename... FnParams>
 Private::FLatentAwaiter Chain(auto (Class::*Function)(FnParams...),
                               Class* Object, auto&&... Args);
+#endif
 
 /** Resumes the coroutine once the chained latent action has finished,
  *  with manual parameter matching.<br>
  *  Use std::placeholders::_1 and _2 for the world context and LatentInfo.<br>
  *  Example usage:<br>
  *  co_await Latent::ChainEx(&UKismetSystemLibrary::Delay, _1, 1.0f, _2); */
-Private::FLatentAwaiter ChainEx(auto&& Function, auto&&... Args);
+template<typename F, typename... A>
+Private::FLatentAwaiter ChainEx(F&& Function, A&&... Args);
 
 #pragma endregion
 
@@ -120,13 +124,16 @@ Private::FLatentAwaiter ChainEx(auto&& Function, auto&&... Args);
 
 /** Asynchronously starts loading the object, resumes once it's loaded.<br>
  *  The result of the co_await expression is the T*. */
-template<std::derived_from<UObject> T>
-Private::TAsyncLoadAwaiter<T> AsyncLoadObject(TSoftObjectPtr<T>);
+template<typename T>
+std::enable_if_t<std::is_base_of_v<UObject, T>, Private::TAsyncLoadAwaiter<T>>
+AsyncLoadObject(TSoftObjectPtr<T>,
+                TAsyncLoadPriority = FStreamableManager::DefaultAsyncLoadPriority);
 
 /** Asynchronously starts loading the class, resumes once it's loaded.<br>
  *  The result of the co_await expression is the UClass*. */
 UE5CORO_API Private::TAsyncLoadAwaiter<UClass> AsyncLoadClass(
-	TSoftClassPtr<UObject>);
+	TSoftClassPtr<UObject>,
+	TAsyncLoadPriority = FStreamableManager::DefaultAsyncLoadPriority);
 
 /** Asynchronously starts loading the package, resumes once it's loaded.<br>
  *  The result of the co_await expression is the UPackage*.<br>
@@ -233,11 +240,12 @@ public:
 
 namespace AsyncLoad
 {
-UE5CORO_API FLatentAwaiter InternalAsyncLoadObject(TSoftObjectPtr<UObject>);
+UE5CORO_API FLatentAwaiter InternalAsyncLoadObject(TSoftObjectPtr<UObject>,
+                                                   TAsyncLoadPriority);
 UE5CORO_API UObject* InternalResume(void*);
 }
 
-template<std::derived_from<UObject> T>
+template<typename T>
 class [[nodiscard]] TAsyncLoadAwaiter : public FLatentAwaiter
 {
 public:
@@ -277,8 +285,8 @@ class [[nodiscard]] TAsyncQueryAwaiter
 	TImpl* Impl;
 
 public:
-	template<typename... P>
-	explicit TAsyncQueryAwaiter(UWorld*, FTraceHandle (UWorld::*)(P...), auto...);
+	template<typename... P, typename... A>
+	explicit TAsyncQueryAwaiter(UWorld*, FTraceHandle (UWorld::*)(P...), A...);
 	UE5CORO_API ~TAsyncQueryAwaiter();
 	UE_NONCOPYABLE(TAsyncQueryAwaiter);
 
@@ -294,12 +302,14 @@ inline UE5Coro::Private::FLatentCancellation UE5Coro::Latent::Cancel()
 	return {};
 }
 
-template<std::derived_from<UObject> T>
-UE5Coro::Private::TAsyncLoadAwaiter<T> UE5Coro::Latent::AsyncLoadObject(
-	TSoftObjectPtr<T> Ptr)
+template<typename T>
+std::enable_if_t<std::is_base_of_v<UObject, T>,
+                 UE5Coro::Private::TAsyncLoadAwaiter<T>>
+UE5Coro::Latent::AsyncLoadObject(TSoftObjectPtr<T> Ptr,
+                                 TAsyncLoadPriority Priority)
 {
 	return Private::TAsyncLoadAwaiter<T>(
-		Private::AsyncLoad::InternalAsyncLoadObject(Ptr));
+		Private::AsyncLoad::InternalAsyncLoadObject(Ptr, Priority));
 }
 
 #include "LatentChain.inl"

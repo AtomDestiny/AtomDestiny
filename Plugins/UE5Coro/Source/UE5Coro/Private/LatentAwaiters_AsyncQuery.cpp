@@ -84,10 +84,10 @@ public:
 			Result = std::move(Datum.OutOverlaps);
 
 		// If the coroutine is suspended (Handle is valid), resume it now
-		std::visit([](auto Handle)
+		std::visit([](auto InHandle)
 		{
-			if constexpr (!std::is_same_v<decltype(Handle), std::monostate>)
-				Handle.promise().Resume();
+			if constexpr (!std::is_same_v<decltype(InHandle), std::monostate>)
+				InHandle.promise().Resume();
 		}, Handle);
 
 		// Clean up
@@ -96,10 +96,10 @@ public:
 };
 
 template<typename T>
-template<typename... P>
+template<typename... P, typename... A>
 TAsyncQueryAwaiter<T>::TAsyncQueryAwaiter(UWorld* World,
                                           FTraceHandle (UWorld::*Fn)(P...),
-                                          auto... Params)
+                                          A... Params)
 	: Impl(new TImpl)
 {
 	checkf(IsInGameThread(),

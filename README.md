@@ -1,5 +1,10 @@
 # Atom Destiny
-Unreal Engine 5 Atom destiny game project
+Unreal Engine 5 Atom destiny game project.
+
+### Build Dependencies
+- Unreal engine 5.1
+- clang 15.0.5+ for Mac
+- msvc 19.28+ for Windows
 
 ### Contribution
 
@@ -8,4 +13,4 @@ So for contribution you should use them both.
 
 ### Third-party libraries
 
-Project actively uses C++20 coroutines, so basic realization used from [UE5Coro](https://github.com/landelare/ue5coro). UE5Coro works only for Windows, so we made some source modification for macOS and clang.
+Project actively uses C++20 coroutines, so realization used from [UE5Coro 1.5](https://github.com/landelare/ue5coro).

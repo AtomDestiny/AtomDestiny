@@ -10,7 +10,10 @@
 		}
 	],
 	"settings": {
-		"typescript.tsc.autoDetect": "off"
+		"typescript.tsc.autoDetect": "off",
+		"files.associations": {
+			"coroutine": "cpp"
+		}
 	},
 	"extensions": {
 		"recommendations": [

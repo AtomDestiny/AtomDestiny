@@ -33,7 +33,6 @@
 
 #include "CoreMinimal.h"
 #include "UE5Coro/Definitions.h"
-#include "Coroutines.h"
 
 namespace UE5Coro::Private
 {
@@ -60,9 +59,9 @@ struct [[nodiscard]] TGenerator
 	friend promise_type;
 
 private:
-	coro::coroutine_handle<promise_type> Handle;
+	Private::stdcoro::coroutine_handle<promise_type> Handle;
 
-	explicit TGenerator(coro::coroutine_handle<promise_type> Handle)
+	explicit TGenerator(Private::stdcoro::coroutine_handle<promise_type> Handle)
 		: Handle(Handle) { }
 
 public:
@@ -87,7 +86,7 @@ public:
 	/**	Resumes the generator. Returns true if Current() is valid. */
 	bool Resume()
 	{
-		if (*this) [[likely]]
+		if (LIKELY(*this))
 			Handle.resume();
 		return operator bool();
 	}
@@ -125,13 +124,22 @@ public:
 	explicit operator bool() const { return Generator != nullptr; }
 
 	/** Compares this iterator with another. Provided for STL compatibility. */
-	bool operator==(const TGeneratorIterator& Other) const = default;
+	bool operator==(const TGeneratorIterator& Other) const
+	{
+		return Generator == Other.Generator;
+	}
+
+	/** Compares this iterator with another. Provided for STL compatibility. */
+	bool operator!=(const TGeneratorIterator& Other) const
+	{
+		return Generator != Other.Generator;
+	}
 
 	/** Advances the generator. */
 	TGeneratorIterator& operator++()
 	{
 		checkf(Generator, TEXT("Attempted to move iterator past end()"));
-		if (!Generator->Resume()) [[unlikely]] // Did the coroutine finish?
+		if (UNLIKELY(!Generator->Resume())) // Did the coroutine finish?
 			Generator = nullptr; // Become end() if it did
 		return *this;
 	}
@@ -165,20 +173,21 @@ public:
 	FGeneratorPromise() = default;
 	FGeneratorPromise(const FGeneratorPromise&) = delete;
 
-	coro::suspend_never initial_suspend() { return {}; }
-	coro::suspend_always final_suspend() noexcept { return {}; }
+	stdcoro::suspend_never initial_suspend() { return {}; }
+	stdcoro::suspend_always final_suspend() noexcept { return {}; }
 	void return_void() { Current = nullptr; }
 	void unhandled_exception();
 
 	// co_await is not allowed in generators
-	coro::suspend_never await_transform(auto&&) = delete;
+	template<typename T>
+	stdcoro::suspend_never await_transform(T&&) = delete;
 };
 
 template<typename T>
 class [[nodiscard]] TGeneratorPromise : public FGeneratorPromise
 {
 	friend TGenerator<T>;
-	using handle_type = coro::coroutine_handle<TGeneratorPromise>;
+	using handle_type = stdcoro::coroutine_handle<TGeneratorPromise>;
 
 public:
 	TGenerator<T> get_return_object()
@@ -186,13 +195,13 @@ public:
 		return TGenerator<T>(handle_type::from_promise(*this));
 	}
 
-	coro::suspend_always yield_value(std::remove_reference_t<T>& Value)
+	stdcoro::suspend_always yield_value(std::remove_reference_t<T>& Value)
 	{
 		Current = std::addressof(Value);
 		return {};
 	}
 
-	coro::suspend_always yield_value(std::remove_reference_t<T>&& Value)
+	stdcoro::suspend_always yield_value(std::remove_reference_t<T>&& Value)
 	{
 		Current = std::addressof(Value);
 		return {};

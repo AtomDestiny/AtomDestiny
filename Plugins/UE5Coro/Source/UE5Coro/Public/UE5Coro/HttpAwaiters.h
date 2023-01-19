@@ -33,7 +33,6 @@
 
 #include "CoreMinimal.h"
 #include "UE5Coro/Definitions.h"
-#include "Coroutines.h"
 #include <optional>
 #include "Interfaces/IHttpRequest.h"
 #include "Misc/SpinLock.h"
@@ -65,7 +64,7 @@ class [[nodiscard]] UE5CORO_API FHttpAwaiter
 	std::optional<TTuple<FHttpResponsePtr, bool>> Result;
 
 	template<typename T>
-	void SetHandleAndUnlock(coro::coroutine_handle<T>);
+	void SetHandleAndUnlock(stdcoro::coroutine_handle<T>);
 	void Resume();
 	void RequestComplete(FHttpRequestPtr, FHttpResponsePtr, bool);
 

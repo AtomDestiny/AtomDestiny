@@ -29,7 +29,6 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "Engine/StreamableManager.h"
 #include "UE5Coro/LatentAwaiters.h"
 
 using namespace UE5Coro;
@@ -42,9 +41,11 @@ struct FLatentLoader
 	FStreamableManager Manager;
 	TSharedPtr<FStreamableHandle> Handle;
 
-	explicit FLatentLoader(const auto& Path)
+	template<typename T>
+	explicit FLatentLoader(const T& Path, TAsyncLoadPriority Priority)
 	{
-		Handle = Manager.RequestAsyncLoad(Path.ToSoftObjectPath());
+		Handle = Manager.RequestAsyncLoad(Path.ToSoftObjectPath(),
+		                                  FStreamableDelegate(), Priority);
 	}
 
 	~FLatentLoader()
@@ -58,7 +59,7 @@ bool ShouldResume(void*& Loader, bool bCleanup)
 {
 	auto* This = static_cast<FLatentLoader*>(Loader);
 
-	if (bCleanup) [[unlikely]]
+	if (UNLIKELY(bCleanup))
 	{
 		delete This;
 		return false;
@@ -70,9 +71,10 @@ bool ShouldResume(void*& Loader, bool bCleanup)
 }
 }
 
-FLatentAwaiter AsyncLoad::InternalAsyncLoadObject(TSoftObjectPtr<UObject> Ptr)
+FLatentAwaiter AsyncLoad::InternalAsyncLoadObject(TSoftObjectPtr<UObject> Ptr,
+                                                  TAsyncLoadPriority Priority)
 {
-	return FLatentAwaiter(new FLatentLoader(Ptr), &ShouldResume);
+	return FLatentAwaiter(new FLatentLoader(Ptr, Priority), &ShouldResume);
 }
 
 UObject* AsyncLoad::InternalResume(void* State)
@@ -83,10 +85,11 @@ UObject* AsyncLoad::InternalResume(void* State)
 	return This->Handle ? This->Handle->GetLoadedAsset() : nullptr;
 }
 
-TAsyncLoadAwaiter<UClass> Latent::AsyncLoadClass(TSoftClassPtr<UObject> Ptr)
+TAsyncLoadAwaiter<UClass> Latent::AsyncLoadClass(TSoftClassPtr<UObject> Ptr,
+                                                 TAsyncLoadPriority Priority)
 {
 	return Private::TAsyncLoadAwaiter<UClass>(
-		FLatentAwaiter(new FLatentLoader(Ptr), &ShouldResume));
+		FLatentAwaiter(new FLatentLoader(Ptr, Priority), &ShouldResume));
 }
 
 FPackageLoadAwaiter Latent::AsyncLoadPackage(
@@ -120,12 +123,12 @@ void FPackageLoadAwaiter::Loaded(const FName&, UPackage* Package,
 {
 	checkf(IsInGameThread(), TEXT("Internal error"));
 	Result.Reset(Package);
-	std::visit([](auto Handle)
+	std::visit([](auto InHandle)
 	{
 		// monostate indicates that the load finished between AsyncLoadPackage()
 		// and co_await
-		if constexpr (!std::is_same_v<decltype(Handle), std::monostate>)
-			Handle.promise().Resume();
+		if constexpr (!std::is_same_v<decltype(InHandle), std::monostate>)
+			InHandle.promise().Resume();
 	}, Handle);
 }
 
