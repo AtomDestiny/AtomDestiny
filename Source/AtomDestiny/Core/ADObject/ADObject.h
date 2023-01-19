@@ -83,8 +83,8 @@ protected:
     // enables or disables tick by state
     void SetTickEnabled(bool enable);
 
-    // called when Despaw to ObjectPool
-    virtual void Deactivate();
+    // called when Despawn to ObjectPool
+    virtual void Deactivate() override;
 
 private:
     

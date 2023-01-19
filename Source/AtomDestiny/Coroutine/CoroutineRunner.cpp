@@ -4,7 +4,7 @@
 
 void AtomDestiny::CoroutineRunner::RunCoroutine(FAsyncCoroutine&& coroutine)
 {
-    const auto id = ++m_id;
+    const uint64_t id = ++m_id;
 
     if (m_coroutines.Contains(id))
     {
@@ -25,6 +25,9 @@ void AtomDestiny::CoroutineRunner::StopAllCoroutines()
 {
     for ([[maybe_unused]] auto& [id, coroutine] : m_coroutines)
     {
+        coroutine.OnCompletion().Clear();
         coroutine.Cancel();
     }
+
+    m_coroutines.Reset();
 }

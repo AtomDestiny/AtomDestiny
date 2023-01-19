@@ -21,4 +21,5 @@ namespace AtomDestiny
         uint64_t m_id = 0;
         TMap<uint64_t, FAsyncCoroutine> m_coroutines;
     };
-}
+    
+} // namespace AtomDestiny
