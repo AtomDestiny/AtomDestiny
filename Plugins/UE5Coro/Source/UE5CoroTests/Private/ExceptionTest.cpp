@@ -36,6 +36,7 @@
 #include "UE5Coro/Generator.h"
 
 using namespace UE5Coro;
+using namespace UE5Coro::Private;
 using namespace UE5Coro::Private::Test;
 
 // Enable exceptions for this module and UE5Coro itself to test this
@@ -48,12 +49,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExceptionTest, "UE5Coro.Exceptions",
 
 namespace
 {
-struct FTestException : std::runtime_error
+class FTestException : public std::exception
 {
-	explicit FTestException(const char* What)
-		: runtime_error(What)
-	{
-	}
+	const char* What;
+
+public:
+	explicit FTestException(const char* What) : What(What) { }
+	virtual const char* what() const noexcept override { return What; }
 };
 }
 
@@ -86,7 +88,7 @@ bool FExceptionTest::RunTest(const FString& Parameters)
 		auto Fn = [&]() -> FAsyncCoroutine
 		{
 			State = 1;
-			co_await coro::suspend_always();
+			co_await stdcoro::suspend_always();
 			throw FTestException("async");
 		};
 		auto Coro = Fn();
@@ -112,7 +114,7 @@ bool FExceptionTest::RunTest(const FString& Parameters)
 		auto Fn = [&](FLatentActionInfo) -> FAsyncCoroutine
 		{
 			State = 1;
-			co_await coro::suspend_always();
+			co_await stdcoro::suspend_always();
 			throw FTestException("latent");
 		};
 		auto Coro = World.Run(Fn);
