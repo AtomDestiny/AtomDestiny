@@ -35,4 +35,7 @@ private:
     // Time after spawn to add damage
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Add damage delay", AllowPrivateAccess = "true"))
     double m_damageDelay = 0.1;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Lifetime (s)", AllowPrivateAccess = "true"))
+    double m_lifeTime = 0.6;
 };

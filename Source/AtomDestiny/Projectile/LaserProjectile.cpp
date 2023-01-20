@@ -19,7 +19,7 @@ void ULaserProjectile::Launch()
 {
     m_niagaraComponent->SetVariableVec3("BeamStartW", GetPoints().startPosition);
     m_niagaraComponent->SetVariableVec3("BeamEndW", GetPoints().impactPosition);
-    
+    m_niagaraComponent->SetVariableFloat("BeamLifeTime", m_lifeTime);
     GenerateImpact();
 }
 
@@ -33,5 +33,5 @@ FAsyncCoroutine ULaserProjectile::GenerateImpact()
         AtomDestiny::ObjectPool::Instance().Spawn(m_impactBlueprint, m_points.impactPosition, FQuat::Identity);
     }
 
-    AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(GetOwner()));
+    AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(GetOwner()), m_lifeTime);
 }
