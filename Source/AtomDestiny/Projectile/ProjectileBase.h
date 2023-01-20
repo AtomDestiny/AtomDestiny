@@ -2,6 +2,7 @@
 
 #include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/Projectile/Projectile.h>
+#include <AtomDestiny/Coroutine/CoroutineRunner.h>
 
 #include <Engine/Classes/Components/ActorComponent.h>
 
@@ -13,7 +14,7 @@ class AParticle;
 /// Represents common abstract projectile
 ///
 UCLASS(Abstract)
-class UProjectileBase : public UActorComponent, public IProjectile
+class UProjectileBase : public UActorComponent, public AtomDestiny::CoroutineRunner, public IProjectile
 {
     GENERATED_BODY()
 

@@ -14,6 +14,8 @@ namespace AtomDestiny
     class CoroutineRunner
     {
     public:
+        virtual ~CoroutineRunner() = default;
+
         void RunCoroutine(FAsyncCoroutine&& coroutine);
         void StopAllCoroutines();
 
