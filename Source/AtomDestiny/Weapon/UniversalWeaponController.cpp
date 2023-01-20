@@ -132,6 +132,11 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
 
                 projectile->SetParameters(GetParameters());
                 projectile->Launch();
+
+                if (m_useProjectileAsChild)
+                {
+                    blueprintProjectile->AttachToActor(GetOwner(), FAttachmentTransformRules::KeepRelativeTransform);
+                }
                 
                 if (IsValid(m_shotParticleBlueprint))
                 {
