@@ -40,7 +40,7 @@ TMulticastDelegate<void()>& FAsyncCoroutine::OnCompletion()
 
 void FAsyncCoroutine::Cancel()
 {
-	Handle.done();
+	[[maybe_unused]] const bool done = Handle.done();
 }
 
 bool FAsyncCoroutine::Wait(uint32 WaitTimeMilliseconds,
