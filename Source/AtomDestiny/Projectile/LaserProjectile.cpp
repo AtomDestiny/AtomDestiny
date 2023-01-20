@@ -10,28 +10,28 @@
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
 ULaserProjectile::ULaserProjectile(const FObjectInitializer& objectInitializer):
-	UProjectileBase(objectInitializer)
+    UProjectileBase(objectInitializer)
 {
-	m_niagaraComponent = objectInitializer.CreateDefaultSubobject<UNiagaraComponent>(this, TEXT("NiagaraComponent"));
+    m_niagaraComponent = objectInitializer.CreateDefaultSubobject<UNiagaraComponent>(this, TEXT("NiagaraComponent"));
 }
 
 void ULaserProjectile::Launch()
 {
-	m_niagaraComponent->SetVariableVec3("BeamStartW", GetPoints().startPosition);
-	m_niagaraComponent->SetVariableVec3("BeamEndW", GetPoints().impactPosition);
-	
-	GenerateImpact();
+    m_niagaraComponent->SetVariableVec3("BeamStartW", GetPoints().startPosition);
+    m_niagaraComponent->SetVariableVec3("BeamEndW", GetPoints().impactPosition);
+    
+    GenerateImpact();
 }
 
 FAsyncCoroutine ULaserProjectile::GenerateImpact()
 {
-	co_await Coroutines::Latent::Seconds(m_damageDelay);
+    co_await Coroutines::Latent::Seconds(m_damageDelay);
 
-	if (m_parameters.target != nullptr)
-	{
-		AtomDestiny::GetGameState(GetOwner())->AddDamage(GET_INTERFACE(Projectile), EProjectileDamageOptions::ImpactPoint);
-		AtomDestiny::ObjectPool::Instance().Spawn(m_impactBlueprint, m_points.impactPosition, FQuat::Identity);
-	}
+    if (m_parameters.target != nullptr)
+    {
+        AtomDestiny::GetGameState(GetOwner())->AddDamage(GET_INTERFACE(Projectile), EProjectileDamageOptions::ImpactPoint);
+        AtomDestiny::ObjectPool::Instance().Spawn(m_impactBlueprint, m_points.impactPosition, FQuat::Identity);
+    }
 
-	AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(GetOwner()));
+    AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(GetOwner()));
 }

@@ -16,23 +16,23 @@ class UNiagaraComponent;
 UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
 class ATOMDESTINY_API ULaserProjectile : public UProjectileBase
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	explicit ULaserProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
-	
-	// Base values initialization to projectile and generating impact blueprint
-	virtual void Launch() override;
+    explicit ULaserProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+    
+    // Base values initialization to projectile and generating impact blueprint
+    virtual void Launch() override;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Niagara component"))
-	TObjectPtr<UNiagaraComponent> m_niagaraComponent;
-	
-private:
-	// Generates impact damage and particle
-	FAsyncCoroutine GenerateImpact();
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Niagara component"))
+    TObjectPtr<UNiagaraComponent> m_niagaraComponent;
     
-	// Time after spawn to add damage
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Add damage delay", AllowPrivateAccess = "true"))
-	double m_damageDelay = 0.1;
+private:
+    // Generates impact damage and particle
+    FAsyncCoroutine GenerateImpact();
+    
+    // Time after spawn to add damage
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Add damage delay", AllowPrivateAccess = "true"))
+    double m_damageDelay = 0.1;
 };
