@@ -6,6 +6,8 @@
 #include <AtomDestiny/Projectile/Projectile.h>
 #include <AtomDestiny/Particle/Particle.h>
 
+#include <AtomDestiny/Core/Logger.h>
+
 UUniversalWeaponController::UUniversalWeaponController(const FObjectInitializer& objectInitializer):
     UWeaponBase(objectInitializer)
 {
@@ -114,6 +116,13 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
                 
                 const TScriptInterface<IProjectile> projectile = GET_ACTOR_INTERFACE(Projectile, blueprintProjectile.Get());
 
+                if (projectile == nullptr)
+                {
+                    LOG_WARNING(TEXT("Projectile blueprint does not have component, that realizes IProjectile"));
+                    co_await FiringDelay();
+                    co_return;
+                }
+
                 projectile->SetPoints(FProjectilePoints{
                     .startPosition = shotPosition->GetComponentLocation(),
                     .endPosition = currentEnemy->GetActorLocation(),
@@ -123,6 +132,11 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
 
                 projectile->SetParameters(GetParameters());
                 projectile->Launch();
+
+                if (m_useProjectileAsChild)
+                {
+                    blueprintProjectile->AttachToActor(GetOwner(), FAttachmentTransformRules::KeepRelativeTransform);
+                }
                 
                 if (IsValid(m_shotParticleBlueprint))
                 {

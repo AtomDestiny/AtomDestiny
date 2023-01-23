@@ -29,23 +29,27 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-using System.IO;
 using UnrealBuildTool;
 
 public class UE5Coro : ModuleRules
 {
-    public UE5Coro(ReadOnlyTargetRules Target)
-        : base(Target)
-    {
-        CppStandard = CppStandardVersion.Cpp20;
-        bUseUnity = false;
+	public UE5Coro(ReadOnlyTargetRules Target)
+		: base(Target)
+	{
+		if (!Target.bEnableCppCoroutinesForEvaluation)
+		{
+			CppStandard = CppStandardVersion.Cpp20;
+			PublicDefinitions.Add("UE5CORO_CPP20=1");
+		}
 
-        PublicDependencyModuleNames.AddRange(new[]
-        {
-            "Core",
-            "CoreUObject",
-            "Engine",
-            "HTTP",
-        });
-    }
+		bUseUnity = false;
+
+		PublicDependencyModuleNames.AddRange(new[]
+		{
+			"Core",
+			"CoreUObject",
+			"Engine",
+			"HTTP",
+		});
+	}
 }

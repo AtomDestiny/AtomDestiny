@@ -1,36 +1,36 @@
 {
-    "FileVersion": 3,
-    "Version": 1,
-    "VersionName": "1.4",
-    "FriendlyName": "UE5Coro",
-    "Description": "C++20 coroutine implementation for Unreal Engine",
-    "Category": "Programming",
-    "CreatedBy": "Laura Andelare",
-    "CreatedByURL": "https://github.com/landelare/ue5coro",
-    "DocsURL": "",
-    "MarketplaceURL": "",
-    "SupportURL": "",
-    "EnabledByDefault" : true,
-    "CanContainContent": false,
-    "CanContainVerse": false,
-    "IsBetaVersion": false,
-    "IsExperimentalVersion": false,
-    "Installed": false,
-    "Modules": [
-        {
-            "Name": "UE5Coro",
-            "Type": "Runtime",
-            "LoadingPhase": "PostConfigInit"
-        },
-        {
-            "Name": "UE5CoroK2",
-            "Type": "UncookedOnly",
-            "LoadingPhase": "PostConfigInit"
-        },
-        {
-            "Name": "UE5CoroTests",
-            "Type": "UncookedOnly",
-            "LoadingPhase": "PostConfigInit"
-        }
-    ]
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.5",
+	"FriendlyName": "UE5Coro",
+	"Description": "C++20 coroutine implementation for Unreal Engine",
+	"Category": "Programming",
+	"CreatedBy": "Laura Andelare",
+	"CreatedByURL": "https://github.com/landelare/ue5coro",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"EnabledByDefault" : true,
+	"CanContainContent": false,
+	"CanContainVerse": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "UE5Coro",
+			"Type": "Runtime",
+			"LoadingPhase": "PostConfigInit"
+		},
+		{
+			"Name": "UE5CoroK2",
+			"Type": "UncookedOnly",
+			"LoadingPhase": "PostConfigInit"
+		},
+		{
+			"Name": "UE5CoroTests",
+			"Type": "UncookedOnly",
+			"LoadingPhase": "PostConfigInit"
+		}
+	]
 }
