@@ -36,19 +36,6 @@ static void PrintMoveFailed(const AActor* owner, const T& target)
     }
 }
 
-template <typename T>
-EPathFollowingRequestResult::Type DoMove(const T& target, double stopDistance)
-{
-    if constexpr (AtomDestiny::Traits::IsVector<T>)
-    {
-        return MoveToLocation(target, static_cast<float>(stopDistance));
-    }
-    else
-    {
-        return MoveToActor(target, static_cast<float>(stopDistance));
-    }
-}
-
 } // namespace
 
 ANavigator::ANavigator(const FObjectInitializer& objectInitializer)
