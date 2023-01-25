@@ -36,17 +36,21 @@ public:
     double GetRemainingDistance() const;
 
 private:
-    bool CheckMoveRequest(const AActor* target) const;
-    bool CheckMoveRequest(const FVector& point) const;
+    template <typename T>
+    bool CheckMoveRequest(const T& target) const;
 
-    void CheckLogPrint(const FString& message) const;
-    
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Log navigation results", AllowPrivateAccess = "true"))
-    bool m_logMovingResults = false;
+    template <typename T>
+    void MoveImpl(const T& target);
+
+    template <typename T>
+    EPathFollowingRequestResult::Type MoveAction(const T& target);
+
+    template <typename T>
+    void SetTarget(const T& target);
 
     // Updates target navigation on every move request
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Every call update target", AllowPrivateAccess = "true"))
-    bool m_updateNavigationOnEveryCall = false; 
+    bool m_updateNavigationOnEveryCall = false;
     
     double m_stopDistance = 1.0;
     

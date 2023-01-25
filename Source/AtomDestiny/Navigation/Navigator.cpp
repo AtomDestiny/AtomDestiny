@@ -1,7 +1,42 @@
 ﻿#include "Navigator.h"
 
 #include <Runtime/AIModule/Classes/Navigation/CrowdFollowingComponent.h>
+
 #include <AtomDestiny/Core/Logger.h>
+#include <AtomDestiny/Core/TypeTraits.h>
+
+namespace
+{
+
+template <typename T>
+inline static void AssertTypes()
+{
+    using namespace AtomDestiny::Traits;
+    static_assert(IsVector<T> || IsActorPointer<T>, "T should be FVector or AActor* only");
+}
+
+template <typename T>
+static void PrintMoveFailed(const AActor* owner, const T& target)
+{
+    if (owner == nullptr)
+    {
+        LOG_WARNING(TEXT("Owner is nullptr, can not print Navigator messages"));
+        return;
+    }
+
+    const auto name = owner->GetActorNameOrLabel();
+
+    if constexpr (AtomDestiny::Traits::IsVector<T>)
+    {
+        LOG_WARNING(TEXT("Unit %s, failed to move to point %s"), *name, *target.ToString());
+    }
+    else
+    {
+        LOG_WARNING(TEXT("Unit %s, failed to move to target %s"), *name, *target->GetActorNameOrLabel());
+    }
+}
+
+} // namespace
 
 ANavigator::ANavigator(const FObjectInitializer& objectInitializer)
     : AAIController(objectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("CrowdPathFollowingComponent")))
@@ -21,41 +56,12 @@ void ANavigator::SetMovementComponent(UFloatingPawnMovement* component)
 void ANavigator::Move(AActor* target)
 {
     check(target != nullptr)
-    
-    if (!CheckMoveRequest(target))
-        return;
-    
-    const EPathFollowingRequestResult::Type result = MoveToActor(target, static_cast<float>(m_stopDistance));
-
-    if (result == EPathFollowingRequestResult::Type::Failed)
-    {
-        if (m_logMovingResults)
-            LOG_WARNING(TEXT("Failed to move to target %s"), *target->GetActorNameOrLabel());
-        
-        return;
-    }
-
-    m_target = MakeWeakObjectPtr(target);
-    m_targetPoint = FVector{};
+    MoveImpl(target);
 }
 
 void ANavigator::Move(const FVector& point)
 {
-    if (!CheckMoveRequest(point))
-        return;
-    
-    const EPathFollowingRequestResult::Type result = MoveToLocation(point, static_cast<float>(m_stopDistance));
-
-    if (result == EPathFollowingRequestResult::Type::Failed)
-    {
-        if (m_logMovingResults)
-            LOG_WARNING(TEXT("Failed to move to point %s"), *point.ToString());
-        
-        return;
-    }
-
-    m_target = nullptr;
-    m_targetPoint = point;
+    MoveImpl(point);
 }
 
 void ANavigator::Stop()
@@ -88,38 +94,76 @@ double ANavigator::GetRemainingDistance() const
     const AActor* owner = m_pawnMovement->GetOwner();
     check(owner);
     
-    if (m_target != nullptr)
+    if (m_target.IsValid())
+    {
         return (m_target->GetActorLocation() - owner->GetActorLocation()).Length();
+    }
 
     return (m_targetPoint - owner->GetActorLocation()).Length();
 }
 
-bool ANavigator::CheckMoveRequest(const AActor* target) const
+template <typename T>
+bool ANavigator::CheckMoveRequest(const T& target) const
 {
-    if (target == m_target.Get() && !m_updateNavigationOnEveryCall)
+    AssertTypes<T>();
+
+    if constexpr (AtomDestiny::Traits::IsVector<T>)
     {
-        CheckLogPrint(target->GetActorNameOrLabel());
-        return false;
+        return !(target == m_targetPoint && !m_updateNavigationOnEveryCall);
     }
-    
-    return true;
+    else
+    {
+        return !(target == m_target.Get() && !m_updateNavigationOnEveryCall);
+    }
 }
 
-bool ANavigator::CheckMoveRequest(const FVector& point) const
+template <typename T>
+void ANavigator::MoveImpl(const T& target)
 {
-    if (point == m_targetPoint && !m_updateNavigationOnEveryCall)
+    AssertTypes<T>();
+
+    if (!CheckMoveRequest(target))
     {
-        CheckLogPrint(point.ToString());
-        return false;
+        return;
     }
-    
-    return true;
+
+    const EPathFollowingRequestResult::Type result = MoveAction(target);
+
+    if (result == EPathFollowingRequestResult::Type::Failed)
+    {
+#ifdef PRINT_NAVIGATOR_MESSAGES
+        PrintMoveFailed(GetOwner(), target);
+#endif // PRINT_NAVIGATOR_MESSAGES
+        return;
+    }
+
+    SetTarget(target);
 }
 
-void ANavigator::CheckLogPrint(const FString& message) const
+template <typename T>
+EPathFollowingRequestResult::Type ANavigator::MoveAction(const T& target)
 {
-    if (m_logMovingResults)
+    if constexpr (AtomDestiny::Traits::IsVector<T>)
     {
-        LOG_WARNING(TEXT("Already moving to target %s"), *message);
+        return MoveToLocation(target, static_cast<float>(m_stopDistance));
+    }
+    else
+    {
+        return MoveToActor(target, static_cast<float>(m_stopDistance));
+    }
+}
+
+template <typename T>
+void ANavigator::SetTarget(const T& target)
+{
+    if constexpr (AtomDestiny::Traits::IsVector<T>)
+    {
+        m_target = nullptr;
+        m_targetPoint = target;
+    }
+    else
+    {
+        m_target = MakeWeakObjectPtr(target);
+        m_targetPoint = FVector{};
     }
 }
