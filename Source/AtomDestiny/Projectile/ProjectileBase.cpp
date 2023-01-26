@@ -31,5 +31,5 @@ const FProjectilePoints& UProjectileBase::GetPoints() const
 
 void UProjectileBase::InitializeComponent()
 {
-    AtomDestiny::ObjectPool::Instance().Preload(m_impactBlueprint, ImpactPreloadCount);
+    AtomDestiny::ObjectPool::Instance().Preload(m_impactPrefab);
 }

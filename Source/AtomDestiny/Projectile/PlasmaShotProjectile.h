@@ -7,7 +7,7 @@
 #include "PlasmaShotProjectile.generated.h"
 
 ///
-/// Represents tank shot, that deals damage and spawns impact particle,
+/// Represents tank shot, that deals damage and spawns impact particle prefab,
 /// driven by raycasted weapon controller.
 ///
 UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
@@ -18,7 +18,7 @@ class ATOMDESTINY_API UPlasmaShotProjectile : public UProjectileBase
 public:
     explicit UPlasmaShotProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
-    // Base values initialization to projectile and generating impact blueprint
+    // Base values initialization to projectile and generating impact prefab
     virtual void Launch() override;
     
 private:
