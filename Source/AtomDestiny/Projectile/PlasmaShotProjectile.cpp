@@ -20,10 +20,10 @@ FAsyncCoroutine UPlasmaShotProjectile::GenerateImpact()
 {
     co_await Coroutines::Latent::Seconds(m_damageDelay);
 
-    if (m_parameters.target != nullptr)
+    if (m_parameters.target.IsValid())
     {
         AtomDestiny::GetGameState(GetOwner())->AddDamage(GET_INTERFACE(Projectile), EProjectileDamageOptions::ImpactPoint);
-        AtomDestiny::ObjectPool::Instance().Spawn(m_impactBlueprint, m_points.impactPosition, FQuat::Identity);
+        AtomDestiny::ObjectPool::Instance().Spawn(m_impactPrefab, m_points.impactPosition, FQuat::Identity);
     }
 
     AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(GetOwner()));

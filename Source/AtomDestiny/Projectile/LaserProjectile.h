@@ -19,7 +19,7 @@ class ATOMDESTINY_API ULaserProjectile : public UProjectileBase
 public:
     explicit ULaserProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
-    // Base values initialization to projectile and generating impact blueprint
+    // Base values initialization to projectile and generating impact prefab
     virtual void Launch() override;
 
 protected:

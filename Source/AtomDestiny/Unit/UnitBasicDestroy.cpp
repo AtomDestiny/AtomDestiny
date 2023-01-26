@@ -16,9 +16,9 @@ void UUnitBasicDestroy::Destroy()
         return;
     }
     
-    if (!IsValid(m_explosionBlueprint))
+    if (!IsValid(m_explosionPrefab))
     {
-        LOG_WARNING(TEXT("Unit basic destroy has invalid explosion blueprint, so no explosion would be spawned"));
+        LOG_WARNING(TEXT("Unit basic destroy has invalid explosion prefab, so no explosion would be spawned"));
     }
     else
     {

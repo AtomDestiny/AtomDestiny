@@ -33,6 +33,6 @@ FAsyncCoroutine ULaserProjectile::GenerateImpact()
     if (m_parameters.target != nullptr)
     {
         AtomDestiny::GetGameState(GetOwner())->AddDamage(GET_INTERFACE(Projectile), EProjectileDamageOptions::ImpactPoint);
-        AtomDestiny::ObjectPool::Instance().Spawn(m_impactBlueprint, m_points.impactPosition, FQuat::Identity);
+        AtomDestiny::ObjectPool::Instance().Spawn(m_impactPrefab, m_points.impactPosition, FQuat::Identity);
     }
 }

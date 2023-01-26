@@ -47,9 +47,6 @@ protected:
     FProjectilePoints m_points;
     
     // Impact prefab spawns by projectile when explodes target
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Impact blueprint"))
-    TSubclassOf<AParticle> m_impactBlueprint;
-    
-    // Preload impact blueprint count
-    inline static int ImpactPreloadCount = 5;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Impact prefab"))
+    TSubclassOf<AParticle> m_impactPrefab;
 };

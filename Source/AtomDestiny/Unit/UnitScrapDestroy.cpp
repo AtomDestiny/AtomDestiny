@@ -15,7 +15,7 @@ void UUnitScrapDestroy::BeginPlay()
 {
     Super::BeginPlay();
 
-    AtomDestiny::ObjectPool::Instance().Preload(m_scrapBlueprint, ScrapPreloadCount);
+    AtomDestiny::ObjectPool::Instance().Preload(m_scrapPrefab, ScrapPreloadCount);
 }
 
 void UUnitScrapDestroy::Destroy()
@@ -28,13 +28,13 @@ void UUnitScrapDestroy::Destroy()
     
     AtomDestiny::ObjectPool::Instance().Despawn(GetOwner());
 
-    if (!IsValid(m_scrapBlueprint))
+    if (!IsValid(m_scrapPrefab))
     {
-        LOG_ERROR(TEXT("Scrap blueprint is empty"));
+        LOG_ERROR(TEXT("Scrap prefab is empty"));
         return;
     }
     
-    const TWeakObjectPtr<AActor> scrap = AtomDestiny::ObjectPool::Instance().Spawn(m_scrapBlueprint.GetDefaultObject(), actorLocation, actorRotation);
+    const TWeakObjectPtr<AActor> scrap = AtomDestiny::ObjectPool::Instance().Spawn(m_scrapPrefab.GetDefaultObject(), actorLocation, actorRotation);
     const TArray<UStaticMeshComponent*> components = AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(scrap.Get());
     
     for (const auto component : components)
