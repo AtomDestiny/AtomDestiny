@@ -5,7 +5,7 @@
 
 #include <AtomDestiny/Core/ADObject/ADObject.h>
 
-#include <UE5Coro/Public/UE5Coro.h>
+#include <AtomDestiny/Coroutines/Coroutines.h>
 
 #include "WeaponBase.generated.h"
 

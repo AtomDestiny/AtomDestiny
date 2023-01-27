@@ -3,7 +3,7 @@
 #include <AtomDestiny/Unit/UnitParameters.h>
 #include <AtomDestiny/Parameters/Shield.h>
 
-#include <UE5Coro/Public/UE5Coro.h>
+#include <AtomDestiny/Coroutines/Coroutines.h>
 
 #include "ShieldParametersBase.generated.h"
 

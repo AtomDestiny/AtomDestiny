@@ -1,8 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
 #include "Projectile/ProjectileBase.h"
-#include <UE5Coro/Public/UE5Coro.h>
+
+#include <AtomDestiny/Coroutines/Coroutines.h>
+
 #include "LaserProjectile.generated.h"
 
 class UNiagaraComponent;
