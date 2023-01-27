@@ -1,8 +1,7 @@
 ﻿#pragma once
 
 #include <AtomDestiny/Projectile/ProjectileBase.h>
-
-#include <UE5Coro/Public/UE5Coro.h>
+#include <AtomDestiny/Coroutines/Coroutines.h>
 
 #include "PlasmaShotProjectile.generated.h"
 
@@ -23,7 +22,7 @@ public:
     
 private:
 
-    // Generates impact damage and particle
+    // Generates impact damage and particle prefab
     FAsyncCoroutine GenerateImpact();
     
     // Time after spawn to add damage
