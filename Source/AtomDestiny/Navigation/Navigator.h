@@ -5,6 +5,8 @@
 
 #include <Runtime/AIModule/Classes/AIController.h>
 
+#include <AtomDestiny/Core/Concepts.h>
+
 #include "Navigator.generated.h"
 
 ///
@@ -36,16 +38,16 @@ public:
     double GetRemainingDistance() const;
 
 private:
-    template <typename T>
+    template <AtomDestiny::Concepts::NavigatorMovable T>
     bool CheckMoveRequest(const T& target) const;
 
-    template <typename T>
+    template <AtomDestiny::Concepts::NavigatorMovable T>
     void MoveImpl(const T& target);
 
-    template <typename T>
+    template <AtomDestiny::Concepts::NavigatorMovable T>
     EPathFollowingRequestResult::Type MoveAction(const T& target);
 
-    template <typename T>
+    template <AtomDestiny::Concepts::NavigatorMovable T>
     void SetTarget(const T& target);
 
     // Updates target navigation on every move request

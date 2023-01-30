@@ -26,6 +26,6 @@ namespace AtomDestiny::Concepts
     concept IsActorPointer = std::is_same_v<Details::Type<T>, AActor*>;
 
     template <typename T>
-    concept NavagatorType = IsAnyOf<T, FVector, AActor*>;
+    concept NavigatorMovable = IsAnyOf<T, FVector, AActor*>;
 
 } // namespace AtomDestiny::Concepts

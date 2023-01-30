@@ -5,17 +5,12 @@
 #include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/TypeTraits.h>
 
+using namespace AtomDestiny::Concepts;
+
 namespace
 {
 
-template <typename T>
-inline static void AssertTypes()
-{
-    using namespace AtomDestiny::Traits;
-    static_assert(IsVector<T> || IsActorPointer<T>, "T should be FVector or AActor* only");
-}
-
-template <typename T>
+template <NavigatorMovable T>
 static void PrintMoveFailed(const AActor* owner, const T& target)
 {
     if (owner == nullptr)
@@ -102,11 +97,9 @@ double ANavigator::GetRemainingDistance() const
     return (m_targetPoint - owner->GetActorLocation()).Length();
 }
 
-template <typename T>
+template <NavigatorMovable T>
 bool ANavigator::CheckMoveRequest(const T& target) const
 {
-    AssertTypes<T>();
-
     if constexpr (AtomDestiny::Traits::IsVector<T>)
     {
         return !(target == m_targetPoint && !m_updateNavigationOnEveryCall);
@@ -117,11 +110,9 @@ bool ANavigator::CheckMoveRequest(const T& target) const
     }
 }
 
-template <typename T>
+template <NavigatorMovable T>
 void ANavigator::MoveImpl(const T& target)
 {
-    AssertTypes<T>();
-
     if (!CheckMoveRequest(target))
     {
         return;
@@ -131,16 +122,16 @@ void ANavigator::MoveImpl(const T& target)
 
     if (result == EPathFollowingRequestResult::Type::Failed)
     {
-#ifdef PRINT_NAVIGATOR_MESSAGES
+ #ifdef PRINT_NAVIGATOR_MESSAGES
         PrintMoveFailed(GetOwner(), target);
-#endif // PRINT_NAVIGATOR_MESSAGES
+ #endif // PRINT_NAVIGATOR_MESSAGES
         return;
     }
 
     SetTarget(target);
 }
 
-template <typename T>
+template <NavigatorMovable T>
 EPathFollowingRequestResult::Type ANavigator::MoveAction(const T& target)
 {
     if constexpr (AtomDestiny::Traits::IsVector<T>)
@@ -153,7 +144,7 @@ EPathFollowingRequestResult::Type ANavigator::MoveAction(const T& target)
     }
 }
 
-template <typename T>
+template <NavigatorMovable T>
 void ANavigator::SetTarget(const T& target)
 {
     if constexpr (AtomDestiny::Traits::IsVector<T>)
