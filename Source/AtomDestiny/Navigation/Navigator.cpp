@@ -122,9 +122,9 @@ void ANavigator::MoveImpl(const T& target)
 
     if (result == EPathFollowingRequestResult::Type::Failed)
     {
- #ifdef PRINT_NAVIGATOR_MESSAGES
+#ifdef PRINT_NAVIGATOR_MESSAGES
         PrintMoveFailed(GetOwner(), target);
- #endif // PRINT_NAVIGATOR_MESSAGES
+#endif // PRINT_NAVIGATOR_MESSAGES
         return;
     }
 
