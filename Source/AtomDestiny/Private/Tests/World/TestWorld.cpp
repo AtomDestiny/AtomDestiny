@@ -1,7 +1,5 @@
 #include "TestWorld.h"
 
-#include "CoreMinimal.h"
-
 AtomDestiny::FTestWorld::FTestWorld():
     m_world(UWorld::CreateWorld(EWorldType::Game, false))
 {
@@ -25,6 +23,15 @@ AtomDestiny::FTestWorld::~FTestWorld()
     m_world->DestroyWorld(true);
 
     CollectGarbage(RF_NoFlags);
+}
+
+TWeakObjectPtr<AActor> AtomDestiny::FTestWorld::CreateNewActor(const FString& name)
+{
+    FActorSpawnParameters spawnParams;
+    spawnParams.Name = FName{name};
+    
+    AActor* actor = m_world->SpawnActor<AActor>(spawnParams);
+    return MakeWeakObjectPtr(actor);
 }
 
 void AtomDestiny::FTestWorld::Tick(float deltaSeconds)

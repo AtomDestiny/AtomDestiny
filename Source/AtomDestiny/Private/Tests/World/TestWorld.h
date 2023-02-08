@@ -1,6 +1,6 @@
 #pragma once
 
-class UWorld;
+#include "CoreMinimal.h"
 
 namespace AtomDestiny
 {
@@ -14,6 +14,8 @@ namespace AtomDestiny
     public:
         FTestWorld();
         ~FTestWorld();
+
+        TWeakObjectPtr<AActor> CreateNewActor(const FString& name);
 
         void Tick(float deltaSeconds);
 
