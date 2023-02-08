@@ -2,10 +2,10 @@
 
 #include <AtomDestiny/Private/Tests/World/TestWorld.h>
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FActorUtilsTests, "AtomDestiny.Core.ActorUtils",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FActorComponentUtilsTests, "AtomDestiny.Core.ActorComponentUtilsTests",
     EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
-bool FActorUtilsTests::RunTest(const FString& parameters)
+bool FActorComponentUtilsTests::RunTest(const FString& parameters)
 {
     AtomDestiny::FTestWorld world;
     
