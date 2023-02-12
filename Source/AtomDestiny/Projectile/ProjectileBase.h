@@ -3,22 +3,23 @@
 #include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/Projectile/Projectile.h>
 
-#include <Engine/Classes/Components/ActorComponent.h>
+#include <Engine/Classes/GameFramework/Actor.h>
 
 #include "ProjectileBase.generated.h"
 
 class AParticle;
 
 ///
-/// Represents common abstract projectile
+/// Represents common abstract projectile.
+/// Projectile is Actor and should be spawned by weapon controller.
 ///
 UCLASS(Abstract)
-class UProjectileBase : public UActorComponent, public IProjectile
+class AProjectileBase : public AActor, public IProjectile
 {
     GENERATED_BODY()
 
 public:
-    explicit UProjectileBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+    explicit AProjectileBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     // Sets projectile points from weapon or another projectile
     UFUNCTION()
@@ -40,7 +41,7 @@ public:
     virtual void Launch() ABSTRACT_METHOD;
 
 private:
-    virtual void InitializeComponent() override;
+    virtual void PreInitializeComponents() override;
     
 protected:
     FWeaponParameters m_parameters;
