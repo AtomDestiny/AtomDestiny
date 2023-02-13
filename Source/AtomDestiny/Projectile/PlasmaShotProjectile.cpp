@@ -22,7 +22,7 @@ FAsyncCoroutine APlasmaShotProjectile::GenerateImpact()
 
     if (m_parameters.target.IsValid())
     {
-        AtomDestiny::GetGameState(GetOwner())->AddDamage(this, EProjectileDamageOptions::ImpactPoint);
+        AtomDestiny::GetGameState(this)->AddDamage(this, EProjectileDamageOptions::ImpactPoint);
         AtomDestiny::ObjectPool::Instance().Spawn(m_impactPrefab, m_points.impactPosition, FQuat::Identity);
     }
 
