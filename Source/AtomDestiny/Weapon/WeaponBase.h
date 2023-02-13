@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <AtomDestiny/Projectile/ProjectileBase.h>
 #include <AtomDestiny/Weapon/Weapon.h>
 #include <AtomDestiny/Weapon/WeaponAnimation.h>
 
@@ -215,11 +216,11 @@ protected:
     
     ///
     /// Projectile prefab that spawns by weapon.
-    /// Prefab represented by AActor, and AActor should have component
-    /// that implements IProjectile interface.
+    /// Prefab represented by AActor, and AActor should implement
+    /// IProjectile interface.
     ///
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Projectile prefab"))
-    TSubclassOf<AActor> m_projectilePrefab;
+    TSubclassOf<AProjectileBase> m_projectilePrefab;
 
     // Minimal distance to shot
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Minimal distance to shot"))

@@ -11,7 +11,9 @@ class AParticle;
 
 ///
 /// Represents common abstract projectile.
-/// Projectile is Actor and should be spawned by weapon controller.
+/// It contains basic parameters and method that needed to weapon controller.
+/// Projectile is Actor and should be spawned only by weapon controller
+/// that implements IWeapon interface.
 ///
 UCLASS(Abstract)
 class AProjectileBase : public AActor, public IProjectile
