@@ -118,7 +118,7 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
 
                 if (projectile == nullptr)
                 {
-                    LOG_WARNING(TEXT("Projectile prefab does not have component, that realizes IProjectile"));
+                    LOG_WARNING(TEXT("Projectile prefab does not realize IProjectile interface"));
 
                     co_await FiringDelay();
                     co_return;
