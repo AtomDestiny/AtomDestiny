@@ -30,25 +30,98 @@
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "UE5Coro/UE5CoroSubsystem.h"
+#include "UE5Coro/UE5CoroCallbackTarget.h"
+
+using namespace UE5Coro::Private;
+
+bool FTwoLives::Release()
+{
+	// The <= 2 part should help catch use-after-free bugs in full debug builds.
+	checkf(RefCount > 0 && RefCount <= 2, TEXT("Internal error"));
+	if (--RefCount == 0)
+	{
+		delete this;
+		return false;
+	}
+	return true;
+}
+
+bool FTwoLives::ShouldResume(void*& State, bool bCleanup)
+{
+	auto* This = static_cast<FTwoLives*>(State);
+	if (UNLIKELY(bCleanup))
+	{
+		This->Release();
+		return false;
+	}
+	return This->RefCount < 2;
+}
 
 FLatentActionInfo UUE5CoroSubsystem::MakeLatentInfo()
 {
 	checkf(IsInGameThread(), TEXT("Unexpected latent info off the game thread"));
 	// Using INDEX_NONE linkage and next as the UUID is marginally faster due
 	// to an early exit in FLatentActionManager::TickLatentActionForObject.
-	return {INDEX_NONE, NextLinkage++, TEXT("None"), GetWorld()};
+	return {INDEX_NONE, NextLinkage++, TEXT("None"), this};
 }
 
-FLatentActionInfo UUE5CoroSubsystem::MakeLatentInfo(bool* Done)
+FLatentActionInfo UUE5CoroSubsystem::MakeLatentInfo(FTwoLives* State)
 {
 	checkf(IsInGameThread(), TEXT("Unexpected latent info off the game thread"));
+
+	// Lazy delegate binding in order to not affect
+	// projects that never use Chain/ChainEx.
+	if (UNLIKELY(!LatentActionsChangedHandle.IsValid()))
+		LatentActionsChangedHandle = FLatentActionManager::OnLatentActionsChanged()
+		.AddUObject(this, &ThisClass::LatentActionsChanged);
+
 	int32 Linkage = NextLinkage++;
 	checkf(!Targets.Contains(Linkage), TEXT("Unexpected linkage collision"));
-	Targets.Add(Linkage, Done);
-	return {Linkage, Linkage, TEXT("ExecuteLink"), this};
+	// Pooling these objects was found to be consistently slower
+	// than making new ones every time.
+	auto* Target = NewObject<UUE5CoroCallbackTarget>(this);
+	Target->Activate(Linkage, State);
+	Targets.Add(Linkage, Target);
+	return {Linkage, Linkage, TEXT("ExecuteLink"), Target};
 }
 
-void UUE5CoroSubsystem::ExecuteLink(int32 Link)
+void UUE5CoroSubsystem::Deinitialize()
 {
-	*Targets.FindAndRemoveChecked(Link) = true;
+	Super::Deinitialize();
+
+	if (LatentActionsChangedHandle.IsValid())
+		FLatentActionManager::OnLatentActionsChanged().Remove(
+			LatentActionsChangedHandle);
+}
+
+void UUE5CoroSubsystem::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	// ProcessLatentActions refuses to work on non-BP classes.
+	GetClass()->ClassFlags |= CLASS_CompiledFromBlueprint;
+	GetWorld()->GetLatentActionManager().ProcessLatentActions(this, DeltaTime);
+	GetClass()->ClassFlags &= ~CLASS_CompiledFromBlueprint;
+}
+
+TStatId UUE5CoroSubsystem::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(UUE5CoroSubsystem, STATGROUP_Tickables);
+}
+
+void UUE5CoroSubsystem::LatentActionsChanged(
+	UObject* Object, ELatentActionChangeType Change)
+{
+	checkf(IsInGameThread(),
+	       TEXT("Unexpected latent action update off the game thread"));
+
+	if (Change != ELatentActionChangeType::ActionsRemoved)
+		return;
+
+	if (auto* Target = Cast<UUE5CoroCallbackTarget>(Object);
+		IsValid(Target) && Target->GetOuter() == this)
+	{
+		verify(Targets.Remove(Target->GetExpectedLink()) == 1);
+		Target->Deactivate();
+	}
 }

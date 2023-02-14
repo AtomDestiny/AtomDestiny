@@ -31,9 +31,11 @@
 
 #include "TestWorld.h"
 #include "Misc/AutomationTest.h"
+#include "UE5Coro/AggregateAwaiters.h"
 #include "UE5Coro/AsyncAwaiters.h"
 
 using namespace UE5Coro;
+using namespace UE5Coro::Private;
 using namespace UE5Coro::Private::Test;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAsyncAwaiterTest, "UE5Coro.Async.TrueAsync",
@@ -67,7 +69,7 @@ void DoTest(FAutomationTestBase& Test)
 			bDone = true;
 			co_await UE5Coro::Async::MoveToGameThread();
 			CoroToTest->Trigger();
-		}, &bDone);
+		});
 		Test.TestEqual(TEXT("Started"), bStarted, true);
 		Test.TestEqual(TEXT("Not done yet 1"), bDone, false);
 		TestToCoro->Trigger();
@@ -122,6 +124,20 @@ void DoTest(FAutomationTestBase& Test)
 		TestToCoro->Trigger();
 		Test.TestEqual(TEXT("Wait 2"), CoroToTest->Wait(), true);
 		Test.TestEqual(TEXT("Second event, new thread"), State, 2);
+	}
+
+	{
+		FEventRef CoroToTest;
+		World.Run(CORO
+		{
+			co_await WhenAll(
+				UE5Coro::Async::MoveToNewThread(),
+				UE5Coro::Async::MoveToThread(ENamedThreads::AnyThread));
+			CoroToTest->Trigger();
+			IF_CORO_LATENT
+				co_await UE5Coro::Async::MoveToGameThread();
+		});
+		Test.TestTrue(TEXT("Triggered"), CoroToTest->Wait());
 	}
 }
 }
