@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -33,79 +33,39 @@
 
 #include "CoreMinimal.h"
 #include "UE5Coro/Definitions.h"
-#include "Tasks/Task.h"
-#include "UE5Coro/AsyncCoroutine.h"
+#include "UE5CoroCallbackTarget.generated.h"
 
 namespace UE5Coro::Private
 {
-class FTaskAwaiter;
+class FTwoLives;
 }
 
-namespace UE5Coro::Tasks
+/**
+ * Internal class supporting some async coroutine functionality.<br>
+ * You never need to interact with it directly.
+ */
+UCLASS(Hidden, Within = UE5CoroSubsystem)
+class UE5CORO_API UUE5CoroCallbackTarget : public UObject,
+                                           public FTickableGameObject
 {
-/** Suspends the coroutine and resumes it in a UE::Tasks::TTask.<br>
- *  The return value of this function is reusable. Repeated co_awaits will
- *  keep resuming in a new TTask every time. */
-UE5CORO_API Private::FTaskAwaiter MoveToTask(const TCHAR* DebugName = nullptr);
-}
+	GENERATED_BODY()
 
-namespace UE5Coro::Private
-{
-class [[nodiscard]] FTaskAwaiter
-{
-protected:
-	const TCHAR* DebugName;
-
-	template<typename P>
-	decltype(auto) SuspendBase(stdcoro::coroutine_handle<P> Handle)
-	{
-		if constexpr (std::is_same_v<P, FLatentPromise>)
-			Handle.promise().DetachFromGameThread();
-		return [Handle] { Handle.promise().Resume(); };
-	}
+	int32 ExpectedLink = 0;
+	UE5Coro::Private::FTwoLives* State = nullptr;
 
 public:
-	explicit FTaskAwaiter(const TCHAR* DebugName) : DebugName(DebugName) { }
+	void Activate(int32 InExpectedLink, UE5Coro::Private::FTwoLives* InState);
+	void Deactivate();
+	int32 GetExpectedLink() const;
 
-	bool await_ready() { return false; }
-	void await_resume() { }
+	/** Signals the coroutine suspended with this linkage that it may resume. */
+	UFUNCTION()
+	void ExecuteLink(int32 Link);
 
-	template<typename P>
-	void await_suspend(stdcoro::coroutine_handle<P> Handle)
-	{
-		UE::Tasks::Launch(DebugName, SuspendBase(Handle));
-	}
+#pragma region FTickableGameObject overrides
+	virtual bool IsTickableWhenPaused() const override { return true; }
+	virtual bool IsTickableInEditor() const override { return true; }
+	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
+#pragma endregion
 };
-
-template<typename T>
-class [[nodiscard]] TTaskAwaiter : public FTaskAwaiter
-{
-	UE::Tasks::TTask<T> Task;
-
-public:
-	explicit TTaskAwaiter(UE::Tasks::TTask<T> Task, const TCHAR* DebugName)
-		: FTaskAwaiter(DebugName), Task(Task) { }
-
-	bool await_ready() { return Task.IsCompleted(); }
-	auto await_resume()
-	{
-		if constexpr (!std::is_void_v<T>)
-			return Task.GetResult();
-	}
-
-	template<typename P>
-	void await_suspend(stdcoro::coroutine_handle<P> Handle)
-	{
-		UE::Tasks::Launch(DebugName, SuspendBase(Handle), Task);
-	}
-};
-
-template<typename P, typename T>
-struct TAwaitTransform<P, UE::Tasks::TTask<T>>
-{
-	TTaskAwaiter<T> operator()(UE::Tasks::TTask<T> Task)
-	{
-		return TTaskAwaiter<T>(Task, TEXT("UE5Coro automatic co_await wrapper"));
-	}
-};
-}

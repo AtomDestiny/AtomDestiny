@@ -37,26 +37,51 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "UE5CoroSubsystem.generated.h"
 
+namespace UE5Coro::Private
+{
+class [[nodiscard]] UE5CORO_API FTwoLives
+{
+	std::atomic<int> RefCount = 2;
+
+public:
+	int UserData = 0;
+
+	bool Release(); // Dangerous! Only call externally exactly once!
+
+	// Generic implementation for FLatentAwaiter
+	static bool ShouldResume(void*& State, bool bCleanup);
+};
+}
+
 /**
  * Subsystem supporting some async coroutine functionality.<br>
  * You never need to interact with it directly.
  */
 UCLASS(Hidden)
-class UE5CORO_API UUE5CoroSubsystem : public UWorldSubsystem
+class UE5CORO_API UUE5CoroSubsystem final : public UTickableWorldSubsystem
 {
 	GENERATED_BODY()
 
+	UPROPERTY()
+	TMap<int32, class UUE5CoroCallbackTarget*> Targets;
 	int32 NextLinkage = 0;
-	TMap<int32, bool*> Targets;
+	FDelegateHandle LatentActionsChangedHandle;
 
 public:
 	/** Creates a unique LatentInfo that does not lead anywhere. */
 	FLatentActionInfo MakeLatentInfo();
 
 	/** Creates a LatentInfo suitable for the Latent::Chain* functions. */
-	FLatentActionInfo MakeLatentInfo(bool* Done);
+	FLatentActionInfo MakeLatentInfo(UE5Coro::Private::FTwoLives* State);
 
-	/** Signals the coroutine suspended with this linkage that it may resume. */
-	UFUNCTION()
-	void ExecuteLink(int32 Link);
+#pragma region UTickableWorldSubsystem overrides
+	virtual void Deinitialize() override;
+	virtual bool IsTickableWhenPaused() const override { return true; }
+	virtual bool IsTickableInEditor() const override { return true; }
+	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
+#pragma endregion
+
+private:
+	void LatentActionsChanged(UObject* Object, ELatentActionChangeType Change);
 };
