@@ -6,25 +6,25 @@
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
-UPlasmaShotProjectile::UPlasmaShotProjectile(const FObjectInitializer& objectInitializer):
-    UProjectileBase(objectInitializer)
+APlasmaShotProjectile::APlasmaShotProjectile(const FObjectInitializer& objectInitializer):
+    AProjectileBase(objectInitializer)
 {
 }
 
-void UPlasmaShotProjectile::Launch()
+void APlasmaShotProjectile::Launch()
 {
     GenerateImpact();
 }
 
-FAsyncCoroutine UPlasmaShotProjectile::GenerateImpact()
+FAsyncCoroutine APlasmaShotProjectile::GenerateImpact()
 {
     co_await Coroutines::Latent::Seconds(m_damageDelay);
 
     if (m_parameters.target.IsValid())
     {
-        AtomDestiny::GetGameState(GetOwner())->AddDamage(GET_INTERFACE(Projectile), EProjectileDamageOptions::ImpactPoint);
+        AtomDestiny::GetGameState(this)->AddDamage(this, EProjectileDamageOptions::ImpactPoint);
         AtomDestiny::ObjectPool::Instance().Spawn(m_impactPrefab, m_points.impactPosition, FQuat::Identity);
     }
 
-    AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(GetOwner()));
+    AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(this));
 }

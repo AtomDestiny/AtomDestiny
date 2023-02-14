@@ -10,12 +10,12 @@
 /// driven by raycasted weapon controller.
 ///
 UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
-class ATOMDESTINY_API UPlasmaShotProjectile : public UProjectileBase
+class ATOMDESTINY_API APlasmaShotProjectile : public AProjectileBase
 {
     GENERATED_BODY()
 
 public:
-    explicit UPlasmaShotProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+    explicit APlasmaShotProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     // Base values initialization to projectile and generating impact prefab
     virtual void Launch() override;

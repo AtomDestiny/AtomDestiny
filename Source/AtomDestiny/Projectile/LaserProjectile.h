@@ -15,12 +15,12 @@ class UNiagaraComponent;
 /// driven by raycasted weapon controller.
 //
 UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
-class ATOMDESTINY_API ULaserProjectile : public UProjectileBase
+class ATOMDESTINY_API ALaserProjectile : public AProjectileBase
 {
     GENERATED_BODY()
 
 public:
-    explicit ULaserProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+    explicit ALaserProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Base values initialization to projectile and generating impact prefab
     virtual void Launch() override;

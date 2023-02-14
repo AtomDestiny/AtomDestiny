@@ -114,7 +114,7 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
                 TWeakObjectPtr<AActor> spawnedProjectile = AtomDestiny::ObjectPool::Instance().Spawn(m_projectilePrefab.GetDefaultObject(),
                     shotPosition->GetComponentLocation(), shotPosition->GetComponentQuat());
                 
-                const TScriptInterface<IProjectile> projectile = GET_ACTOR_INTERFACE(Projectile, spawnedProjectile.Get());
+                const auto projectile = Cast<IProjectile>(spawnedProjectile.Get());
 
                 if (projectile == nullptr)
                 {
@@ -160,5 +160,4 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
     }
 
     co_await FiringDelay();
-    co_return;
 }
