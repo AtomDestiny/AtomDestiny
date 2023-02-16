@@ -6,7 +6,7 @@
 
 /// 
 /// Standard unit destroy.
-/// It just spawns destroy explosion blueprint.
+/// It just spawns destroy explosion prefab.
 ///
 UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
 class ATOMDESTINY_API UUnitBasicDestroy final : public UDestroyBase

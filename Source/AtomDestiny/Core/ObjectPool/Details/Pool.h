@@ -10,7 +10,7 @@
 namespace AtomDestiny
 {
     ///
-    /// The Pool class represents the pool for a particular blueprint class.
+    /// The Pool class represents the pool to increase spawn/despawn performance.
     ///
     class ATOMDESTINY_API Pool : public std::enable_shared_from_this<Pool>
     {
@@ -25,7 +25,7 @@ namespace AtomDestiny
     
     private:
         
-        // We would append an id to the name of anything we instantiate.
+        // Counter to append an id to the name of anything instantiated.
         int32_t m_nextId = 1;
         
         std::stack<TWeakObjectPtr<AActor>> m_inactive;

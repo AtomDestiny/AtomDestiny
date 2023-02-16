@@ -38,14 +38,14 @@ using namespace UE5Coro::Private;
 using namespace UE5Coro::Private::Test;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHandleTestAsync, "UE5Coro.Handle.Async",
-	EAutomationTestFlags::ApplicationContextMask |
-	EAutomationTestFlags::HighPriority |
-	EAutomationTestFlags::ProductFilter)
+                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags::HighPriority |
+                                 EAutomationTestFlags::ProductFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHandleTestLatent, "UE5Coro.Handle.Latent",
-	EAutomationTestFlags::ApplicationContextMask |
-	EAutomationTestFlags::HighPriority |
-	EAutomationTestFlags::ProductFilter);
+                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags::HighPriority |
+                                 EAutomationTestFlags::ProductFilter);
 
 namespace
 {

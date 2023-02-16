@@ -44,8 +44,8 @@ private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = ( DisplayName = "Explode parts destroy time", editcondition = "m_destroyAfterExplosion", AllowPrivateAccess = "true"))
     double m_partsDestroyTime = 1.5;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Explosion blueprint", AllowPrivateAccess = "true"))
-    TSubclassOf<AParticle> m_explosionBlueprint;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Explosion prefab", AllowPrivateAccess = "true"))
+    TSubclassOf<AParticle> m_explosionPrefab;
     
     TArray<FTransform> m_localTransforms;
 };

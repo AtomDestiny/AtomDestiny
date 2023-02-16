@@ -126,13 +126,14 @@ struct UE5Coro::Private::stdcoro::coroutine_traits<FAsyncCoroutine, Args...>
 namespace UE5Coro
 {
 #if UE5CORO_CPP20
+/** Things that can be co_awaited in a FAsyncCoroutine. */
 template<typename T>
 concept TAwaitable = requires
 {
-	[](T& Awaiter) -> FAsyncCoroutine
-	{
-		co_await Awaiter;
-	};
+	// FLatentPromise supports more things than FAsyncPromise
+	Private::TAwaitTransform<Private::FLatentPromise,
+	                         std::remove_reference_t<T>>()(std::declval<T>())
+	.await_suspend(std::declval<Private::FLatentHandle>());
 };
 #endif
 }
@@ -175,10 +176,12 @@ struct FInitialSuspend
 class [[nodiscard]] FPromise
 {
 #if UE5CORO_DEBUG
+	static std::atomic<int> LastDebugID;
 	static thread_local TArray<FPromise*> ResumeStack;
 
 	static constexpr uint32 Expected = U'♪' << 16 | U'♫';
 	uint32 Alive = Expected;
+	int DebugID;
 
 	const TCHAR* DebugPromiseType;
 	const TCHAR* DebugName = nullptr;

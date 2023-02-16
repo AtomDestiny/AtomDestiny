@@ -36,11 +36,21 @@
 #include <functional>
 #include "Engine/LatentActionManager.h"
 #include "Engine/World.h"
+#include "UE5Coro/UE5CoroSubsystem.h"
 
 namespace UE5Coro::Private
 {
-UE5CORO_API bool ShouldResumeChain(void*&, bool);
-UE5CORO_API std::tuple<FLatentActionInfo, bool*> MakeLatentInfo();
+UE5CORO_API std::tuple<FLatentActionInfo, FTwoLives*> MakeLatentInfo();
+
+class [[nodiscard]] UE5CORO_API FLatentChainAwaiter : public FLatentAwaiter
+{
+public:
+	explicit FLatentChainAwaiter(FTwoLives* Done);
+	FLatentChainAwaiter(FLatentChainAwaiter&&) = default;
+	bool await_resume();
+};
+
+static_assert(sizeof(FLatentAwaiter) == sizeof(FLatentChainAwaiter));
 
 #if UE5CORO_CPP20
 template<typename T>
@@ -123,31 +133,31 @@ namespace UE5Coro::Latent
 {
 #if UE5CORO_CPP20
 template<typename... FnParams>
-Private::FLatentAwaiter Chain(auto (*Function)(FnParams...), auto&&... Args)
+Private::FLatentChainAwaiter Chain(auto (*Function)(FnParams...), auto&&... Args)
 {
 	auto [LatentInfo, Done] = Private::MakeLatentInfo();
 	Private::FLatentChain<true, true, FnParams...>::Call(
 		Function,
 		LatentInfo,
 		std::forward<decltype(Args)>(Args)...);
-	return Private::FLatentAwaiter(Done, &Private::ShouldResumeChain);
+	return Private::FLatentChainAwaiter(Done);
 }
 
 template<std::derived_from<UObject> Class, typename... FnParams>
-Private::FLatentAwaiter Chain(auto (Class::*Function)(FnParams...),
-                              Class* Object, auto&&... Args)
+Private::FLatentChainAwaiter Chain(auto (Class::*Function)(FnParams...),
+                                   Class* Object, auto&&... Args)
 {
 	auto [LatentInfo, Done] = Private::MakeLatentInfo();
 	Private::FLatentChain<true, true, FnParams...>::Call(
 		std::bind_front(Function, Object),
 		LatentInfo,
 		std::forward<decltype(Args)>(Args)...);
-	return Private::FLatentAwaiter(Done, &Private::ShouldResumeChain);
+	return Private::FLatentChainAwaiter(Done);
 }
 #endif
 
 template<typename F, typename... A>
-Private::FLatentAwaiter ChainEx(F&& Function, A&&... Args)
+Private::FLatentChainAwaiter ChainEx(F&& Function, A&&... Args)
 {
 	static_assert((... || (std::is_placeholder_v<std::decay_t<A>> == 2)),
 	              "The _2 parameter for LatentInfo is mandatory");
@@ -155,6 +165,6 @@ Private::FLatentAwaiter ChainEx(F&& Function, A&&... Args)
 	auto [LatentInfo, Done] = Private::MakeLatentInfo();
 	std::bind(std::forward<F>(Function),
 	          std::forward<A>(Args)...)(GWorld, LatentInfo);
-	return Private::FLatentAwaiter(Done, &Private::ShouldResumeChain);
+	return Private::FLatentChainAwaiter(Done);
 }
 }

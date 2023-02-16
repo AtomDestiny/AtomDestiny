@@ -33,23 +33,27 @@
 #include "UE5Coro/UE5CoroSubsystem.h"
 
 using namespace UE5Coro;
+using namespace UE5Coro::Private;
 
-bool Private::ShouldResumeChain(void*& State, bool bCleanup)
-{
-	bool* Done = static_cast<bool*>(State);
-
-	if (UNLIKELY(bCleanup))
-	{
-		delete Done;
-		return false;
-	}
-
-	return Done && *Done;
-}
-
-std::tuple<FLatentActionInfo, bool*> Private::MakeLatentInfo()
+std::tuple<FLatentActionInfo, FTwoLives*> Private::MakeLatentInfo()
 {
 	auto* Sys = GWorld->GetSubsystem<UUE5CoroSubsystem>();
-	auto* Done = new bool(false); // ShouldResumeChain will delete
+	// Will be Released by the FLatentAwaiter from the caller
+	// and UUE5CoroSubsystem on the latent action's completion.
+	auto* Done = new FTwoLives;
 	return {Sys->MakeLatentInfo(Done), Done};
+}
+
+FLatentChainAwaiter::FLatentChainAwaiter(FTwoLives* Done)
+	: FLatentAwaiter(Done, &FTwoLives::ShouldResume)
+{
+}
+
+bool FLatentChainAwaiter::await_resume()
+{
+	// This function being called implies that there's a reference on State.
+	const int& UserData = static_cast<FTwoLives*>(State)->UserData;
+	checkf(UserData == 0 || UserData == 1, TEXT("Unexpected user data"));
+	// ExecuteLink sets this, otherwise it's 0. This is the only usage currently.
+	return UserData == 1;
 }

@@ -42,5 +42,3 @@
 #include "UE5Coro/LatentCallbacks.h"
 #include "UE5Coro/LatentTimeline.h"
 #include "UE5Coro/TaskAwaiters.h"
-
-namespace Coroutines = UE5Coro;

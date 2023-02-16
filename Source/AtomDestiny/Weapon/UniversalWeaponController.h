@@ -46,12 +46,12 @@ private:
     int32 m_shotCount = 1.0;
 
     ///
-    /// Particle blueprint that spawns by weapon at firing.
+    /// Particle prefab that spawns by weapon at firing.
     /// Current controller do not attack target with damage,
-    /// projectile blueprints should make a real damage to target.
+    /// only projectile prefabs should make a real damage to target.
     /// 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shot particle blueprint", AllowPrivateAccess = "true"))
-    TSubclassOf<AParticle> m_shotParticleBlueprint;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shot particle prefab", AllowPrivateAccess = "true"))
+    TSubclassOf<AParticle> m_shotParticlePrefab;
 
     ///
     /// Shot points where projectiles will be spawned.

@@ -32,9 +32,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Engine/StreamableManager.h"
 #include "UE5Coro/Definitions.h"
 #include <functional>
+#include "Engine/StreamableManager.h"
 #include "UE5Coro/AsyncCoroutine.h"
 
 namespace UE5Coro::Private
@@ -42,9 +42,10 @@ namespace UE5Coro::Private
 class FAsyncPromise;
 class FLatentAwaiter;
 class FLatentCancellation;
+class FLatentChainAwaiter;
 class FLatentPromise;
 class FPackageLoadAwaiter;
-template<typename> class TAsyncLoadAwaiter;
+template<typename, int> class TAsyncLoadAwaiter;
 template<typename> class TAsyncQueryAwaiter;
 }
 
@@ -60,9 +61,6 @@ Private::FLatentCancellation Cancel();
 /** Resumes the coroutine in the next tick.<br>
  *  @see Latent::Until for an alternative to while-NextTick loops. */
 UE5CORO_API Private::FLatentAwaiter NextTick();
-
-[[deprecated("Use UE5Coro::Latent::Ticks instead")]]
-UE5CORO_API Private::FLatentAwaiter Frames(int32);
 
 /** Resumes the coroutine the given number of ticks later. */
 UE5CORO_API Private::FLatentAwaiter Ticks(int64);
@@ -96,43 +94,110 @@ UE5CORO_API Private::FLatentAwaiter AudioSeconds(double);
 
 #if UE5CORO_CPP20
 /** Resumes the coroutine once the chained static latent action has finished,
- *  with automatic parameter matching.<br>Example usage:<br>
+ *  with automatic parameter matching.<br>
+ *  The result of the co_await expression is true if the chained latent action
+ *  finished normally, false if it didn't.<br>
+ *  Example usage:<br>
  *  co_await Latent::Chain(&UKismetSystemLibrary::Delay, 1.0f); */
 template<typename... FnParams>
-Private::FLatentAwaiter Chain(auto (*Function)(FnParams...), auto&&... Args);
+Private::FLatentChainAwaiter Chain(auto (*Function)(FnParams...), auto&&... Args);
 
 /** Resumes the coroutine once the chained member latent action has finished,
- *  with automatic parameter matching.<br>Example usage:<br>
+ *  with automatic parameter matching.
+ *  The result of the co_await expression is true if the chained latent action
+ *  finished normally, false if it didn't.<br>
+ *  Example usage:<br>
  *  co_await Latent::Chain(&UMediaPlayer::OpenSourceLatent, MediaPlayer,
  *                        MediaSource, Options, bSuccess); */
 template<std::derived_from<UObject> Class, typename... FnParams>
-Private::FLatentAwaiter Chain(auto (Class::*Function)(FnParams...),
-                              Class* Object, auto&&... Args);
+Private::FLatentChainAwaiter Chain(auto (Class::*Function)(FnParams...),
+                                   Class* Object, auto&&... Args);
 #endif
 
 /** Resumes the coroutine once the chained latent action has finished,
  *  with manual parameter matching.<br>
+ *  The result of the co_await expression is true if the chained latent action
+ *  finished normally, false if it didn't.<br>
  *  Use std::placeholders::_1 and _2 for the world context and LatentInfo.<br>
  *  Example usage:<br>
  *  co_await Latent::ChainEx(&UKismetSystemLibrary::Delay, _1, 1.0f, _2); */
 template<typename F, typename... A>
-Private::FLatentAwaiter ChainEx(F&& Function, A&&... Args);
+Private::FLatentChainAwaiter ChainEx(F&& Function, A&&... Args);
 
 #pragma endregion
 
 #pragma region Async loading
 
 /** Asynchronously starts loading the object, resumes once it's loaded.<br>
- *  The result of the co_await expression is the T*. */
+ *  The result of the co_await expression is the loaded T*. */
 template<typename T>
-std::enable_if_t<std::is_base_of_v<UObject, T>, Private::TAsyncLoadAwaiter<T>>
+std::enable_if_t<std::is_base_of_v<UObject, T>, Private::TAsyncLoadAwaiter<T*, 0>>
 AsyncLoadObject(TSoftObjectPtr<T>,
                 TAsyncLoadPriority = FStreamableManager::DefaultAsyncLoadPriority);
 
+/** Asynchronously starts loading the objects, resumes once they're loaded.<br>
+ *  The result of the co_await expression is TArray<T*>. */
+template<typename T>
+std::enable_if_t<std::is_base_of_v<UObject, T>,
+                 Private::TAsyncLoadAwaiter<TArray<T*>, 0>>
+AsyncLoadObjects(const TArray<TSoftObjectPtr<T>>&,
+                 TAsyncLoadPriority = FStreamableManager::DefaultAsyncLoadPriority);
+
+/** Asynchronously starts loading the objects at the given paths,
+ *  resumes once they're loaded. The loaded objects are not resolved. */
+UE5CORO_API Private::FLatentAwaiter AsyncLoadObjects(
+	TArray<FSoftObjectPath>,
+	TAsyncLoadPriority = FStreamableManager::DefaultAsyncLoadPriority);
+
+/** Asynchronously starts loading the primary asset with any bundles specified,
+ *  resumes once they're loaded.<br>
+ *  The asset will stay in memory until explicitly unloaded. */
+UE5CORO_API Private::FLatentAwaiter AsyncLoadPrimaryAsset(
+	const FPrimaryAssetId& AssetToLoad,
+	const TArray<FName>& LoadBundles = {},
+	TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority);
+
+/** Asynchronously starts loading the primary asset of the given type with any
+ *  bundles specified, resumes once they're loaded.<br>
+ *  The asset will stay in memory until explicitly unloaded.<br>
+ *  The result of the co_await expression is the loaded T* or nullptr. */
+template<typename T>
+std::enable_if_t<std::is_base_of_v<UObject, T>, Private::TAsyncLoadAwaiter<T*, 1>>
+AsyncLoadPrimaryAsset(
+	FPrimaryAssetId AssetToLoad,
+	const TArray<FName>& LoadBundles = {},
+	TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority);
+
+/** Asynchronously starts loading the primary assets with any bundles specified,
+ *  resumes once they're loaded.<br>
+ *  The assets will stay in memory until explicitly unloaded. */
+UE5CORO_API Private::FLatentAwaiter AsyncLoadPrimaryAssets(
+	TArray<FPrimaryAssetId> AssetsToLoad,
+	const TArray<FName>& LoadBundles = {},
+	TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority);
+
+/** Asynchronously starts loading the primary assets of the given type with any
+ *  bundles specified, resumes once they're loaded.<br>
+ *  The assets will stay in memory until explicitly unloaded.<br>
+ *  The result of the co_await expression is the loaded and filtered TArray<T*>. */
+template<typename T>
+std::enable_if_t<std::is_base_of_v<UObject, T>,
+                 Private::TAsyncLoadAwaiter<TArray<T*>, 1>>
+AsyncLoadPrimaryAssets(
+	TArray<FPrimaryAssetId> AssetsToLoad,
+	const TArray<FName>& LoadBundles = {},
+	TAsyncLoadPriority Priority = FStreamableManager::DefaultAsyncLoadPriority);
+
 /** Asynchronously starts loading the class, resumes once it's loaded.<br>
- *  The result of the co_await expression is the UClass*. */
-UE5CORO_API Private::TAsyncLoadAwaiter<UClass> AsyncLoadClass(
+ *  The result of the co_await expression is the loaded UClass*. */
+UE5CORO_API Private::TAsyncLoadAwaiter<UClass*, 0> AsyncLoadClass(
 	TSoftClassPtr<UObject>,
+	TAsyncLoadPriority = FStreamableManager::DefaultAsyncLoadPriority);
+
+/** Asynchronously starts loading the classes, resumes once they're loaded.<br>
+ *  The result of the co_await expression is TArray<UClass*>. */
+UE5CORO_API Private::TAsyncLoadAwaiter<TArray<UClass*>, 0> AsyncLoadClasses(
+	const TArray<TSoftClassPtr<UObject>>&,
 	TAsyncLoadPriority = FStreamableManager::DefaultAsyncLoadPriority);
 
 /** Asynchronously starts loading the package, resumes once it's loaded.<br>
@@ -149,6 +214,7 @@ UE5CORO_API Private::FPackageLoadAwaiter AsyncLoadPackage(
 #pragma region Async collision queries
 
 // Async UWorld queries. For parameters, see their originals in World.h.
+// It's slightly more efficient to co_await rvalues of these instead of lvalues.
 
 UE5CORO_API Private::TAsyncQueryAwaiter<FHitResult> AsyncLineTraceByChannel(
 	const UObject* WorldContextObject, EAsyncTraceType InTraceType,
@@ -215,6 +281,9 @@ public:
 	bool await_ready() { return false; }
 	void await_resume() { }
 	void await_suspend(FLatentHandle);
+
+	// co_awaiting this in async mode is meaningless, co_return instead.
+	void await_suspend(FAsyncHandle) = delete;
 };
 
 class [[nodiscard]] UE5CORO_API FLatentAwaiter
@@ -223,14 +292,14 @@ protected:
 	void* State;
 	bool (*Resume)(void*& State, bool bCleanup);
 
-	FLatentAwaiter(FLatentAwaiter&&);
-
 public:
 	explicit FLatentAwaiter(void* State, bool (*Resume)(void*&, bool))
 		: State(State), Resume(Resume) { }
+	FLatentAwaiter(const FLatentAwaiter&) = delete;
+	FLatentAwaiter(FLatentAwaiter&&);
 	~FLatentAwaiter();
 
-	bool ShouldResume() { return (*Resume)(State, false); }
+	bool ShouldResume();
 
 	bool await_ready() { return ShouldResume(); }
 	void await_resume() { }
@@ -240,29 +309,58 @@ public:
 
 namespace AsyncLoad
 {
-UE5CORO_API FLatentAwaiter InternalAsyncLoadObject(TSoftObjectPtr<UObject>,
-                                                   TAsyncLoadPriority);
-UE5CORO_API UObject* InternalResume(void*);
+template<int> // Switches between non-exported types
+UE5CORO_API TArray<UObject*> InternalResume(void*);
 }
 
-template<typename T>
+template<typename T, int HiddenType>
 class [[nodiscard]] TAsyncLoadAwaiter : public FLatentAwaiter
 {
 public:
 	explicit TAsyncLoadAwaiter(FLatentAwaiter&& Other)
 		: FLatentAwaiter(std::move(Other)) { }
+	TAsyncLoadAwaiter(TAsyncLoadAwaiter&&) = default;
 
-	T* await_resume() { return Cast<T>(AsyncLoad::InternalResume(State)); }
+	T await_resume()
+	{
+		TArray<UObject*> Assets = AsyncLoad::InternalResume<HiddenType>(State);
+		if constexpr (TIsTArray<T>::Value)
+		{
+			static_assert(std::is_pointer_v<typename T::ElementType>);
+			using V = std::remove_pointer_t<typename T::ElementType>;
+			static_assert(std::is_base_of_v<UObject, V>);
+			[[maybe_unused]] int OldNum = Assets.Num();
+			Assets.RemoveAll([](UObject* Ptr) { return !Ptr->IsA<V>(); });
+			if constexpr (HiddenType == 0) // These come from typed soft ptrs
+				check(Assets.Num() == OldNum); // Strict check
+			return reinterpret_cast<T&&>(Assets);
+		}
+		else
+		{
+			static_assert(std::is_pointer_v<T>);
+			using V = std::remove_pointer_t<T>;
+			static_assert(std::is_base_of_v<UObject, V>);
+			checkf(Assets.Num() <= 1,
+			       TEXT("Unexpected multiple assets for single load"));
+			return Assets.IsValidIndex(0) ? Cast<V>(Assets[0]) : nullptr;
+		}
+	}
 };
 
-static_assert(sizeof(FLatentAwaiter) == sizeof(TAsyncLoadAwaiter<UObject>));
+static_assert(sizeof(FLatentAwaiter) ==
+              sizeof(TAsyncLoadAwaiter<UObject*, 0>));
+static_assert(sizeof(FLatentAwaiter) ==
+              sizeof(TAsyncLoadAwaiter<TArray<UObject*>, 0>));
 
 class [[nodiscard]] UE5CORO_API FPackageLoadAwaiter
 {
-	FOptionalHandleVariant Handle;
-	TStrongObjectPtr<UPackage> Result; // This might be carried across co_awaits
-
-	void Loaded(const FName&, UPackage*, EAsyncLoadingResult::Type);
+	struct FState
+	{
+		FOptionalHandleVariant Handle;
+		TStrongObjectPtr<UPackage> Result; // This might be carried across co_awaits
+		void Loaded(const FName&, UPackage*, EAsyncLoadingResult::Type);
+	};
+	TSharedPtr<FState, ESPMode::NotThreadSafe> State;
 
 public:
 	explicit FPackageLoadAwaiter(
@@ -270,11 +368,10 @@ public:
 		EPackageFlags PackageFlags, int32 PIEInstanceID,
 		TAsyncLoadPriority PackagePriority,
 		const FLinkerInstancingContext* InstancingContext);
-	UE_NONCOPYABLE(FPackageLoadAwaiter);
 
-	bool await_ready() { return Result.IsValid(); }
-	void await_suspend(FAsyncHandle);
-	void await_suspend(FLatentHandle);
+	bool await_ready();
+	template<typename P>
+	void await_suspend(stdcoro::coroutine_handle<P>);
 	UPackage* await_resume();
 };
 
@@ -282,18 +379,18 @@ template<typename T>
 class [[nodiscard]] TAsyncQueryAwaiter
 {
 	class TImpl;
-	TImpl* Impl;
+	TSharedPtr<TImpl, ESPMode::NotThreadSafe> Impl;
 
 public:
 	template<typename... P, typename... A>
 	explicit TAsyncQueryAwaiter(UWorld*, FTraceHandle (UWorld::*)(P...), A...);
 	UE5CORO_API ~TAsyncQueryAwaiter();
-	UE_NONCOPYABLE(TAsyncQueryAwaiter);
 
 	UE5CORO_API bool await_ready();
 	UE5CORO_API void await_suspend(FAsyncHandle);
 	UE5CORO_API void await_suspend(FLatentHandle);
-	UE5CORO_API TArray<T> await_resume();
+	UE5CORO_API const TArray<T>& await_resume() &;
+	UE5CORO_API TArray<T> await_resume() &&;
 };
 }
 
@@ -304,12 +401,49 @@ inline UE5Coro::Private::FLatentCancellation UE5Coro::Latent::Cancel()
 
 template<typename T>
 std::enable_if_t<std::is_base_of_v<UObject, T>,
-                 UE5Coro::Private::TAsyncLoadAwaiter<T>>
+                 UE5Coro::Private::TAsyncLoadAwaiter<T*, 0>>
 UE5Coro::Latent::AsyncLoadObject(TSoftObjectPtr<T> Ptr,
                                  TAsyncLoadPriority Priority)
 {
-	return Private::TAsyncLoadAwaiter<T>(
-		Private::AsyncLoad::InternalAsyncLoadObject(Ptr, Priority));
+	return Private::TAsyncLoadAwaiter<T*, 0>(
+		AsyncLoadObjects(TArray{Ptr.ToSoftObjectPath()}, Priority));
+}
+
+template<typename T>
+std::enable_if_t<std::is_base_of_v<UObject, T>,
+                 UE5Coro::Private::TAsyncLoadAwaiter<TArray<T*>, 0>>
+UE5Coro::Latent::AsyncLoadObjects(const TArray<TSoftObjectPtr<T>>& Ptrs,
+                                  TAsyncLoadPriority Priority)
+{
+	TArray<FSoftObjectPath> Paths;
+	Paths.Reserve(Ptrs.Num());
+	for (const auto& Ptr : Ptrs)
+		Paths.Add(Ptr.ToSoftObjectPath());
+
+	return Private::TAsyncLoadAwaiter<TArray<T*>, 0>(
+		AsyncLoadObjects(std::move(Paths), Priority));
+}
+
+template<typename T>
+std::enable_if_t<std::is_base_of_v<UObject, T>,
+                 UE5Coro::Private::TAsyncLoadAwaiter<T*, 1>>
+UE5Coro::Latent::AsyncLoadPrimaryAsset(FPrimaryAssetId AssetToLoad,
+                                       const TArray<FName>& LoadBundles,
+                                       TAsyncLoadPriority Priority)
+{
+	return Private::TAsyncLoadAwaiter<T*, 1>(
+		AsyncLoadPrimaryAsset(std::move(AssetToLoad), LoadBundles, Priority));
+}
+
+template<typename T>
+std::enable_if_t<std::is_base_of_v<UObject, T>,
+                 UE5Coro::Private::TAsyncLoadAwaiter<TArray<T*>, 1>>
+UE5Coro::Latent::AsyncLoadPrimaryAssets(TArray<FPrimaryAssetId> AssetsToLoad,
+                                        const TArray<FName>& LoadBundles,
+                                        TAsyncLoadPriority Priority)
+{
+	return Private::TAsyncLoadAwaiter<TArray<T*>, 1>(
+		AsyncLoadPrimaryAssets(std::move(AssetsToLoad), LoadBundles, Priority));
 }
 
 #include "LatentChain.inl"
