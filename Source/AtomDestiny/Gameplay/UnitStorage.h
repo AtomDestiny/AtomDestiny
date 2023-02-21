@@ -26,11 +26,9 @@ namespace AtomDestiny
         
     private:
         TMap<EUnitType, FUnitInfo> m_storage;
-    }; 
+    };
 
-    ///
-    /// Implementation
-    ///
+    //////////////////////////////////////////
 
     inline UnitStorage& UnitStorage::Instance()
     {
