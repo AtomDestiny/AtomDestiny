@@ -3,11 +3,15 @@
 #include "UnitInfo.h"
 
 #include <AtomDestiny/Unit/Unit.h>
+#include <AtomDestiny/Core/Concepts.h>
 
 #include <Runtime/Core/Public/Containers/Map.h>
 
 namespace AtomDestiny
 {
+    template <typename T>
+    concept UnitStorageMap = Concepts::IsAnyOf<T, TMap<EUnitType, FUnitInfo>>;
+    
     ///
     /// Stores pointers to all units and additional information.
     /// By default storage is empty, so user should create all references manually.
@@ -18,8 +22,11 @@ namespace AtomDestiny
     public:
         static UnitStorage& Instance();
 
-        template<typename Value>
+        template <typename Value>
         void Add(EUnitType type, Value&& value);
+
+        template <typename Values>
+        void Add(Values&& values) requires UnitStorageMap<Values>;
 
         bool Contains(const EUnitType type) const;
         TOptional<FUnitInfo> GetInfo(const EUnitType type) const;
@@ -43,6 +50,12 @@ namespace AtomDestiny
         m_storage.Add(type, std::forward<Value>(value));
     }
 
+    template <typename Values>
+    void UnitStorage::Add(Values&& values) requires UnitStorageMap<Values>
+    {
+        m_storage = std::forward<Values>(values);
+    }
+    
     inline bool UnitStorage::Contains(const EUnitType type) const
     {
         return m_storage.Contains(type);

@@ -11,7 +11,8 @@ namespace AtomDestiny::Concepts
     {
         template <typename T>
         using Type = std::remove_cvref_t<T>;
-    }
+        
+    } // namespace Details
 
     template<typename T, typename ... U>
     concept IsAnyOf = (std::same_as<Details::Type<T>, U> || ...);
