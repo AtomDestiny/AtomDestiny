@@ -2,6 +2,7 @@
 
 #include <type_traits>
 
+#include <AtomDestiny/Core/Concepts.h>
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 
 namespace AtomDestiny::Utils
@@ -17,8 +18,15 @@ namespace AtomDestiny::Utils
     {
         using IntegerType = std::underlying_type_t<Enum>;
         
-        const auto c = static_cast<Enum>(static_cast<IntegerType>(e) + 1);
-        return c;
+        const auto res = static_cast<Enum>(static_cast<IntegerType>(e) + 1);
+
+        if constexpr (Concepts::HasNoneValue<Enum>)
+        {
+            const auto converted = static_cast<IntegerType>(res);
+            return static_cast<Enum>(std::clamp<IntegerType>(converted, 0, static_cast<IntegerType>(Enum::None)));
+        }
+        
+        return res;
     }
     
 } // namespace AtomDestiny
