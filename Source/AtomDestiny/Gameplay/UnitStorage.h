@@ -17,7 +17,7 @@ namespace AtomDestiny
     /// By default storage is empty, so user should create all references manually.
     /// For example, you can do that at start of the game one time only.
     ///
-    class ATOMDESTINY_API UnitStorage
+    class UnitStorage
     {
     public:
         static UnitStorage& Instance();
