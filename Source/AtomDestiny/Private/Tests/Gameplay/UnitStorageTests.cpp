@@ -8,7 +8,7 @@
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUnitStorageTests, "AtomDestiny.Gameplay.UnitStorage",
     EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
-static const auto WrongValue = std::numeric_limits<EUnitType>::max();
+static constexpr auto WrongValue = std::numeric_limits<EUnitType>::max();
 
 static size_t UnitEnumCount()
 {
