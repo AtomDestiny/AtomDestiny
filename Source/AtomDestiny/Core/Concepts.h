@@ -29,4 +29,10 @@ namespace AtomDestiny::Concepts
     template <typename T>
     concept NavigatorMovable = IsAnyOf<T, FVector, AActor*>;
 
+    template <typename T>
+    concept HasNoneValue = std::is_enum_v<T> && requires (T t)
+    {
+        { T::None };
+    };
+
 } // namespace AtomDestiny::Concepts
