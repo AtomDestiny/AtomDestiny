@@ -43,7 +43,7 @@ public:
     virtual void Launch() ABSTRACT_METHOD;
 
 private:
-    virtual void PreInitializeComponents() override;
+    virtual void BeginPlay() override;
     
 protected:
     FWeaponParameters m_parameters;
