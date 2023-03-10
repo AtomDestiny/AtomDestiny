@@ -1,6 +1,8 @@
 #include "Misc/AutomationTest.h"
 
 #include <AtomDestiny/Core/Utils.h>
+#include <AtomDestiny/Core/Logger.h>
+
 #include <AtomDestiny/Gameplay/UnitStorage.h>
 
 #include <unordered_map>
@@ -8,11 +10,11 @@
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUnitStorageTests, "AtomDestiny.Gameplay.UnitStorage",
     EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
-static constexpr auto WrongValue = std::numeric_limits<EUnitType>::max();
+static constexpr auto WrongValue = EUnitType::None;
 
 static size_t UnitEnumCount()
 {
-    return static_cast<size_t>(EUnitType::None) + 1;
+    return static_cast<size_t>(EUnitType::None);
 }
 
 static std::unordered_map<EUnitType, FUnitInfo> CreateUnitInfo()
@@ -30,7 +32,7 @@ static std::unordered_map<EUnitType, FUnitInfo> CreateUnitInfo()
 bool FUnitStorageTests::RunTest(const FString& parameters)
 {
     const std::unordered_map<EUnitType, FUnitInfo> unitInfos = CreateUnitInfo();
-
+    
     // Add
     for (const auto& [type, info] : unitInfos)
     {
@@ -53,7 +55,7 @@ bool FUnitStorageTests::RunTest(const FString& parameters)
         TestTrue(TEXT("Unit storage contains info"), AtomDestiny::UnitStorage::Instance().GetInfo(type).IsSet());
     }
 
-    TestTrue(TEXT("Unit storage does not contain info"), AtomDestiny::UnitStorage::Instance().GetInfo(WrongValue).IsSet());
+    TestFalse(TEXT("Unit storage does not contain info"), AtomDestiny::UnitStorage::Instance().GetInfo(WrongValue).IsSet());
     
     return true;
 }
