@@ -30,6 +30,7 @@
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "UE5Coro/AsyncCoroutine.h"
+#include "Misc/ScopeExit.h"
 
 using namespace UE5Coro::Private;
 
@@ -39,49 +40,60 @@ std::atomic<int> FPromise::LastDebugID = -1; // -1 = no coroutines yet
 thread_local TArray<FPromise*> FPromise::ResumeStack;
 #endif
 
-FPromise::FPromise(const TCHAR* PromiseType)
-#if UE5CORO_DEBUG
-	: DebugID(++LastDebugID), DebugPromiseType(PromiseType)
-#endif
+bool FPromiseExtras::IsComplete() const
 {
+	return Completed->Wait(0, true);
+}
+
+void FPromiseExtras::Complete()
+{
+	// This should be called with the mutex already held
+	checkf(!Lock.TryLock(), TEXT("Internal error"));
+	checkf(!IsComplete(), TEXT("Internal error"));
+	Completed->Trigger();
+	OnCompleted();
+	OnCompleted = nullptr;
+}
+
+FPromise::FPromise(std::shared_ptr<FPromiseExtras> Extras,
+                   const TCHAR* PromiseType)
+	: Extras(std::move(Extras))
+{
+#if UE5CORO_DEBUG
+	this->Extras->DebugID = ++LastDebugID;
+	this->Extras->DebugPromiseType = PromiseType;
+#endif
 }
 
 FPromise::~FPromise()
 {
-#if UE5CORO_DEBUG
-	checkf(Alive == Expected, TEXT("Double coroutine destruction"));
-	Alive = 0;
-#endif
+	// If something else is accessing the delegate, block until it's done
+	UE::TScopeLock _(Extras->Lock);
+	checkf(!Extras->IsComplete(),
+	       TEXT("Unexpected late/double coroutine destruction"));
+	auto Continuations = std::move(Extras->Continuations_DEPRECATED);
+	Extras->Complete();
+	_.Unlock();
 	Continuations.Broadcast();
-}
-
-void FPromise::CheckAlive()
-{
-#if UE5CORO_DEBUG
-	// Best effort but ultimately unreliable check for stale objects
-	checkf(Alive == Expected,
-	       TEXT("Attempted to access or await a destroyed coroutine"));
-#endif
 }
 
 void FPromise::Resume()
 {
-	CheckAlive();
 #if UE5CORO_DEBUG
-	checkf(ResumeStack.Num() == 0 || ResumeStack.Last() != this,
-	       TEXT("Internal error"));
+	checkf(!Extras->IsComplete(),
+	       TEXT("Attempting to resume completed coroutine"));
 	ResumeStack.Push(this);
+	ON_SCOPE_EXIT
+	{
+		// Coroutine resumption might result in `this` having been freed already
+		// and not being considered `Alive`.
+		// This is technically undefined behavior.
+		checkf(ResumeStack.Last() == this, TEXT("Internal error"));
+		ResumeStack.Pop();
+	};
 #endif
-}
 
-void FPromise::EndResume()
-{
-	// Coroutine resumption might result in `this` having been freed already and
-	// not being considered `Alive`. This is technically undefined behavior.
-#if UE5CORO_DEBUG
-	checkf(ResumeStack.Last() == this, TEXT("Internal error"));
-	ResumeStack.Pop();
-#endif
+	stdcoro::coroutine_handle<FPromise>::from_promise(*this).resume();
 }
 
 void FPromise::unhandled_exception()
@@ -91,15 +103,4 @@ void FPromise::unhandled_exception()
 #else
 	throw;
 #endif
-}
-
-TMulticastDelegate<void()>& FPromise::OnCompletion()
-{
-	CheckAlive();
-	return Continuations;
-}
-
-FAsyncCoroutine FPromise::get_return_object()
-{
-	return FAsyncCoroutine(FHandle::from_promise(*this));
 }
