@@ -33,6 +33,7 @@
 
 #include "CoreMinimal.h"
 #include "UE5Coro/Definitions.h"
+#include <optional>
 #include "Async/TaskGraphInterfaces.h"
 #include "UE5Coro/AsyncCoroutine.h"
 
@@ -71,25 +72,27 @@ UE5CORO_API Private::FNewThreadAwaiter MoveToNewThread(
 
 namespace UE5Coro::Private
 {
-class [[nodiscard]] UE5CORO_API FAsyncAwaiter final
+class [[nodiscard]] UE5CORO_API FAsyncAwaiter : public TAwaiter<FAsyncAwaiter>
 {
 	ENamedThreads::Type Thread;
-	FHandle ResumeAfter;
+
+protected:
+	std::optional<TCoroutine<>> ResumeAfter;
 
 public:
 	explicit FAsyncAwaiter(ENamedThreads::Type Thread,
-	                       FHandle ResumeAfter = nullptr)
-		: Thread(Thread), ResumeAfter(ResumeAfter) { }
+	                       std::optional<TCoroutine<>> ResumeAfter)
+		: Thread(Thread), ResumeAfter(std::move(ResumeAfter)) { }
 
-	bool await_ready() { return false; }
-	void await_resume() { }
-
-	void await_suspend(FAsyncHandle Handle);
-	void await_suspend(FLatentHandle Handle);
+	bool await_ready();
+	void Suspend(FPromise&);
+#if UE5CORO_DEBUG
+	void Suspend(FLatentPromise&);
+#endif
 };
 
 template<typename T>
-class [[nodiscard]] TFutureAwaiter final
+class [[nodiscard]] TFutureAwaiter final : public TAwaiter<TFutureAwaiter<T>>
 {
 	TFuture<T> Future;
 	std::remove_reference_t<T>* Result = nullptr; // Dangerous!
@@ -101,46 +104,59 @@ public:
 
 	bool await_ready()
 	{
-		checkf(this->Future.IsValid(),
+		checkf(!Result, TEXT("Attempting to reuse spent TFutureAwaiter"));
+		checkf(Future.IsValid(),
 		       TEXT("Awaiting invalid/spent future will never resume"));
 		return Future.IsReady();
 	}
 
-	T await_resume()
+	void Suspend(FPromise& Promise)
 	{
-		if constexpr (std::is_lvalue_reference_v<T>)
-			return *Result;
-		else if constexpr (!std::is_void_v<T>)
-			return std::move(*Result);
-	}
+		// Extremely rarely, Then will run synchronously because Future
+		// finished after IsReady but before Suspend.
+		// This is OK and will result in the caller coroutine resuming itself.
 
-	template<typename P>
-	void await_suspend(stdcoro::coroutine_handle<P> Handle)
-	{
-		checkf(!Result, TEXT("Attempting to reuse spent TFutureAwaiter"));
-
-		if constexpr (std::is_same_v<P, FLatentPromise>)
-			Handle.promise().DetachFromGameThread();
-
-		Future.Then([this, Handle](auto InFuture)
+		Future.Then([this, &Promise](auto InFuture)
 		{
+			checkf(!Future.IsValid(), TEXT("Internal error"));
+
 			// TFuture<T&> will pass T* for Value, TFuture<void> an int
 			if constexpr (std::is_lvalue_reference_v<T>)
 			{
 				static_assert(std::is_pointer_v<decltype(InFuture.Get())>);
-				checkf(!Future.IsValid(), TEXT("Internal error"));
 				Result = InFuture.Get();
-				Handle.promise().Resume();
+				Promise.Resume();
 			}
 			else
 			{
 				// It's normally dangerous to expose a pointer to a local, but
 				auto Value = InFuture.Get(); // This will be alive while...
-				checkf(!Future.IsValid(), TEXT("Internal error"));
 				Result = &Value;
-				Handle.promise().Resume(); // ...await_resume moves from it here
+				Promise.Resume(); // ...await_resume moves from it here
 			}
 		});
+	}
+
+	T await_resume()
+	{
+		if (!Result)
+		{
+			// Result being nullptr indicates that await_ready returned true,
+			// Then has not and will not run, and Future is still valid
+			checkf(Future.IsValid(), TEXT("Internal error"));
+			static_assert(std::is_same_v<T, decltype(Future.Get())>);
+			Result = reinterpret_cast<decltype(Result)>(-1); // Mark as spent
+			return Future.Get();
+		}
+		else
+		{
+			// Otherwise, we're being called from Then, and Future is spent
+			checkf(!Future.IsValid(), TEXT("Internal error"));
+			if constexpr (std::is_lvalue_reference_v<T>)
+				return *Result;
+			else if constexpr (!std::is_void_v<T>)
+				return std::move(*Result); // This will move from Then's local
+		}
 	}
 };
 
@@ -157,6 +173,7 @@ struct TAwaitTransform<P, TFuture<T>>
 };
 
 class [[nodiscard]] UE5CORO_API FNewThreadAwaiter
+	: public TAwaiter<FNewThreadAwaiter>
 {
 	EThreadPriority Priority;
 	uint64 Affinity;
@@ -167,10 +184,6 @@ public:
 		EThreadPriority Priority, uint64 Affinity, EThreadCreateFlags Flags)
 		: Priority(Priority), Affinity(Affinity), Flags(Flags) { }
 
-	bool await_ready() { return false; }
-	void await_resume() { }
-
-	void await_suspend(FAsyncHandle);
-	void await_suspend(FLatentHandle);
+	void Suspend(FPromise&);
 };
 }

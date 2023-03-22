@@ -75,20 +75,21 @@ Private::FAllAwaiter WhenAll(T&&...);
 namespace UE5Coro::Private
 {
 class [[nodiscard]] UE5CORO_API FAggregateAwaiter
+	: public TAwaiter<FAggregateAwaiter>
 {
 	struct FData
 	{
 		UE::FSpinLock Lock;
 		int Count;
 		int Index = -1;
-		FOptionalHandleVariant Handle;
+		FPromise* Promise = nullptr;
 
 		explicit FData(int Count) : Count(Count) { }
 	};
 	std::shared_ptr<FData> Data;
 
 	template<typename T>
-	static FAsyncCoroutine Consume(std::shared_ptr<FData>, int, T&&);
+	static TCoroutine<> Consume(std::shared_ptr<FData>, int, T&&);
 
 protected:
 	int GetResumerIndex() const;
@@ -103,8 +104,7 @@ public:
 	}
 
 	bool await_ready();
-	void await_suspend(FAsyncHandle);
-	void await_suspend(FLatentHandle);
+	void Suspend(FPromise&);
 };
 
 class [[nodiscard]] FAnyAwaiter : public FAggregateAwaiter
@@ -145,28 +145,28 @@ UE5Coro::Private::FAllAwaiter UE5Coro::WhenAll(T&&... Args)
 }
 
 template<typename T>
-FAsyncCoroutine UE5Coro::Private::FAggregateAwaiter::Consume(
+UE5Coro::TCoroutine<> UE5Coro::Private::FAggregateAwaiter::Consume(
 	std::shared_ptr<FData> Data, int Index, T&& Awaiter)
 {
 	auto AwaiterCopy = std::forward<T>(Awaiter); // If this line doesn't compile,
 	// you'll need to fix your usage of WhenAny/WhenAll and move the affected
 	// noncopyable parameter into the call with MoveTemp/std::move/etc.
 
-	co_await std::move(AwaiterCopy);
-
-	UE::TScopeLock _(Data->Lock);
-	if (--Data->Count != 0)
-		co_return;
-	Data->Index = Index; // Mark that this index was the one reaching 0
-	auto Handle = Data->Handle;
-	_.Unlock();
-
-	std::visit([](auto InHandle)
+	ON_SCOPE_EXIT
 	{
-		// Not co_awaited yet with a monostate, await_ready deals with this
-		if constexpr (!std::is_same_v<std::monostate, decltype(InHandle)>)
-			InHandle.promise().Resume();
-	}, Handle);
+		UE::TScopeLock _(Data->Lock);
+		if (--Data->Count != 0)
+			return;
+		Data->Index = Index; // Mark that this index was the one reaching 0
+		auto* Promise = Data->Promise;
+		_.Unlock();
+
+		// Not co_awaited yet if this is nullptr, await_ready deals with this
+		if (Promise != nullptr)
+			Promise->Resume();
+	};
+
+	co_await std::move(AwaiterCopy);
 }
 
 #undef UE5CORO_AWAITABLE
