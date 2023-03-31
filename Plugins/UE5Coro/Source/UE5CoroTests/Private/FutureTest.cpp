@@ -53,7 +53,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFutureLatent, "UE5Coro.Future.Latent",
 template<>
 struct stdcoro::coroutine_traits<void, FAutomationTestBase&>
 {
-	using promise_type = UE5Coro::Private::FAsyncPromise;
+	using promise_type = UE5Coro::Private::TCoroutinePromise<void, FAsyncPromise>;
 };
 #endif
 
@@ -63,6 +63,23 @@ template<typename... T>
 void DoTest(FAutomationTestBase& Test)
 {
 	FTestWorld World;
+
+	{
+		TPromise<int> Promise;
+		Promise.SetValue(1);
+		auto Coro = World.Run(CORO_R(int)
+		{
+			co_return co_await Promise.GetFuture();
+		});
+
+		IF_CORO_LATENT
+		{
+			Test.TestFalse(TEXT("Not polled yet"), Coro.IsDone());
+			World.Tick();
+		}
+		Test.TestTrue(TEXT("Already done"), Coro.IsDone());
+		Test.TestEqual(TEXT("Value"), Coro.GetResult(), 1);
+	}
 
 	{
 		int State = 0;

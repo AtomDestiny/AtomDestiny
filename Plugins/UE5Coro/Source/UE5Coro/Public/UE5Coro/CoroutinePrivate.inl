@@ -31,51 +31,54 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "UE5Coro/Definitions.h"
-#include <optional>
-#include "Interfaces/IHttpRequest.h"
-#include "Misc/SpinLock.h"
-#include "UE5Coro/AsyncCoroutine.h"
+#include "UObject/GCObjectScopeGuard.h"
 
 namespace UE5Coro::Private
 {
-class FHttpAwaiter;
-}
+class FPromiseExtras;
+template<typename, typename> class TCoroutinePromise;
 
-namespace UE5Coro::Http
-{
-/** Processes the request, resumes the coroutine after it's done.<br>
- *  The result of the co_await expression will be a TTuple of
- *  FHttpResponsePtr and bool bConnectedSuccessfully. */
-UE5CORO_API Private::FHttpAwaiter ProcessAsync(FHttpRequestRef);
-}
+// Transforms T to its weak pointer version
+template<typename>
+struct TWeak : std::false_type { };
 
-namespace UE5Coro::Private
+template<typename T>
+struct TWeak<T*> : std::bool_constant<std::is_convertible_v<T*, const UObject*>>
 {
-class [[nodiscard]] UE5CORO_API FHttpAwaiter : public TAwaiter<FHttpAwaiter>
-{
-	struct [[nodiscard]] UE5CORO_API FState
+	using strong = TGCObjectScopeGuard<T>;
+	using weak = TWeakObjectPtr<T>;
+	using ptr = std::enable_if_t<TWeak::value, T*>;
+	static strong Strengthen(const weak& Weak)
 	{
-		const ENamedThreads::Type Thread;
-		const FHttpRequestRef Request;
-		UE::FSpinLock Lock;
-		FPromise* Promise = nullptr;
-		bool bSuspended = false;
-		// end Lock
-		std::optional<TTuple<FHttpResponsePtr, bool>> Result;
+		// Doing this correctly would require locking the private critical
+		// section of UGCObjectReferencer. For most usages, this won't matter.
+		// If you're hitting this ensure, either make the coroutine finish on
+		// the GT, or use ContinueWith (non-Weak) with your own threading code.
+		ensureMsgf(IsInGameThread(),
+		           TEXT("Warning: UObjects are inherently not thread safe"));
+		// There's no API to convert a weak ptr to a strong one...
+		return strong(Weak.Get()); // relying on C++17 mandatory RVO
+	}
+	static ptr Get(const strong& Strong) { return Strong.Get(); }
+};
 
-		explicit FState(FHttpRequestRef&&);
-		void RequestComplete(FHttpRequestPtr, FHttpResponsePtr, bool);
-		void Resume();
-	};
-	TSharedPtr<FState> State;
+template<typename T> // ContinueWith isn't guaranteed GT only
+struct TWeak<TSharedPtr<T, ESPMode::ThreadSafe>> : std::true_type
+{
+	using strong = TSharedPtr<T, ESPMode::ThreadSafe>;
+	using weak = TWeakPtr<T, ESPMode::ThreadSafe>;
+	using ptr = T*;
+	static strong Strengthen(const weak& Weak) { return Weak.Pin(); }
+	static ptr Get(const strong& Strong) { return Strong.Get(); }
+};
 
-public:
-	explicit FHttpAwaiter(FHttpRequestRef&& Request);
-
-	bool await_ready();
-	void Suspend(FPromise&);
-	TTuple<FHttpResponsePtr, bool> await_resume();
+template<typename T>
+struct TWeak<std::shared_ptr<T>> : std::true_type
+{
+	using strong = std::shared_ptr<T>;
+	using weak = std::weak_ptr<T>;
+	using ptr = T*;
+	static strong Strengthen(const weak& Weak) { return Weak.lock(); }
+	static ptr Get(const strong& Strong) { return Strong.get(); }
 };
 }

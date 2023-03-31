@@ -33,15 +33,5 @@
 
 using namespace UE5Coro::Private;
 
-void FAsyncPromise::Resume()
-{
-	FResumeScope _(this);
-	FAsyncHandle::from_promise(*this).resume();
-}
-
-FAsyncAwaiter TAwaitTransform<FAsyncPromise, FAsyncCoroutine>::operator()
-	(FAsyncCoroutine Other)
-{
-	auto Thread = FTaskGraphInterface::Get().GetCurrentThreadIfKnown();
-	return FAsyncAwaiter(Thread, Other.Handle);
-}
+// This will generate and export FAsyncPromise's vtable on MSVC
+template FAsyncPromise::FAsyncPromise(std::shared_ptr<FPromiseExtras>);
