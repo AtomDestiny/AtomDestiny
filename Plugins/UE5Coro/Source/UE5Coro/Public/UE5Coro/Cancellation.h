@@ -33,56 +33,69 @@
 
 #include "CoreMinimal.h"
 #include "UE5Coro/Definitions.h"
-#include <functional>
-#include "Misc/ScopeExit.h"
+#include "UE5Coro/AsyncCoroutine.h"
 
-namespace UE5Coro::Latent
+namespace UE5Coro
 {
+namespace Private
+{
+class FPromise;
+class FCancellationYieldAwaiter;
+}
+
 /**
- * Provided for advanced scenarios, prefer ON_SCOPE_EXIT or RAII for
- * unconditional cleanup.<br><br>
- * This is a combination of FOnActionAborted and FOnObjectDestroyed and will run
- * the provided callback in either of those two situations. It has no effect
- * within an async mode coroutine. Note that because NotifyObjectDestroyed is
- * included, `this` might not be valid.<br>
- * <br>Example usage:<br>
- * Latent::FOnAbnormalExit Guard([]{cleanup code});
+ * Guards against user-requested cancellation. For advanced use.<br>
+ * This does NOT affect a latent coroutine destroyed by the latent action
+ * manager.<br><br>
+ * If any number of these objects is in scope within a coroutine returning
+ * TCoroutine, it will delay cancellations and not process them in co_awaits.<br>
+ * The first co_await after the last one of these has gone out of scope will
+ * process the cancellation that was deferred.<br>
  */
-struct [[nodiscard]] UE5CORO_API FOnAbnormalExit
-	: ScopeExitSupport::TScopeGuard<std::function<void()>>
+class [[nodiscard]] UE5CORO_API FCancellationGuard
 {
-	explicit FOnAbnormalExit(std::function<void()> Fn);
+#if UE5CORO_DEBUG
+	Private::FPromise* Promise;
+#endif
+
+public:
+	FCancellationGuard();
+	UE_NONCOPYABLE(FCancellationGuard);
+	~FCancellationGuard();
+
+	// These objects only make sense as locals
+	void* operator new(std::size_t) = delete;
+	void* operator new[](std::size_t) = delete;
 };
 
 /**
  * Provided for advanced scenarios, prefer ON_SCOPE_EXIT or RAII for
  * unconditional cleanup.<br><br>
  * This will ONLY call the provided callback if this object is in scope within
- * a latent mode coroutine that's aborted by the latent action manager.
- * It has no effect within an async mode coroutine.<br>
+ * a coroutine that's being cleaned up early: due to manual cancellation, the
+ * latent action manager deleting its corresponding latent action, etc.<br>
  * <br>Example usage:<br>
- * Latent::FOnActionAborted Guard([this]{cleanup code});
- * @see FPendingLatentAction::NotifyActionAborted()
+ * FOnCoroutineCanceled Guard([this]{cleanup code});
  */
-struct [[nodiscard]] UE5CORO_API FOnActionAborted
+struct [[nodiscard]] UE5CORO_API FOnCoroutineCanceled
 	: ScopeExitSupport::TScopeGuard<std::function<void()>>
 {
-	explicit FOnActionAborted(std::function<void()> Fn);
+	explicit FOnCoroutineCanceled(std::function<void()> Fn);
 };
 
-/**
- * Provided for advanced scenarios, prefer ON_SCOPE_EXIT or RAII for
- * unconditional cleanup.<br><br>
- * This will ONLY call the provided callback if this object is in scope within
- * a latent mode coroutine whose object has been garbage collected.
- * It has no effect within an async mode coroutine.<br>
- * <br>Example usage:<br>
- * Latent::FOnObjectDestroyed Guard([]{cleanup code});
- * @see FPendingLatentAction::NotifyObjectDestroyed()
- */
-struct [[nodiscard]] UE5CORO_API FOnObjectDestroyed
-	: ScopeExitSupport::TScopeGuard<std::function<void()>>
+/** co_awaiting the return value of this function does nothing if the calling
+ *  coroutine is not currently canceled.
+ *  If it is canceled, the cancellation will be processed immediately. */
+UE5CORO_API Private::FCancellationYieldAwaiter YieldIfCanceled();
+}
+
+namespace UE5Coro::Private
 {
-	explicit FOnObjectDestroyed(std::function<void()> Fn);
+class [[nodiscard]] UE5CORO_API FCancellationYieldAwaiter
+	: public TAwaiter<FCancellationYieldAwaiter>
+{
+public:
+	bool await_ready();
+	void Suspend(FPromise&);
 };
 }

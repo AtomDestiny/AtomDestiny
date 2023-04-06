@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -32,6 +32,7 @@
 #include "TestWorld.h"
 #include "UE5CoroTestObject.h"
 #include "Misc/AutomationTest.h"
+#include "UE5Coro/Cancellation.h"
 #include "UE5Coro/LatentAwaiters.h"
 #include "UE5Coro/LatentCallbacks.h"
 
@@ -56,11 +57,13 @@ FAsyncCoroutine UUE5CoroTestObject::ObjectDestroyedTest(
 
 bool FLatentCallbackTest::RunTest(const FString& Parameters)
 {
-	int State;
+	int State = 0;
+	bool bCanceled = false;
 	{
 		FTestWorld World;
 		World.Run([&](FLatentActionInfo) -> TCoroutine<>
 		{
+			FOnCoroutineCanceled _([&] { bCanceled = true; });
 			ON_SCOPE_EXIT { State = 2; };
 			State = 1;
 			co_await Latent::NextTick();
@@ -68,6 +71,7 @@ bool FLatentCallbackTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("Initial state"), State, 1);
 	}
 	TestEqual(TEXT("On scope exit"), State, 2);
+	TestTrue(TEXT("Canceled"), bCanceled);
 
 	{
 		FTestWorld World;

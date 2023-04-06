@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -92,8 +92,6 @@ void DoTest(FAutomationTestBase& Test)
 			TestToCoro->Wait();
 			State = 2;
 			CoroToTest->Trigger();
-			IF_CORO_LATENT
-				co_await UE5Coro::Async::MoveToGameThread();
 		});
 		Test.TestEqual(TEXT("Initial state"), State, 1);
 		Test.TestEqual(TEXT("Wait 1"), CoroToTest->Wait(), true);
@@ -115,8 +113,6 @@ void DoTest(FAutomationTestBase& Test)
 			TestToCoro->Wait();
 			State = 2;
 			CoroToTest->Trigger();
-			IF_CORO_LATENT
-				co_await UE5Coro::Async::MoveToGameThread();
 		});
 		Test.TestEqual(TEXT("Initial state"), State, 1);
 		Test.TestEqual(TEXT("Wait 1"), CoroToTest->Wait(), true);
@@ -134,8 +130,6 @@ void DoTest(FAutomationTestBase& Test)
 				UE5Coro::Async::MoveToNewThread(),
 				UE5Coro::Async::MoveToThread(ENamedThreads::AnyThread));
 			CoroToTest->Trigger();
-			IF_CORO_LATENT
-				co_await UE5Coro::Async::MoveToGameThread();
 		});
 		Test.TestTrue(TEXT("Triggered"), CoroToTest->Wait());
 	}

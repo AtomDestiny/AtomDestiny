@@ -29,65 +29,55 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "Misc/AutomationTest.h"
-#include "UE5Coro/Generator.h"
+#include "UE5Coro/Cancellation.h"
+#include "UE5Coro/AsyncCoroutine.h"
 
 using namespace UE5Coro;
+using namespace UE5Coro::Private;
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGeneratorTest, "UE5Coro.Generator",
-                                 EAutomationTestFlags::ApplicationContextMask |
-                                 EAutomationTestFlags::CriticalPriority |
-                                 EAutomationTestFlags::ProductFilter)
-
-TGenerator<int> CountUp(int Max)
+namespace
 {
-	for (int i = 0; i <= Max; ++i)
-		co_yield i;
+// lvalue ref to work around TScopeGuard
+void CleanupIfCanceled(std::function<void()>& Fn)
+{
+	if (GDestroyedEarly)
+		Fn();
+}
 }
 
-bool FGeneratorTest::RunTest(const FString& Parameters)
+FCancellationGuard::FCancellationGuard()
+#if UE5CORO_DEBUG
+	: Promise(&FPromise::Current())
+#endif
 {
-	{
-		auto Generator = []() -> TGenerator<int>
-		{
-			co_yield 1.0;
-		}();
-		TestEqual("Temporary type conversion", Generator.Current(), 1);
-	}
+	FPromise::Current().HoldCancellation();
+}
 
-	{
-		TGenerator<int> Generator = CountUp(2);
-		for (int i = 0; i <= 2; ++i)
-		{
-			TestEqual("Current", Generator.Current(), i);
-			TestEqual("Resume", Generator.Resume(), i != 2);
-		}
-	}
+FCancellationGuard::~FCancellationGuard()
+{
+#if UE5CORO_DEBUG
+	checkf(Promise == &FPromise::Current(), TEXT("Hold/Release mismatch"));
+#endif
+	FPromise::Current().ReleaseCancellation();
+}
 
-	{
-		TArray<int, TInlineAllocator<3>> Values;
+FOnCoroutineCanceled::FOnCoroutineCanceled(std::function<void()> Fn)
+	: TScopeGuard(std::bind(&CleanupIfCanceled, std::move(Fn)))
+{
+}
 
-		TGenerator<int> Count2 = CountUp(2);
-		for (int i : Count2)
-			Values.Add(i);
-		// Not really classic iterator semantics but we can't rewind
-		TestEqual("begin()==end() at end", Count2.begin(), Count2.end());
-		TestEqual("Values.Num()", Values.Num(), 3);
-		for (int i = 0; i <= 2; ++i)
-			TestEqual("Values[i]", Values[i], i);
-	}
+FCancellationYieldAwaiter UE5Coro::YieldIfCanceled()
+{
+	return {};
+}
 
-	{
-		TGenerator<int> Count2 = CountUp(2);
-		// This makes an iterator and discards it
-		TestNotEqual("begin()!=end() at start", Count2.begin(), Count2.end());
-		auto i = Count2.CreateIterator();
-		int j = 0;
-		for (; i; ++i)
-			TestEqual("*i==j", *i, j++);
-		TestEqual("iterator length", j, 3);
-		TestEqual("!i at end", !i, true);
-	}
+bool FCancellationYieldAwaiter::await_ready()
+{
+	return !FPromise::Current().ShouldCancel(false);
+}
 
-	return true;
+void FCancellationYieldAwaiter::Suspend(FPromise& Promise)
+{
+	// Resume is also responsible for cancellation-induced self-destruction
+	Promise.Resume();
 }

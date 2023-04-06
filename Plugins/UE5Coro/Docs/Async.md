@@ -12,10 +12,16 @@ game thread.
 All typed TCoroutines implicitly convert to TCoroutine<>, giving you a common
 return-type-erased view to a coroutine that may or may not have a return type.
 
+Cancellation support is documented [on a separate page](Cancellation.md).
+
 TCoroutine is thread safe and O(1) copyable (it's a shared pointer inside).
 Copies of a TCoroutine refer to the same coroutine as the original.
 TCoroutine&lt;T&gt; has all the functionality of TCoroutine<>, plus additional
 methods and overloads for the return type.
+
+TCoroutines are comparable (they have a strict, total, but meaningless order),
+and hashable with GetTypeHash and std::hash.
+Copies referring to the same coroutine invocation compare equal to each other.
 
 A non-void coroutine return type must be at least _DefaultConstructible_,
 _MoveAssignable_, and _Destructible_.
@@ -95,10 +101,8 @@ there's no need to call FLatentActionManager::AddNewAction().
 
 The output exec pin will fire in BP when the coroutine co_returns (most often
 this happens naturally as control leaves the scope of the function), but you can
-stop this by issuing `co_await UE5Coro::Latent::Cancel();`.
-As an exception, this one will not resume the coroutine but complete it without
-execution resuming in BP.
-The destructors of local variables, etc. will run as usual.
+stop this by canceling the coroutine using [any method](Cancellation.md).
+The destructors of local variables, etc. will run as usual regardless.
 
 If the UFUNCTION is called again with the same callback target/UUID while a
 coroutine is already running, a second copy will **not** start, matching the
@@ -107,9 +111,9 @@ behavior of most of the engine's built-in latent actions.
 You may use awaiters such as UE5Coro\:\:Async\:\:MoveToThread or
 UE5Coro\:\:Tasks\:\:MoveToTask to switch threads, but the coroutine must finish
 on the game thread.
-If the latent action manager decides to delete the latent task and it's on
-another thread, it may continue until the next co_await after which your stack
-will be unwound **on the game thread**.
+If the latent action manager decides to delete the latent task and it's
+currently running on another thread, it is canceled and may continue until the
+next co_await, after which its locals will be destroyed **on the game thread**.
 
 ## Awaiters
 
