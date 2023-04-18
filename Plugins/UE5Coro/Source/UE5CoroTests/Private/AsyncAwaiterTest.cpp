@@ -70,14 +70,14 @@ void DoTest(FAutomationTestBase& Test)
 			co_await UE5Coro::Async::MoveToGameThread();
 			CoroToTest->Trigger();
 		});
-		Test.TestEqual(TEXT("Started"), bStarted, true);
-		Test.TestEqual(TEXT("Not done yet 1"), bDone, false);
+		Test.TestTrue(TEXT("Started"), bStarted);
+		Test.TestFalse(TEXT("Not done yet 1"), bDone);
 		TestToCoro->Trigger();
 
 		// This test is running on the game thread so MoveToGameThread() needs
 		// a little help
 		FTestHelper::PumpGameThread(World, [&] { return CoroToTest->Wait(0); });
-		Test.TestEqual(TEXT("Done"), bDone, true);
+		Test.TestTrue(TEXT("Done"), bDone);
 	}
 
 	{
@@ -94,10 +94,10 @@ void DoTest(FAutomationTestBase& Test)
 			CoroToTest->Trigger();
 		});
 		Test.TestEqual(TEXT("Initial state"), State, 1);
-		Test.TestEqual(TEXT("Wait 1"), CoroToTest->Wait(), true);
+		Test.TestTrue(TEXT("Wait 1"), CoroToTest->Wait());
 		Test.TestEqual(TEXT("First event, original thread"), State, 1);
 		TestToCoro->Trigger();
-		Test.TestEqual(TEXT("Wait 2"), CoroToTest->Wait(), true);
+		Test.TestTrue(TEXT("Wait 2"), CoroToTest->Wait());
 		Test.TestEqual(TEXT("Second event, new thread"), State, 2);
 	}
 
@@ -115,10 +115,10 @@ void DoTest(FAutomationTestBase& Test)
 			CoroToTest->Trigger();
 		});
 		Test.TestEqual(TEXT("Initial state"), State, 1);
-		Test.TestEqual(TEXT("Wait 1"), CoroToTest->Wait(), true);
+		Test.TestTrue(TEXT("Wait 1"), CoroToTest->Wait());
 		Test.TestEqual(TEXT("First event, original thread"), State, 1);
 		TestToCoro->Trigger();
-		Test.TestEqual(TEXT("Wait 2"), CoroToTest->Wait(), true);
+		Test.TestTrue(TEXT("Wait 2"), CoroToTest->Wait());
 		Test.TestEqual(TEXT("Second event, new thread"), State, 2);
 	}
 

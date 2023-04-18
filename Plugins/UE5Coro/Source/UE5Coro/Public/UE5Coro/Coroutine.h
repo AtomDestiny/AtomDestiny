@@ -194,7 +194,7 @@ static_assert(std::totally_ordered_with<TCoroutine<>, TCoroutine<int>>);
 }
 
 /** USTRUCT wrapper for TCoroutine<>. */
-USTRUCT(BlueprintInternalUseOnly, Meta = (HiddenByDefault))
+USTRUCT(BlueprintInternalUseOnly)
 struct UE5CORO_API FAsyncCoroutine
 #if CPP
 	: UE5Coro::TCoroutine<>
@@ -242,7 +242,7 @@ struct std::hash<UE5Coro::TCoroutine<T>>
 /** Taking this struct as a parameter in a coroutine will force latent execution
  *  mode, even if it does not have a FLatentActionInfo parameter.<br>
  *  It is compatible with UFUNCTIONs and hidden on BP call nodes. */
-USTRUCT(BlueprintInternalUseOnly, Meta = (HiddenByDefault))
+USTRUCT(BlueprintInternalUseOnly)
 struct UE5CORO_API FForceLatentCoroutine
 {
 	GENERATED_BODY()

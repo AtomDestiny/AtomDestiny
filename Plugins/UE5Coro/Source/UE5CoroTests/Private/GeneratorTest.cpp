@@ -86,7 +86,7 @@ bool FGeneratorTest::RunTest(const FString& Parameters)
 		for (; i; ++i)
 			TestEqual("*i==j", *i, j++);
 		TestEqual("iterator length", j, 3);
-		TestEqual("!i at end", !i, true);
+		TestTrue("!i at end", !i);
 	}
 
 	return true;

@@ -69,8 +69,8 @@ void DoTest(FAutomationTestBase& Test)
 		};
 		World.Run(Fn);
 
-		Test.TestEqual(TEXT("Null latent coroutine started"), bStarted, true);
-		Test.TestEqual(TEXT("Null latent coroutine finished"), bDone, true);
+		Test.TestTrue(TEXT("Null latent coroutine started"), bStarted);
+		Test.TestTrue(TEXT("Null latent coroutine finished"), bDone);
 	}
 
 	{

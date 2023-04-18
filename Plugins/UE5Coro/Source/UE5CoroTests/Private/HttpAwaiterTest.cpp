@@ -67,12 +67,12 @@ void DoTest(FAutomationTestBase& Test)
 		auto Awaiter = Http::ProcessAsync(Request);
 		auto AwaiterCopy = Awaiter;
 		auto [Response, bSuccess] = co_await AwaiterCopy;
-		Test.TestEqual(TEXT("Success"), bSuccess, false);
-		Test.TestEqual(TEXT("Response"), static_cast<bool>(Response), true);
+		Test.TestFalse(TEXT("Success"), bSuccess);
+		Test.TestTrue(TEXT("Response"), static_cast<bool>(Response));
 		bSuccess = true;
 		Tie(Response, bSuccess) = co_await Awaiter;
-		Test.TestEqual(TEXT("Success"), bSuccess, false);
-		Test.TestEqual(TEXT("Response"), static_cast<bool>(Response), true);
+		Test.TestFalse(TEXT("Success"), bSuccess);
+		Test.TestTrue(TEXT("Response"), static_cast<bool>(Response));
 		bDone = true;
 	});
 	FTestHelper::PumpGameThread(World, [&] { return bDone.load(); });
@@ -82,15 +82,15 @@ void DoTest(FAutomationTestBase& Test)
 	{
 		co_await Tasks::MoveToTask();
 		FPlatformMisc::MemoryBarrier();
-		Test.TestEqual(TEXT("Not in game thread 1"), IsInGameThread(), false);
+		Test.TestFalse(TEXT("Not in game thread 1"), IsInGameThread());
 		auto Request = FHttpModule::Get().CreateRequest();
 		// We're not testing HTTP, just the awaiter
 		Request->SetURL(TEXT(".invalid"));
 		Request->SetTimeout(0.01);
 		auto [Response, bSuccess] = co_await Http::ProcessAsync(Request);
-		Test.TestEqual(TEXT("Not in game thread 2"), IsInGameThread(), false);
-		Test.TestEqual(TEXT("Success"), bSuccess, false);
-		Test.TestEqual(TEXT("Response"), static_cast<bool>(Response), true);
+		Test.TestFalse(TEXT("Not in game thread 2"), IsInGameThread());
+		Test.TestFalse(TEXT("Success"), bSuccess);
+		Test.TestTrue(TEXT("Response"), static_cast<bool>(Response));
 		FPlatformMisc::MemoryBarrier();
 		bDone = true;
 	});
