@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -39,7 +39,7 @@
 #include "CoreMinimal.h"
 #include "UE5Coro/Definitions.h"
 #include <functional>
-#define UE5CORO_SUPPRESS_COROUTINE_INL
+#define UE5CORO_PRIVATE_SUPPRESS_COROUTINE_INL
 #include "UE5Coro/Coroutine.h"
 #include "Misc/SpinLock.h"
 
@@ -56,7 +56,9 @@ template<typename> class TFutureAwaiter;
 template<typename> class TTaskAwaiter;
 namespace Test { class FTestHelper; }
 
-template<typename P, typename A>
+extern thread_local bool GDestroyedEarly;
+
+template<typename, typename A>
 struct TAwaitTransform
 {
 	// Default passthrough
@@ -86,18 +88,18 @@ namespace UE5Coro::Private
 template<typename T>
 struct [[nodiscard]] TAwaiter
 {
-	bool await_ready() { return false; }
+	bool await_ready() noexcept { return false; }
 
 	template<typename P>
-	std::enable_if_t<std::is_base_of_v<FPromise, P>>
-	await_suspend(stdcoro::coroutine_handle<P> Handle)
+	auto await_suspend(stdcoro::coroutine_handle<P> Handle)
+		-> std::enable_if_t<std::is_base_of_v<FPromise, P>>
 	{
 		if constexpr (std::is_base_of_v<FLatentPromise, P>)
 			Handle.promise().DetachFromGameThread();
 		static_cast<T*>(this)->Suspend(Handle.promise());
 	}
 
-	void await_resume() { }
+	void await_resume() noexcept { }
 };
 
 struct FInitialSuspend
@@ -108,7 +110,7 @@ struct FInitialSuspend
 		Destroy,
 	} Action;
 
-	bool await_ready() { return false; }
+	bool await_ready() noexcept { return false; }
 
 	template<typename P>
 	void await_suspend(stdcoro::coroutine_handle<P> Handle)
@@ -116,11 +118,24 @@ struct FInitialSuspend
 		switch (Action)
 		{
 			case Resume: Handle.promise().Resume(); break;
+			// This is very early and doesn't yet count as cancellation
 			case Destroy: Handle.destroy(); break;
 		}
 	}
 
-	void await_resume() { }
+	void await_resume() noexcept { }
+};
+
+struct FFinalSuspend
+{
+	bool bDestroy;
+	bool await_ready() noexcept { return false; }
+	void await_suspend(stdcoro::coroutine_handle<> Handle) noexcept
+	{
+		if (bDestroy)
+			Handle.destroy();
+	}
+	void await_resume() noexcept { }
 };
 
 /** Fields of FPromise that may be alive after the coroutine is done. */
@@ -135,55 +150,80 @@ public:
 
 	FEventRef Completed{EEventMode::ManualReset};
 	UE::FSpinLock Lock;
+	union
+	{
+		FPromise* Promise; // nullptr once destroyed
+		void* ReturnValuePtr; // in the destructor only
+	};
 	TMulticastDelegate<void()> Continuations_DEPRECATED;
-	std::function<void()> OnCompleted = [] { };
 
-	FPromiseExtras() = default;
-	virtual ~FPromiseExtras() = default; // Virtual for warning suppression only
+	explicit FPromiseExtras(FPromise& Promise) noexcept : Promise(&Promise) { }
 	UE_NONCOPYABLE(FPromiseExtras);
+	virtual ~FPromiseExtras() = default; // Virtual for warning suppression only
 
 	bool IsComplete() const;
-	virtual void Complete();
+	template<typename T, typename F>
+	void ContinueWith(F Fn);
 };
 
 template<typename T>
-struct [[nodiscard]] TPromiseExtras : FPromiseExtras
+struct [[nodiscard]] TPromiseExtras final : FPromiseExtras
 {
 #if UE5CORO_DEBUG
 	std::atomic<bool> bMoveUsed = false;
 #endif
-	T ReturnValue;
-	std::function<void(const T&)> OnCompletedT = [](const T&) { };
+	T ReturnValue{};
 
-	virtual void Complete() override
-	{
-		FPromiseExtras::Complete();
-		OnCompletedT(ReturnValue);
-		OnCompletedT = nullptr;
-	}
+	explicit TPromiseExtras(FPromise& Promise) noexcept
+		: FPromiseExtras(Promise) { }
 };
 
-class [[nodiscard]] FPromise
+class [[nodiscard]] UE5CORO_API FCancellationTracker
 {
-#if UE5CORO_DEBUG
-	static std::atomic<int> LastDebugID;
-	static thread_local TArray<FPromise*> ResumeStack;
+	std::atomic<bool> bCanceled = false;
+	std::atomic<int> CancellationHolds = 0;
 
-	friend void TCoroutine<>::SetDebugName(const TCHAR*);
+public:
+	void Cancel() { bCanceled = true; }
+	void Hold() { verify(++CancellationHolds >= 0); }
+	void Release() { verify(--CancellationHolds >= 0); }
+	bool ShouldCancel(bool bBypassHolds) const;
+};
+
+#if UE5CORO_DEBUG
+extern std::atomic<int> GLastDebugID;
 #endif
+
+extern thread_local FPromise* GCurrentPromise;
+
+class [[nodiscard]] UE5CORO_API FPromise
+{
+	friend void TCoroutine<>::SetDebugName(const TCHAR*);
+
+	FCancellationTracker CancellationTracker;
 
 protected:
 	std::shared_ptr<FPromiseExtras> Extras;
+	TArray<std::function<void(void*)>> OnCompleted;
 
-	UE5CORO_API explicit FPromise(std::shared_ptr<FPromiseExtras>,
-	                              const TCHAR* PromiseType);
+	explicit FPromise(std::shared_ptr<FPromiseExtras>, const TCHAR* PromiseType);
 	UE_NONCOPYABLE(FPromise);
+	virtual ~FPromise(); // Virtual for warning suppression only
+	virtual bool IsEarlyDestroy() const = 0;
 
 public:
-	UE5CORO_API virtual ~FPromise(); // Virtual for warning suppression only
-	UE5CORO_API virtual void Resume();
+	static FPromise& Current();
 
-	UE5CORO_API void unhandled_exception();
+	/** Request deletion now or very soon. */
+	virtual void ThreadSafeDestroy();
+	void Cancel();
+	bool ShouldCancel(bool bBypassHolds = false) const;
+	void HoldCancellation();
+	void ReleaseCancellation();
+	virtual void Resume(bool bBypassCancellationHolds = false);
+	void AddContinuation(std::function<void(void*)>);
+
+	void unhandled_exception();
 
 	// co_yield is not allowed in async coroutines
 	template<typename T>
@@ -192,38 +232,38 @@ public:
 
 class [[nodiscard]] UE5CORO_API FAsyncPromise : public FPromise
 {
+	virtual bool IsEarlyDestroy() const override;
+
 public:
 	template<typename... A>
-	explicit FAsyncPromise(std::shared_ptr<FPromiseExtras> Extras, A&&...)
-		: FPromise(std::move(Extras), TEXT("Async")) { }
+	explicit FAsyncPromise(std::shared_ptr<FPromiseExtras> InExtras, A&&...)
+		: FPromise(std::move(InExtras), TEXT("Async")) { }
 
-	FInitialSuspend initial_suspend() { return {FInitialSuspend::Resume}; }
+	FInitialSuspend initial_suspend() noexcept
+	{
+		return {FInitialSuspend::Resume};
+	}
+
 	stdcoro::suspend_never final_suspend() noexcept { return {}; }
 
 	template<typename T>
 	decltype(auto) await_transform(T&& Awaitable)
 	{
-		return TAwaitTransform<FAsyncPromise, std::remove_reference_t<T>>()
-			(std::forward<T>(Awaitable));
+		TAwaitTransform<FAsyncPromise, std::remove_reference_t<T>> Transform;
+		return Transform(std::forward<T>(Awaitable));
 	}
 };
 
 class [[nodiscard]] UE5CORO_API FLatentPromise : public FPromise
 {
-public:
-	enum ELatentState
-	{
-		LatentRunning,
-		AsyncRunning,
-		DeferredDestroy,
-		Canceled,
-		Done,
-	};
-
-private:
 	UWorld* World = nullptr;
 	void* PendingLatentCoroutine = nullptr;
-	std::atomic<ELatentState> LatentState = LatentRunning;
+	enum ELatentFlags
+	{
+		LF_Detached = 1,
+		LF_Successful = 2,
+	};
+	std::atomic<int> LatentFlags = 0; // int to get the bitwise operators
 	ELatentExitReason ExitReason = static_cast<ELatentExitReason>(0);
 
 	void CreateLatentAction();
@@ -234,31 +274,34 @@ private:
 	template<typename... T> void Init(FLatentActionInfo, T&...);
 	template<typename T, typename... A> void Init(T&, A&...);
 
+protected:
+	virtual ~FLatentPromise() override;
+	virtual bool IsEarlyDestroy() const override;
+
 public:
 	template<typename... T>
 	explicit FLatentPromise(std::shared_ptr<FPromiseExtras>, T&&...);
+	virtual void ThreadSafeDestroy() override;
 
-	virtual ~FLatentPromise() override;
-	virtual void Resume() override;
-	void ThreadSafeDestroy();
+	virtual void Resume(bool bBypassCancellationHolds = false) override;
+	void CancelFromWithin();
 
-	ELatentState GetLatentState() const { return LatentState.load(); }
-	void AttachToGameThread(); // AsyncRunning -> LatentRunning
-	void DetachFromGameThread(); // LatentRunning -> AsyncRunning
-	void LatentCancel(); // LatentRunning -> Canceled
+	void AttachToGameThread(bool bFromAnyThread);
+	void DetachFromGameThread();
+	bool IsOnGameThread() const;
 
 	ELatentExitReason GetExitReason() const { return ExitReason; }
 	void SetExitReason(ELatentExitReason Reason);
 	void SetCurrentAwaiter(FLatentAwaiter*);
 
 	FInitialSuspend initial_suspend();
-	stdcoro::suspend_always final_suspend() noexcept;
+	FFinalSuspend final_suspend() noexcept;
 
 	template<typename T>
 	decltype(auto) await_transform(T&& Awaitable)
 	{
-		return TAwaitTransform<FLatentPromise, std::remove_reference_t<T>>()
-			(std::forward<T>(Awaitable));
+		TAwaitTransform<FLatentPromise, std::remove_reference_t<T>> Transform;
+		return Transform(std::forward<T>(Awaitable));
 	}
 };
 
@@ -268,8 +311,17 @@ class TCoroutinePromise : public Base
 public:
 	template<typename... A>
 	explicit TCoroutinePromise(A&&... Args)
-		: Base(std::make_shared<TPromiseExtras<T>>(), std::forward<A>(Args)...)
-	{ }
+		: Base(std::make_shared<TPromiseExtras<T>>(*this),
+		       std::forward<A>(Args)...) { }
+	UE_NONCOPYABLE(TCoroutinePromise);
+
+	~TCoroutinePromise()
+	{
+		auto* ExtrasT = static_cast<TPromiseExtras<T>*>(this->Extras.get());
+		ExtrasT->Lock.Lock(); // This will be held until the end of ~FPromise
+		checkf(ExtrasT->Promise, TEXT("Unexpected double promise destruction"));
+		ExtrasT->ReturnValuePtr = &ExtrasT->ReturnValue;
+	}
 
 	void return_value(T Value)
 	{
@@ -279,7 +331,10 @@ public:
 		ExtrasT->ReturnValue = std::move(Value);
 	}
 
-	TCoroutine<T> get_return_object() { return TCoroutine<T>(this->Extras); }
+	TCoroutine<T> get_return_object() noexcept
+	{
+		return TCoroutine<T>(this->Extras);
+	}
 };
 
 template<typename Base>
@@ -288,10 +343,51 @@ class TCoroutinePromise<void, Base> : public Base
 public:
 	template<typename... A>
 	explicit TCoroutinePromise(A&&... Args)
-		: Base(std::make_shared<FPromiseExtras>(), std::forward<A>(Args)...) { }
-	void return_void() { }
-	TCoroutine<> get_return_object() { return TCoroutine<>(this->Extras); }
+		: Base(std::make_shared<FPromiseExtras>(*this), std::forward<A>(Args)...)
+	{ }
+	UE_NONCOPYABLE(TCoroutinePromise);
+
+	~TCoroutinePromise()
+	{
+		// This will be held until the end of ~FPromise
+		this->Extras->Lock.Lock();
+		checkf(this->Extras->Promise,
+		       TEXT("Unexpected double promise destruction"));
+		this->Extras->ReturnValuePtr = nullptr;
+	}
+
+	void return_void() noexcept { }
+
+	TCoroutine<> get_return_object() noexcept
+	{
+		return TCoroutine<>(this->Extras);
+	}
 };
+
+template<typename T, typename F>
+void FPromiseExtras::ContinueWith(F Fn)
+{
+	UE::TScopeLock _(Lock);
+	if (IsComplete()) // Already completed?
+	{
+		_.Unlock();
+		if constexpr (std::is_void_v<T>)
+			Fn();
+		else // T is controlled by TCoroutine<T>, safe to cast
+			Fn(static_cast<const TPromiseExtras<T>*>(this)->ReturnValue);
+		return;
+	}
+
+	checkf(Promise,
+	       TEXT("Internal error: attaching continuation to a complete promise"));
+	Promise->AddContinuation([Fn = std::move(Fn)](void* Data)
+	{
+		if constexpr (std::is_void_v<T>)
+			Fn();
+		else
+			Fn(*static_cast<const T*>(Data));
+	});
+}
 
 template<typename... T>
 FLatentPromise::FLatentPromise(std::shared_ptr<FPromiseExtras> Extras,
@@ -346,7 +442,8 @@ void FLatentPromise::Init(T& First, A&... Args)
 }
 
 template<typename T, typename... Args>
-struct UE5Coro::Private::stdcoro::coroutine_traits<UE5Coro::TCoroutine<T>, Args...>
+struct UE5Coro::Private::stdcoro::coroutine_traits<UE5Coro::TCoroutine<T>,
+                                                   Args...>
 {
 	static constexpr int LatentInfoCount =
 		(0 + ... + std::is_convertible_v<Args, FLatentActionInfo>);

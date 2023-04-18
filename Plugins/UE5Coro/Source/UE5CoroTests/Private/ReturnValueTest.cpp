@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -67,8 +67,6 @@ void DoTest(FAutomationTestBase& Test)
 	{
 		auto A = World.Run(CORO_R(int) { co_return 1; });
 		auto B = World.Run(CORO_R(int) { co_return 1.0; });
-		IF_CORO_LATENT
-			World.Tick(); // Latent coroutines complete on tick
 		Test.TestEqual(TEXT("Return value passthrough"), A.MoveResult(), 1);
 		Test.TestEqual(TEXT("Implicit conversion"), B.MoveResult(), 1);
 	}
@@ -83,8 +81,6 @@ void DoTest(FAutomationTestBase& Test)
 				co_return true;
 			});
 		});
-		IF_CORO_LATENT
-			World.Tick(); // Outer poll
 		Test.TestTrue(TEXT("co_await result"), bSuccess);
 	}
 
@@ -98,8 +94,6 @@ void DoTest(FAutomationTestBase& Test)
 				co_return true;
 			});
 		});
-		IF_CORO_LATENT
-			World.Tick(); // Inner completion
 		Test.TestTrue(TEXT("co_await result"), bSuccess);
 	}
 
@@ -114,13 +108,7 @@ void DoTest(FAutomationTestBase& Test)
 				co_return true;
 			});
 		});
-		IF_CORO_LATENT
-		{
-			World.Tick(); // Inner completion
-			Test.TestTrue(TEXT("Inner returned"), bInnerReturned);
-			Test.TestFalse(TEXT("Outer not polled yet"), bSuccess);
-			World.Tick(); // Outer poll
-		}
+		Test.TestTrue(TEXT("Inner returned"), bInnerReturned);
 		Test.TestTrue(TEXT("co_await result"), bSuccess);
 	}
 
@@ -128,9 +116,18 @@ void DoTest(FAutomationTestBase& Test)
 		bool bInnerComplete = false;
 		auto Coro = World.Run(CORO_R(TArray<int>)
 		{
+			std::function<void()> func{ [&bInnerComplete] { bInnerComplete = true; } };
 			auto InnerCoro = World.Run(CORO_R(TArray<int>)
 			{
-				ON_SCOPE_EXIT { bInnerComplete = true; };
+				struct ScopeGuard
+				{
+					explicit ScopeGuard(std::function<void()> func): guard(std::move(func)) {}
+					~ScopeGuard() { guard(); }
+					
+					std::function<void()> guard;
+				};
+				
+				ScopeGuard guard { std::move(func) };
 				co_await Latent::NextTick();
 				co_return {1, 2, 3};
 			});

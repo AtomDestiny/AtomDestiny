@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -41,6 +41,7 @@ namespace UE5Coro::Private
 {
 class FAnyAwaiter;
 class FAllAwaiter;
+class FRaceAwaiter;
 
 #if UE5CORO_CPP20
 // If your WhenAny/WhenAll call doesn't satisfy this concept, you'll need to
@@ -52,23 +53,36 @@ concept TAggregateAwaitable =
 }
 
 #if UE5CORO_CPP20
-	#define UE5CORO_AWAITABLE UE5Coro::Private::TAggregateAwaitable
+	#define UE5CORO_PRIVATE_AWAITABLE UE5Coro::Private::TAggregateAwaitable
 #else
-	#define UE5CORO_AWAITABLE typename
+	#define UE5CORO_PRIVATE_AWAITABLE typename
 #endif
 
 namespace UE5Coro
 {
-/** co_awaits all parameters, resumes its own awaiting coroutine when any
- *  of them finishes.
+/** co_awaits all parameters, resumes its own awaiting coroutine when the first
+ *  one of them finishes.
  *  The result of the co_await expression is the index of the parameter that
- *  finished first.*/
-template<UE5CORO_AWAITABLE... T>
+ *  finished first. */
+template<UE5CORO_PRIVATE_AWAITABLE... T>
 Private::FAnyAwaiter WhenAny(T&&...);
+
+/** co_awaits all coroutines in the array.
+ *  The first one to finish cancels the others and resumes the caller.
+ *  The result of the co_await expression is the array index of the coroutine
+ *  that finished first. */
+UE5CORO_API Private::FRaceAwaiter Race(TArray<TCoroutine<>>);
+
+/** co_awaits all of the coroutines provided.
+ *  The first one to finish cancels the others and resumes the caller.
+ *  The result of the co_await expression is the index of the parameter that
+ *  finished first. */
+template<typename... T>
+Private::FRaceAwaiter Race(TCoroutine<T>... Args);
 
 /** co_awaits all parameters, resumes its own awaiting coroutine when all
  *  of them finish. */
-template<UE5CORO_AWAITABLE... T>
+template<UE5CORO_PRIVATE_AWAITABLE... T>
 Private::FAllAwaiter WhenAll(T&&...);
 }
 
@@ -86,6 +100,7 @@ class [[nodiscard]] UE5CORO_API FAggregateAwaiter
 
 		explicit FData(int Count) : Count(Count) { }
 	};
+
 	std::shared_ptr<FData> Data;
 
 	template<typename T>
@@ -96,7 +111,7 @@ protected:
 
 public:
 	template<typename... T>
-	FAggregateAwaiter(int Count, T&&... Awaiters)
+	explicit FAggregateAwaiter(int Count, T&&... Awaiters)
 		: Data(std::make_shared<FData>(Count))
 	{
 		int Idx = 0;
@@ -111,7 +126,7 @@ class [[nodiscard]] FAnyAwaiter : public FAggregateAwaiter
 {
 public:
 	template<typename... T>
-	FAnyAwaiter(T&&... Args)
+	explicit FAnyAwaiter(T&&... Args)
 		: FAggregateAwaiter(std::forward<T>(Args)...) { }
 	int await_resume() { return GetResumerIndex(); }
 };
@@ -120,28 +135,56 @@ class [[nodiscard]] FAllAwaiter : public FAggregateAwaiter
 {
 public:
 	template<typename... T>
-	FAllAwaiter(T&&... Args)
+	explicit FAllAwaiter(T&&... Args)
 		: FAggregateAwaiter(std::forward<T>(Args)...) { }
-	void await_resume() { }
+	void await_resume() noexcept { }
+};
+
+class [[nodiscard]] UE5CORO_API FRaceAwaiter : public TAwaiter<FRaceAwaiter>
+{
+	struct FData
+	{
+		UE::FSpinLock Lock;
+		TArray<TCoroutine<>> Handles;
+		int Index = -1;
+		FPromise* Promise = nullptr;
+
+		explicit FData(TArray<TCoroutine<>>&& Array)
+			: Handles(std::move(Array)) { }
+	};
+	std::shared_ptr<FData> Data;
+
+public:
+	explicit FRaceAwaiter(TArray<TCoroutine<>>&&);
+	bool await_ready();
+	void Suspend(FPromise&);
+	int await_resume() noexcept;
 };
 }
 
-template<UE5CORO_AWAITABLE... T>
+template<UE5CORO_PRIVATE_AWAITABLE... T>
 UE5Coro::Private::FAnyAwaiter UE5Coro::WhenAny(T&&... Args)
 {
 	static_assert(
-		std::conjunction_v<std::is_constructible<std::remove_reference_t<T>, T&&>...>,
+		(... && std::is_constructible_v<std::remove_reference_t<T>, T&&>),
 		"Attempted to copy a noncopyable awaiter, move it instead");
-	return {sizeof...(Args) ? 1 : 0, std::forward<T>(Args)...};
+	return Private::FAnyAwaiter(sizeof...(Args) ? 1 : 0,
+	                            std::forward<T>(Args)...);
 }
 
-template<UE5CORO_AWAITABLE... T>
+template<typename... T>
+UE5Coro::Private::FRaceAwaiter UE5Coro::Race(TCoroutine<T>... Args)
+{
+	return Race(TArray<TCoroutine<>>{std::move(Args)...});
+}
+
+template<UE5CORO_PRIVATE_AWAITABLE... T>
 UE5Coro::Private::FAllAwaiter UE5Coro::WhenAll(T&&... Args)
 {
 	static_assert(
-		std::conjunction_v<std::is_constructible<std::remove_reference_t<T>, T&&>...>,
+		(... && std::is_constructible_v<std::remove_reference_t<T>, T&&>),
 		"Attempted to copy a noncopyable awaiter, move it instead");
-	return {sizeof...(Args), std::forward<T>(Args)...};
+	return Private::FAllAwaiter(sizeof...(Args), std::forward<T>(Args)...);
 }
 
 template<typename T>
@@ -169,4 +212,4 @@ UE5Coro::TCoroutine<> UE5Coro::Private::FAggregateAwaiter::Consume(
 	co_await std::move(AwaiterCopy);
 }
 
-#undef UE5CORO_AWAITABLE
+#undef UE5CORO_PRIVATE_AWAITABLE
