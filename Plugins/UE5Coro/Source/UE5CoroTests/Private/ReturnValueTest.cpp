@@ -116,9 +116,18 @@ void DoTest(FAutomationTestBase& Test)
 		bool bInnerComplete = false;
 		auto Coro = World.Run(CORO_R(TArray<int>)
 		{
+			std::function<void()> func{ [&bInnerComplete] { bInnerComplete = true; } };
 			auto InnerCoro = World.Run(CORO_R(TArray<int>)
 			{
-				ON_SCOPE_EXIT { bInnerComplete = true; };
+				struct ScopeGuard
+				{
+					explicit ScopeGuard(std::function<void()> func): guard(std::move(func)) {}
+					~ScopeGuard() { guard(); }
+					
+					std::function<void()> guard;
+				};
+				
+				ScopeGuard guard { std::move(func) };
 				co_await Latent::NextTick();
 				co_return {1, 2, 3};
 			});
