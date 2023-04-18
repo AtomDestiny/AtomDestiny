@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -112,7 +112,7 @@ void DoTest(FAutomationTestBase& Test)
 		Test.TestFalse("Not resumed yet", First.has_value());
 		World.Tick();
 		Test.TestEqual("First tick", State, 6); // A and outer resumed
-		Test.TestEqual("Resumer index", First.value(), 0);
+		Test.TestEqual("Resumer index", *First, 0);
 		World.Tick();
 		Test.TestEqual("Second tick", State, 7); // B resumed
 		World.Tick();
@@ -131,7 +131,7 @@ void DoTest(FAutomationTestBase& Test)
 		World.EndTick();
 		Test.TestFalse("Not resumed yet", First.has_value());
 		World.Tick();
-		Test.TestEqual("Resumer index", First.value(), 2);
+		Test.TestEqual("Resumer index", *First, 2);
 		World.Tick();
 	}
 
@@ -151,7 +151,7 @@ void DoTest(FAutomationTestBase& Test)
 		World.Tick();
 		Test.TestFalse("Not resumed yet", First.has_value());
 		World.Tick();
-		Test.TestEqual("Resumer index", First.value(), 0);
+		Test.TestEqual("Resumer index", *First, 0);
 		World.Tick();
 	}
 
@@ -166,7 +166,7 @@ void DoTest(FAutomationTestBase& Test)
 		World.EndTick();
 		Test.TestFalse("Not resumed yet", First.has_value());
 		World.Tick();
-		Test.TestEqual("Resumer index", First.value(), 0);
+		Test.TestEqual("Resumer index", *First, 0);
 		World.Tick();
 	}
 
@@ -195,6 +195,42 @@ void DoTest(FAutomationTestBase& Test)
 		World.Tick();
 		Test.TestEqual(TEXT("Resumed"), State, 2);
 		World.Tick();
+	}
+
+	{
+		int State = 0;
+		auto Coro = World.Run(CORO_R(int)
+		{
+			auto A = World.Run(CORO
+			{
+				ON_SCOPE_EXIT { State = 2; };
+				co_await Latent::Ticks(5);
+				for (;;)
+					co_await Latent::NextTick();
+			});
+
+			auto B = World.Run(CORO
+			{
+				ON_SCOPE_EXIT { State = 1; };
+				co_await Latent::NextTick();
+			});
+
+			co_return co_await Race(A, B);
+		});
+		World.EndTick();
+		World.Tick(); // NextTick
+		Test.TestEqual(TEXT("State"), State, 1);
+		World.Tick(); // A needs to poll to process the cancellation from Race
+		IF_NOT_CORO_LATENT
+		{
+			// Only latent->latent awaits poll, async needs all 5 ticks
+			World.Tick();
+			World.Tick();
+			Test.TestEqual(TEXT("State"), State, 1);
+			World.Tick();
+		}
+		Test.TestEqual(TEXT("State"), State, 2);
+		Test.TestEqual(TEXT("Return value"), Coro.GetResult(), 1);
 	}
 }
 }

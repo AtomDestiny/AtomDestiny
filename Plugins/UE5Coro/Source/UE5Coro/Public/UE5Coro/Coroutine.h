@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -32,6 +32,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UE5Coro/Definitions.h"
 #include <memory>
 #include "CoroutinePrivate.inl"
 #include "Coroutine.generated.h"
@@ -56,6 +57,8 @@ class UE5CORO_API TCoroutine<>
 {
 	template<typename, typename>
 	friend class Private::TCoroutinePromise;
+	friend UE5CORO_API uint32 GetTypeHash(const TCoroutine<>&) noexcept; // ADL
+	friend std::hash<TCoroutine<>>;
 
 protected:
 	std::shared_ptr<Private::FPromiseExtras> Extras;
@@ -64,6 +67,19 @@ protected:
 		: Extras(std::move(Extras)) { }
 
 public:
+	/** A coroutine that has already completed with no return value. */
+	static const TCoroutine<> CompletedCoroutine;
+
+	/** A coroutine that has already completed with the provided value. */
+	template<typename V>
+	static auto FromResult(V&& Value)
+		-> TCoroutine<std::remove_cv_t<std::remove_reference_t<V>>>;
+
+	/** Request the coroutine to stop executing at the next opportunity.<br>
+	 *  This function returns immediately, with the coroutine still running.<br>
+	 *  Has no effect on coroutines that have already completed. */
+	void Cancel();
+
 	/** Returns a delegate broadcasting this coroutine's completion for any
 	 *  reason, including being unsuccessful or canceled.
 	 *  This will be Broadcast() on the same thread where the coroutine is
@@ -89,14 +105,15 @@ public:
 	 *  otherwise it will be called on the same thread where the coroutine
 	 *  completes. */
 	template<typename F>
-	std::enable_if_t<std::is_invocable_v<F>> ContinueWith(F Continuation);
+	auto ContinueWith(F Continuation)
+		-> std::enable_if_t<std::is_invocable_v<F>>;
 
 	/** Like ContinueWith, but the provided functor will only be called if the
 	 *  object is still alive at the time of coroutine completion.<br>
 	 *  The first parameter may be UObject*, TSharedPtr, or std::shared_ptr. */
 	template<typename U, typename F>
-	std::enable_if_t<Private::TWeak<U>::value && std::is_invocable_v<F>>
-	ContinueWithWeak(U Ptr, F Continuation);
+	auto ContinueWithWeak(U Ptr, F Continuation)
+		-> std::enable_if_t<Private::TWeak<U>::value && std::is_invocable_v<F>>;
 
 	/** Convenience overload that also passes the object as the first argument
 	 *  for, e.g., UObject/Slate member function pointers or static methods with
@@ -104,12 +121,22 @@ public:
 	 *  The first parameter may be UObject*, TSharedPtr, or std::shared_ptr.<br>
 	 *  Example usage: ContinueWithWeak(this, &ThisClass::Method) */
 	template<typename U, typename F>
-	std::enable_if_t<std::is_invocable_v<F, typename Private::TWeak<U>::ptr>>
-	ContinueWithWeak(U Ptr, F Continuation);
+	auto ContinueWithWeak(U Ptr, F Continuation)
+		-> std::enable_if_t<std::is_invocable_v<F, typename Private::TWeak<U>::ptr>>;
 
 	/** Sets a debug name for the currently-executing coroutine.
 	 *  Only valid to call from within a coroutine returning TCoroutine. */
 	static void SetDebugName(const TCHAR* Name);
+
+	/** @return True if the two objects refer to the same coroutine invocation. */
+	bool operator==(const TCoroutine<>&) const noexcept;
+
+#if UE5CORO_CPP20
+	std::strong_ordering operator<=>(const TCoroutine<>&) const noexcept;
+#else
+	bool operator!=(const TCoroutine<>&) const noexcept;
+	bool operator<(const TCoroutine<>&) const noexcept;
+#endif
 };
 
 /** Extra functionality for coroutines with non-void return types. */
@@ -120,6 +147,9 @@ protected:
 	using TCoroutine<>::TCoroutine;
 
 public:
+	/** A coroutine that has already completed with the provided value. */
+	static TCoroutine<T> FromResult(T Value);
+
 	/** Waits for the coroutine to finish, then gets its result. */
 	const T& GetResult() const;
 
@@ -134,16 +164,16 @@ public:
 	 *  otherwise it will be called on the same thread where the coroutine
 	 *  completes. */
 	template<typename F>
-	std::enable_if_t<std::is_invocable_v<F> || std::is_invocable_v<F, T>>
-	ContinueWith(F Continuation);
+	auto ContinueWith(F Continuation)
+		-> std::enable_if_t<std::is_invocable_v<F> || std::is_invocable_v<F, T>>;
 
 	/** Like ContinueWith, but the provided functor will only be called if the
 	 *  object is still alive at the time of coroutine completion.<br>
 	 *  The first parameter may be UObject*, TSharedPtr, or std::shared_ptr. */
 	template<typename U, typename F>
-	std::enable_if_t<Private::TWeak<U>::value &&
-	                 (std::is_invocable_v<F> || std::is_invocable_v<F, T>)>
-	ContinueWithWeak(U Ptr, F Continuation);
+	auto ContinueWithWeak(U Ptr, F Continuation)
+		-> std::enable_if_t<Private::TWeak<U>::value &&
+		                    (std::is_invocable_v<F> || std::is_invocable_v<F, T>)>;
 
 	/** Convenience overload that also passes the object as the first argument
 	 *  for, e.g., UObject/Slate member function pointers or static methods with
@@ -151,16 +181,20 @@ public:
 	 *  The first parameter may be UObject*, TSharedPtr, or std::shared_ptr.<br>
 	 *  Example usage: ContinueWithWeak(this, &ThisClass::Method) */
 	template<typename U, typename F>
-	std::enable_if_t<std::is_invocable_v<F, typename Private::TWeak<U>::ptr> ||
-	                 std::is_invocable_v<F, typename Private::TWeak<U>::ptr, T>>
-	ContinueWithWeak(U Ptr, F Continuation);
+	auto ContinueWithWeak(U Ptr, F Continuation) -> std::enable_if_t<
+		std::is_invocable_v<F, typename Private::TWeak<U>::ptr> ||
+		std::is_invocable_v<F, typename Private::TWeak<U>::ptr, T>>;
 };
 
 static_assert(sizeof(TCoroutine<int>) == sizeof(TCoroutine<>));
+#if UE5CORO_CPP20
+static_assert(std::totally_ordered<TCoroutine<>>);
+static_assert(std::totally_ordered_with<TCoroutine<>, TCoroutine<int>>);
+#endif
 }
 
 /** USTRUCT wrapper for TCoroutine<>. */
-USTRUCT(BlueprintInternalUseOnly, Meta = (HiddenByDefault))
+USTRUCT(BlueprintInternalUseOnly)
 struct UE5CORO_API FAsyncCoroutine
 #if CPP
 	: UE5Coro::TCoroutine<>
@@ -175,23 +209,48 @@ struct UE5CORO_API FAsyncCoroutine
 
 	/** Implicit conversion from any TCoroutine. */
 	template<typename T>
-	FAsyncCoroutine(const TCoroutine<T>& Coroutine): TCoroutine(Coroutine) { }
+	FAsyncCoroutine(const TCoroutine<T>& Coroutine) : TCoroutine(Coroutine) { }
 };
 
 static_assert(sizeof(FAsyncCoroutine) == sizeof(UE5Coro::TCoroutine<>));
 
+
+#pragma region std::hash
+template<>
+struct UE5CORO_API std::hash<UE5Coro::TCoroutine<>>
+{
+	size_t operator()(const UE5Coro::TCoroutine<>&) const noexcept;
+};
+template<>
+struct std::hash<FAsyncCoroutine>
+{
+	size_t operator()(const UE5Coro::TCoroutine<>& Handle) const noexcept
+	{
+		return std::hash<UE5Coro::TCoroutine<>>()(Handle);
+	}
+};
+template<typename T>
+struct std::hash<UE5Coro::TCoroutine<T>>
+{
+	size_t operator()(const UE5Coro::TCoroutine<T>& Handle) const noexcept
+	{
+		return std::hash<UE5Coro::TCoroutine<>>()(Handle);
+	}
+};
+#pragma endregion
+
 /** Taking this struct as a parameter in a coroutine will force latent execution
  *  mode, even if it does not have a FLatentActionInfo parameter.<br>
  *  It is compatible with UFUNCTIONs and hidden on BP call nodes. */
-USTRUCT(BlueprintInternalUseOnly, Meta = (HiddenByDefault))
+USTRUCT(BlueprintInternalUseOnly)
 struct UE5CORO_API FForceLatentCoroutine
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 };
 
 #if CPP
 #include "UE5Coro/AsyncCoroutine.h"
-#ifndef UE5CORO_SUPPRESS_COROUTINE_INL
+#ifndef UE5CORO_PRIVATE_SUPPRESS_COROUTINE_INL
 #include "UE5Coro/Coroutine.inl"
 #endif
 #endif

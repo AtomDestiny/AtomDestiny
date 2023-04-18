@@ -29,11 +29,55 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro.h"
-#include "Modules/ModuleManager.h"
+#include "UE5Coro/Cancellation.h"
+#include "UE5Coro/AsyncCoroutine.h"
 
-class FUE5CoroModule : public IModuleInterface
+using namespace UE5Coro;
+using namespace UE5Coro::Private;
+
+namespace
 {
-};
+// lvalue ref to work around TScopeGuard
+void CleanupIfCanceled(std::function<void()>& Fn)
+{
+	if (GDestroyedEarly)
+		Fn();
+}
+}
 
-IMPLEMENT_MODULE(FUE5CoroModule, UE5Coro);
+FCancellationGuard::FCancellationGuard()
+#if UE5CORO_DEBUG
+	: Promise(&FPromise::Current())
+#endif
+{
+	FPromise::Current().HoldCancellation();
+}
+
+FCancellationGuard::~FCancellationGuard()
+{
+#if UE5CORO_DEBUG
+	checkf(Promise == &FPromise::Current(), TEXT("Hold/Release mismatch"));
+#endif
+	FPromise::Current().ReleaseCancellation();
+}
+
+FOnCoroutineCanceled::FOnCoroutineCanceled(std::function<void()> Fn)
+	: TScopeGuard(std::bind(&CleanupIfCanceled, std::move(Fn)))
+{
+}
+
+FCancellationYieldAwaiter UE5Coro::YieldIfCanceled()
+{
+	return {};
+}
+
+bool FCancellationYieldAwaiter::await_ready()
+{
+	return !FPromise::Current().ShouldCancel(false);
+}
+
+void FCancellationYieldAwaiter::Suspend(FPromise& Promise)
+{
+	// Resume is also responsible for cancellation-induced self-destruction
+	Promise.Resume();
+}
