@@ -4,22 +4,25 @@
 #include <AtomDestiny/Projectile/Projectile.h>
 #include <AtomDestiny/Coroutine/CoroutineRunner.h>
 
-#include <Engine/Classes/Components/ActorComponent.h>
+#include <Engine/Classes/GameFramework/Actor.h>
 
 #include "ProjectileBase.generated.h"
 
 class AParticle;
 
 ///
-/// Represents common abstract projectile
+/// Represents common abstract projectile.
+/// It contains basic parameters and method that needed to weapon controller.
+/// Projectile is Actor and should be spawned only by weapon controller
+/// that implements IWeapon interface.
 ///
 UCLASS(Abstract)
-class UProjectileBase : public UActorComponent, public AtomDestiny::CoroutineRunner, public IProjectile
+class AProjectileBase : public AActor, public IProjectile
 {
     GENERATED_BODY()
 
 public:
-    explicit UProjectileBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+    explicit AProjectileBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     // Sets projectile points from weapon or another projectile
     UFUNCTION()
@@ -41,16 +44,13 @@ public:
     virtual void Launch() ABSTRACT_METHOD;
 
 private:
-    virtual void InitializeComponent() override;
+    virtual void BeginPlay() override;
     
 protected:
     FWeaponParameters m_parameters;
     FProjectilePoints m_points;
     
     // Impact prefab spawns by projectile when explodes target
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Impact blueprint"))
-    TSubclassOf<AParticle> m_impactBlueprint;
-    
-    // Preload impact blueprint count
-    inline static int ImpactPreloadCount = 5;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Impact prefab"))
+    TSubclassOf<AParticle> m_impactPrefab;
 };

@@ -1,9 +1,12 @@
 ﻿#pragma once
 
+#include <AtomDestiny/Projectile/ProjectileBase.h>
 #include <AtomDestiny/Weapon/Weapon.h>
 #include <AtomDestiny/Weapon/WeaponAnimation.h>
 
 #include <AtomDestiny/Core/ADObject/ADObject.h>
+
+#include <AtomDestiny/Coroutines/Coroutines.h>
 
 #include "WeaponBase.generated.h"
 
@@ -211,9 +214,13 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Use friendly fire"))
     bool m_useFriendlyFire = true;
     
-    // Projectile blueprint with projectile interface that spawns by weapon
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Projectile blueprint"))
-    TSubclassOf<AActor> m_projectileBlueprint;
+    ///
+    /// Projectile prefab that spawns by weapon.
+    /// Prefab represented by AActor, and AActor should implement
+    /// IProjectile interface.
+    ///
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Projectile prefab"))
+    TSubclassOf<AProjectileBase> m_projectilePrefab;
 
     // Minimal distance to shot
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Minimal distance to shot"))
@@ -238,13 +245,13 @@ protected:
     ///
     /// It's a pointer to scene component to rotate this weapon and aim from this.
     /// So be aware to use Static mesh or Skeletal mesh, that represents a weapon to rotate in real world.
-    /// Hashed weapon transform (Scene component)
+    /// Hashed weapon component (Scene component).
     /// 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Weapon component"))
     TWeakObjectPtr<USceneComponent> m_weaponComponent = nullptr;
     
-    // Preload spawn blueprints count at pool
-    inline static uint32_t BlueprintPreloadCount = 5;
+    // Spawnable prefabs count that should be preloaded to ObjectPool
+    inline static uint32_t ProjectilePrefabPreloadCount = 5;
     
     /// Current real damage
     double m_currentDamage = 0;

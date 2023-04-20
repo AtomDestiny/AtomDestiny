@@ -14,6 +14,8 @@ namespace AtomDestiny::Utils
     inline void SetActorActive(AActor* actor, const bool status)
     {
         assert(actor != nullptr);
+
+        actor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
         
         actor->SetActorHiddenInGame(!status);
         actor->SetActorEnableCollision(status);

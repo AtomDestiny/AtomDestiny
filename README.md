@@ -13,4 +13,4 @@ So for contribution you should use them both.
 
 ### Third-party libraries
 
-Project actively uses C++20 coroutines, so realization used from [UE5Coro 1.5](https://github.com/landelare/ue5coro).
+Project actively uses C++20 coroutines, so realization used from [UE5Coro](https://github.com/landelare/ue5coro).

@@ -1,29 +1,28 @@
 ﻿#pragma once
 
 #include <AtomDestiny/Projectile/ProjectileBase.h>
-
-#include <UE5Coro/Public/UE5Coro.h>
+#include <AtomDestiny/Coroutines/Coroutines.h>
 
 #include "PlasmaShotProjectile.generated.h"
 
 ///
-/// Represents tank shot, that deals damage and spawns impact particle,
+/// Represents tank shot, that deals damage and spawns impact particle prefab,
 /// driven by raycasted weapon controller.
-//
+///
 UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
-class ATOMDESTINY_API UPlasmaShotProjectile : public UProjectileBase
+class ATOMDESTINY_API APlasmaShotProjectile : public AProjectileBase
 {
     GENERATED_BODY()
 
 public:
-    explicit UPlasmaShotProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+    explicit APlasmaShotProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
-    // Base values initialization to projectile and generating impact blueprint
+    // Base values initialization to projectile and generating impact prefab
     virtual void Launch() override;
     
 private:
 
-    // Generates impact damage and particle
+    // Generates impact damage and particle prefab
     FAsyncCoroutine GenerateImpact();
     
     // Time after spawn to add damage

@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -29,49 +29,55 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/AggregateAwaiters.h"
+#include "UE5Coro/Cancellation.h"
+#include "UE5Coro/AsyncCoroutine.h"
 
-namespace UE5Coro::Private
+using namespace UE5Coro;
+using namespace UE5Coro::Private;
+
+namespace
 {
-int FAggregateAwaiter::GetResumerIndex() const
+// lvalue ref to work around TScopeGuard
+void CleanupIfCanceled(std::function<void()>& Fn)
 {
-	checkf(Data->Count <= 0, TEXT("Internal error"));
-	checkf(Data->Index != -1, TEXT("Internal error"));
-	return Data->Index;
+	if (GDestroyedEarly)
+		Fn();
+}
 }
 
-bool FAggregateAwaiter::await_ready()
+FCancellationGuard::FCancellationGuard()
+#if UE5CORO_DEBUG
+	: Promise(&FPromise::Current())
+#endif
 {
-	Data->Lock.Lock();
-	checkf(std::holds_alternative<std::monostate>(Data->Handle),
-	       TEXT("Attempting to reuse aggregate awaiter"));
-
-	// Unlock if ready and resume immediately,
-	// otherwise carry the lock to await_suspend
-	bool bReady = Data->Count <= 0;
-	if (bReady)
-		Data->Lock.Unlock();
-	return bReady;
+	FPromise::Current().HoldCancellation();
 }
 
-void FAggregateAwaiter::await_suspend(FAsyncHandle Handle)
+FCancellationGuard::~FCancellationGuard()
 {
-	checkf(!Data->Lock.TryLock(), TEXT("Internal error"));
-	checkf(std::holds_alternative<std::monostate>(Data->Handle),
-	       TEXT("Attempting to reuse aggregate awaiter"));
-
-	Data->Handle = Handle;
-	Data->Lock.Unlock();
+#if UE5CORO_DEBUG
+	checkf(Promise == &FPromise::Current(), TEXT("Hold/Release mismatch"));
+#endif
+	FPromise::Current().ReleaseCancellation();
 }
 
-void FAggregateAwaiter::await_suspend(FLatentHandle Handle)
+FOnCoroutineCanceled::FOnCoroutineCanceled(std::function<void()> Fn)
+	: TScopeGuard(std::bind(&CleanupIfCanceled, std::move(Fn)))
 {
-	checkf(!Data->Lock.TryLock(), TEXT("Internal error"));
-	checkf(std::holds_alternative<std::monostate>(Data->Handle),
-	       TEXT("Attempting to reuse aggregate awaiter"));
-
-	Handle.promise().DetachFromGameThread();
-	Data->Handle = Handle;
-	Data->Lock.Unlock();
 }
+
+FCancellationYieldAwaiter UE5Coro::YieldIfCanceled()
+{
+	return {};
+}
+
+bool FCancellationYieldAwaiter::await_ready()
+{
+	return !FPromise::Current().ShouldCancel(false);
+}
+
+void FCancellationYieldAwaiter::Suspend(FPromise& Promise)
+{
+	// Resume is also responsible for cancellation-induced self-destruction
+	Promise.Resume();
 }

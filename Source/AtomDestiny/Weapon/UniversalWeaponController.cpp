@@ -81,7 +81,7 @@ void UUniversalWeaponController::Fire(float deltaTime)
 void UUniversalWeaponController::BeginPlay()
 {
     Super::BeginPlay();
-    AtomDestiny::ObjectPool::Instance().Preload(m_shotParticleBlueprint, BlueprintPreloadCount);
+    AtomDestiny::ObjectPool::Instance().Preload(m_shotParticlePrefab);
 }
 
 void UUniversalWeaponController::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction)
@@ -99,7 +99,7 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
     {
         for (int32 shootingIndex = 0; shootingIndex < m_shootingPositions.Num(); ++shootingIndex)
         {
-            if (!currentEnemy.IsValid() || !IsValid(m_projectileBlueprint))
+            if (!currentEnemy.IsValid() || !IsValid(m_projectilePrefab))
             {
                 co_await FiringDelay();
                 co_return;
@@ -111,14 +111,15 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
             
             if (CheckRaycastToTarget(shotPosition->GetComponentLocation(), currentEnemy, &hitResult))
             {
-                TWeakObjectPtr<AActor> blueprintProjectile = AtomDestiny::ObjectPool::Instance().Spawn(m_projectileBlueprint.GetDefaultObject(),
+                TWeakObjectPtr<AActor> spawnedProjectile = AtomDestiny::ObjectPool::Instance().Spawn(m_projectilePrefab.GetDefaultObject(),
                     shotPosition->GetComponentLocation(), shotPosition->GetComponentQuat());
                 
-                const TScriptInterface<IProjectile> projectile = GET_ACTOR_INTERFACE(Projectile, blueprintProjectile.Get());
+                const auto projectile = Cast<IProjectile>(spawnedProjectile.Get());
 
                 if (projectile == nullptr)
                 {
-                    LOG_WARNING(TEXT("Projectile blueprint does not have component, that realizes IProjectile"));
+                    LOG_WARNING(TEXT("Projectile prefab does not realize IProjectile interface"));
+
                     co_await FiringDelay();
                     co_return;
                 }
@@ -132,17 +133,18 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
 
                 projectile->SetParameters(GetParameters());
                 projectile->Launch();
-                
-                if (IsValid(m_shotParticleBlueprint))
-                {
-                    AtomDestiny::ObjectPool::Instance().Spawn(m_shotParticleBlueprint.GetDefaultObject(),
-                        shotPosition->GetComponentLocation(), shotPosition->GetComponentQuat());
-                }
 
+                if (m_useProjectileAsChild)
+                {
+                    spawnedProjectile->AttachToActor(GetOwner(), FAttachmentTransformRules::KeepRelativeTransform);
+                }
+                
                 if (m_weaponAnimation != nullptr)
                 {
                     m_weaponAnimation->Animate();
                 }
+
+                AtomDestiny::ObjectPool::Instance().Spawn(m_shotParticlePrefab, shotPosition->GetComponentLocation(), shotPosition->GetComponentQuat());
             }
             
             if (shootingIndex < m_shootingPositions.Num() - 1)
@@ -158,5 +160,4 @@ FAsyncCoroutine UUniversalWeaponController::MakeShot()
     }
 
     co_await FiringDelay();
-    co_return;
 }
