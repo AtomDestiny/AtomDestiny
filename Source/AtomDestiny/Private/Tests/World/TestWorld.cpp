@@ -6,7 +6,7 @@ AtomDestiny::FTestWorld::FTestWorld():
     check(IsInGameThread());
 
     auto& worldContext = GEngine->CreateNewWorldContext(EWorldType::Game);
-    worldContext.SetCurrentWorld(m_world);
+    worldContext.SetCurrentWorld(m_world.Get());
 
     m_world->InitializeActorsForPlay(FURL());
     
@@ -19,8 +19,11 @@ AtomDestiny::FTestWorld::FTestWorld():
 
 AtomDestiny::FTestWorld::~FTestWorld()
 {
-    GEngine->DestroyWorldContext(m_world);
-    m_world->DestroyWorld(true);
+    if (m_world.IsValid())
+    {
+        GEngine->DestroyWorldContext(m_world.Get());
+        m_world->DestroyWorld(true);
+    }
 
     CollectGarbage(RF_NoFlags);
 }

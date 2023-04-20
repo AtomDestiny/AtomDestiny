@@ -21,11 +21,11 @@ namespace AtomDestiny
 
         uint64 GetFrameCount() const { return m_frameCount; }
 
-        UWorld* Get() const { return m_world; }
+        UWorld* Get() const { return m_world.Get(); }
         UWorld* operator->() const { return Get(); }
         
     private:
-        UWorld* m_world;
+        TWeakObjectPtr<UWorld> m_world;
         uint64 m_frameCount = 1;
     };
     
