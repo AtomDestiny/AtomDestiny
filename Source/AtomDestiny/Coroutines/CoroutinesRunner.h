@@ -1,6 +1,8 @@
 #pragma once
 
-#include <UE5Coro/Public/UE5Coro.h>
+#include <AtomDestiny/Coroutines/Coroutines.h>
+
+#include <optional>
 
 namespace AtomDestiny
 {
@@ -8,15 +10,20 @@ namespace AtomDestiny
     /// Represents manager that operates with running coroutines.
     /// You can use this runner to stop running coroutines.
     /// To start coroutine call RunCoroutine method. It will cache FAsyncCoroutine.
-    /// To have a better access just derive CoroutineRunner to your entity. 
+    /// To have a better access just derive CoroutinesRunner to your entity. 
     /// Warning. Use CoroutineRunner only with UObject. It should be possible to cast this to UObject
     ///
-    class CoroutineRunner
+    class CoroutinesRunner
     {
     public:
-        virtual ~CoroutineRunner() = default;
+        virtual ~CoroutinesRunner() = default;
 
-        void RunCoroutine(FAsyncCoroutine&& coroutine);
+        ///
+        /// Runs new coroutine and returns its ID.
+        /// You can use this ID to stop or manage coroutine execution.
+        /// 
+        [[maybe_unused]] TOptional<uint64_t> RunCoroutine(FAsyncCoroutine&& coroutine);
+        [[maybe_unused]] bool StopCoroutine(const uint64_t id);
         void StopAllCoroutines();
 
     private:

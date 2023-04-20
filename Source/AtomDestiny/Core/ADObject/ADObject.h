@@ -9,7 +9,7 @@
 #include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/Core/ADObject/Parameterizable.h>
 
-#include <AtomDestiny/Coroutine/CoroutineRunner.h>
+#include <AtomDestiny/Coroutines/CoroutinesRunner.h>
 
 #include "ADObject.generated.h"
 
@@ -19,7 +19,7 @@
 /// (Units, Buildings, Abilities, Weapons and so on).
 ///
 UCLASS(Abstract)
-class ATOMDESTINY_API UADObject : public UActorComponent, public AtomDestiny::CoroutineRunner, public IParameterizable
+class ATOMDESTINY_API UADObject : public UActorComponent, public AtomDestiny::CoroutinesRunner, public IParameterizable
 {
     GENERATED_BODY()
 
