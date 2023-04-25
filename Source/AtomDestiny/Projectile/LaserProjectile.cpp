@@ -21,7 +21,7 @@ void ALaserProjectile::Launch()
     m_niagaraComponent->SetVariableFloat("BeamLifeTime", m_lifeTime);
 
     check(m_damageDelay < m_lifeTime);
-    GenerateImpact();
+    RunCoroutine(GenerateImpact());
 
     AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(this), m_lifeTime);
 }

@@ -61,7 +61,7 @@ void UUniversalWeaponController::Fire(float deltaTime)
 
         if (!m_firing && isValidShotDistance && m_isRotatedOnTarget)
         {
-            MakeShot();
+            RunCoroutine(MakeShot());
         }
     }
     else
@@ -73,7 +73,7 @@ void UUniversalWeaponController::Fire(float deltaTime)
         
         if (!m_firing && isValidShotDistance)
         {
-            MakeShot();
+            RunCoroutine(MakeShot());
         }
     }
 }

@@ -13,7 +13,7 @@ APlasmaShotProjectile::APlasmaShotProjectile(const FObjectInitializer& objectIni
 
 void APlasmaShotProjectile::Launch()
 {
-    GenerateImpact();
+    RunCoroutine(GenerateImpact());
 }
 
 FAsyncCoroutine APlasmaShotProjectile::GenerateImpact()
