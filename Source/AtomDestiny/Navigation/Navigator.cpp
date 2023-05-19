@@ -66,7 +66,7 @@ void ANavigator::SetSpeed(double speed)
 
 double ANavigator::GetSpeed() const
 {
-    return static_cast<double>(m_pawnMovement->GetMaxSpeed());
+    return static_cast<double>(m_pawnMovement->GetMaxSpeed()); // Do not remove static_cast operator
 }
 
 void ANavigator::SetStopDistance(double distance)
