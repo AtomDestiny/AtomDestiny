@@ -113,9 +113,7 @@ void ANavigator::MoveImpl(const T& target)
         return;
     }
 
-    const EPathFollowingRequestResult::Type result = MoveAction(target);
-
-    if (result == EPathFollowingRequestResult::Type::Failed)
+    if (const EPathFollowingRequestResult::Type result = MoveAction(target); result == EPathFollowingRequestResult::Type::Failed)
     {
 #ifdef PRINT_NAVIGATOR_MESSAGES
         PrintMoveFailed(GetOwner(), target);
