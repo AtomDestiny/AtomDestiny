@@ -1,5 +1,7 @@
 ﻿#include "ADObject.h"
 
+#include <stdexcept>
+
 #include <AtomDestiny/Core/Logger.h>
 
 UADObject::UADObject(const FObjectInitializer& objectInitializer):

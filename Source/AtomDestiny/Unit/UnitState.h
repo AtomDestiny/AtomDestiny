@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <stdexcept>
+
 #include <Engine/Classes/Components/ActorComponent.h>
 
 #include <AtomDestiny/Logic/Logic.h>
