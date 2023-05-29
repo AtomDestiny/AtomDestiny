@@ -2,9 +2,9 @@
 Unreal Engine 5 Atom destiny game project.
 
 ### Build Dependencies
-- Unreal engine 5.1
+- Unreal engine 5.2
 - clang 15.0.5+ for Mac
-- msvc 19.28+ for Windows
+- msvc toolchain 14.33 (VS2022) or newier for Windows
 
 ### Contribution
 
