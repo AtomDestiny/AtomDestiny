@@ -23,7 +23,6 @@ public class AtomDestinyEditorTarget : TargetRules
         else if (Platform == UnrealTargetPlatform.Win64)
         {
             AdditionalCompilerArguments += "/wd4250";
-            WindowsPlatform.CompilerVersion = "Latest";
         }
 
         ExtraModuleNames.Add("AtomDestiny");
