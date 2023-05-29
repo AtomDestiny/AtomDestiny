@@ -9,7 +9,7 @@ public class AtomDestinyEditorTarget : TargetRules
     {
         Type = TargetType.Editor;
         DefaultBuildSettings = BuildSettingsVersion.Latest;
-        IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_1;
+        IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_2;
         
         bOverrideBuildEnvironment = true;
         CppStandard = CppStandardVersion.Latest;

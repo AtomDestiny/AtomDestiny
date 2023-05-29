@@ -11,7 +11,7 @@ public class AtomDestinyTarget : TargetRules
     {
         Type = TargetType.Game;
         DefaultBuildSettings = BuildSettingsVersion.Latest;
-        IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_1;
+        IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_2;
 
         CppStandard = CppStandardVersion.Latest;
 
