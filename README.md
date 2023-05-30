@@ -17,11 +17,11 @@ Project actively uses C++20 coroutines, so realization used from [UE5Coro](https
 
 ### Build
 #### Windows
-Build can fail with UBT linker error, code 0x0000006.
-Possible solution to specify concrete cl.exe compiler to build configuration.
+Build can failed with UBT linker error, code 0x0000006.
+Possible solution is to specify concrete cl.exe compiler to build configuration.
 It can be done at folder ```<USER>/AppData/Roaming/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml```
 
-Add follows to configuration file. Change compiler version if needed.
+Add follow lines to configuration file. Change compiler version if needed.
 ```
     <WindowsPlatform>
         <CompilerVersion>14.33.31629</CompilerVersion>
