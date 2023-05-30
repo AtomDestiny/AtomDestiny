@@ -47,7 +47,7 @@ void UShieldParametersBase::InitializeComponent()
 
     AddNewParameter(EObjectParameters::MaxShield);
     AddNewParameter(EObjectParameters::Shield);
-    AddNewParameter(EObjectParameters::Absorbation);
+    AddNewParameter(EObjectParameters::Absorption);
 }
 
 void UShieldParametersBase::BeginPlay()
@@ -106,7 +106,7 @@ void UShieldParametersBase::RecalculateParameter(EObjectParameters parameter)
         }
         break;
 
-    case EObjectParameters::Absorbation:
+    case EObjectParameters::Absorption:
         {
             m_currentAbsorbation = CalculateParametersFromAll(m_shieldAbsorbation, parameter);
         }
@@ -133,7 +133,7 @@ void UShieldParametersBase::ZeroizeParameter(EObjectParameters parameter)
         m_currentShieldValue = 0;
         break;
 
-    case EObjectParameters::Absorbation:
+    case EObjectParameters::Absorption:
         m_currentAbsorbation = 0;
         break;
 
