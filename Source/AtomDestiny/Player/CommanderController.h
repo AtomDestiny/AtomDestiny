@@ -17,6 +17,8 @@ class ATOMDESTINY_API ACommanderController : public APlayerController
     GENERATED_BODY()
     
 public:
+    ACommanderController();
+    
     virtual void SetupInputComponent() override;
 
     UInputMappingContext* GetPawnMappingContext() const { return m_pawnMappingContext; }

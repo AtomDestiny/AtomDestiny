@@ -35,10 +35,17 @@ static void mapKey(UInputMappingContext* context, UInputAction* action, FKey key
     }
 }
 
+ACommanderController::ACommanderController() : APlayerController()
+{
+    bEnableMouseOverEvents = true;
+    bEnableClickEvents = true;
+    bShowMouseCursor = true;
+}
+
 void ACommanderController::SetupInputComponent()
 {
     Super::SetupInputComponent();
-
+    
     m_pawnMappingContext = NewObject<UInputMappingContext>(this);
 
     m_actionMove = NewObject<UInputAction>(this);

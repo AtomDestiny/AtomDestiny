@@ -26,10 +26,10 @@ public class AtomDestiny : ModuleRules
         });
 
         PublicIncludePaths.AddRange(new string[] {
-            "AtomDestiny",
+            "AtomDestiny"
         });
 
-        PrivateDependencyModuleNames.AddRange(new string[] { });
+        PrivateDependencyModuleNames.AddRange(new string[] { "ProceduralMeshComponent" });
         PrivateDependencyModuleNames.AddRange(new string[] {  /*"AIModule", "NavigationSystem"*/ });
         PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
     }
