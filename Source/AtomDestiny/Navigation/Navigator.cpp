@@ -7,9 +7,6 @@
 
 using namespace AtomDestiny::Concepts;
 
-namespace
-{
-
 template <NavigatorMovable T>
 static void PrintMoveFailed(const AActor* owner, const T& target)
 {
@@ -30,8 +27,6 @@ static void PrintMoveFailed(const AActor* owner, const T& target)
         LOG_WARNING(TEXT("Unit %s, failed to move to target %s"), *name, *target->GetActorNameOrLabel());
     }
 }
-
-} // namespace
 
 ANavigator::ANavigator(const FObjectInitializer& objectInitializer)
     : AAIController(objectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("CrowdPathFollowingComponent")))
@@ -71,7 +66,7 @@ void ANavigator::SetSpeed(double speed)
 
 double ANavigator::GetSpeed() const
 {
-    return m_pawnMovement->GetMaxSpeed();
+    return static_cast<double>(m_pawnMovement->GetMaxSpeed()); // Do not remove static_cast operator
 }
 
 void ANavigator::SetStopDistance(double distance)
@@ -87,7 +82,7 @@ double ANavigator::GetStopDistance() const
 double ANavigator::GetRemainingDistance() const
 {
     const AActor* owner = m_pawnMovement->GetOwner();
-    check(owner);
+    check(owner)
     
     if (m_target.IsValid())
     {
@@ -118,9 +113,7 @@ void ANavigator::MoveImpl(const T& target)
         return;
     }
 
-    const EPathFollowingRequestResult::Type result = MoveAction(target);
-
-    if (result == EPathFollowingRequestResult::Type::Failed)
+    if (const EPathFollowingRequestResult::Type result = MoveAction(target); result == EPathFollowingRequestResult::Type::Failed)
     {
 #ifdef PRINT_NAVIGATOR_MESSAGES
         PrintMoveFailed(GetOwner(), target);

@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <string_view>
+
 #include <Runtime/Core/Public/Misc/CoreMisc.h>
 
 #ifdef _MSC_VER

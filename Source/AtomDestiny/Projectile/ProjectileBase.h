@@ -2,6 +2,7 @@
 
 #include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/Projectile/Projectile.h>
+#include <AtomDestiny/Coroutines/CoroutinesRunner.h>
 
 #include <Engine/Classes/GameFramework/Actor.h>
 
@@ -16,7 +17,7 @@ class AParticle;
 /// that implements IWeapon interface.
 ///
 UCLASS(Abstract)
-class AProjectileBase : public AActor, public IProjectile
+class AProjectileBase : public AActor, public AtomDestiny::CoroutinesRunner, public IProjectile
 {
     GENERATED_BODY()
 
@@ -43,7 +44,7 @@ public:
     virtual void Launch() ABSTRACT_METHOD;
 
 private:
-    virtual void PreInitializeComponents() override;
+    virtual void BeginPlay() override;
     
 protected:
     FWeaponParameters m_parameters;

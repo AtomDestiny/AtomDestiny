@@ -2,9 +2,9 @@
 Unreal Engine 5 Atom destiny game project.
 
 ### Build Dependencies
-- Unreal engine 5.1
+- Unreal engine 5.2
 - clang 15.0.5+ for Mac
-- msvc 19.28+ for Windows
+- msvc toolchain 14.33 (VS2022) or newier for Windows
 
 ### Contribution
 
@@ -14,3 +14,16 @@ So for contribution you should use them both.
 ### Third-party libraries
 
 Project actively uses C++20 coroutines, so realization used from [UE5Coro](https://github.com/landelare/ue5coro).
+
+### Build
+#### Windows
+Build can failed with UBT linker error, code 0x0000006.
+Possible solution is to specify concrete cl.exe compiler to build configuration.
+It can be done at folder ```<USER>/AppData/Roaming/Unreal Engine/UnrealBuildTool/BuildConfiguration.xml```
+
+Add follow lines to configuration file. Change compiler version if needed.
+```
+    <WindowsPlatform>
+        <CompilerVersion>14.33.31629</CompilerVersion>
+    </WindowsPlatform>
+```

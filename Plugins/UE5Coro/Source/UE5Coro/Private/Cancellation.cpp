@@ -29,58 +29,55 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/UE5CoroCallbackTarget.h"
-#include "UE5Coro/UE5CoroSubsystem.h"
+#include "UE5Coro/Cancellation.h"
+#include "UE5Coro/AsyncCoroutine.h"
 
+using namespace UE5Coro;
 using namespace UE5Coro::Private;
 
-void UUE5CoroCallbackTarget::Activate(int32 InExpectedLink, FTwoLives* InState)
+namespace
 {
-	check(IsInGameThread());
-	checkf(!State, TEXT("Unexpected double activation"));
-	ExpectedLink = InExpectedLink;
-	State = InState;
+// lvalue ref to work around TScopeGuard
+void CleanupIfCanceled(std::function<void()>& Fn)
+{
+	if (GDestroyedEarly)
+		Fn();
+}
 }
 
-void UUE5CoroCallbackTarget::Deactivate()
+FCancellationGuard::FCancellationGuard()
+#if UE5CORO_DEBUG
+	: Promise(&FPromise::Current())
+#endif
 {
-	check(IsInGameThread());
-	checkf(State, TEXT("Unexpected deactivation while not active"));
-	// Leave ExpectedLink stale for the check in ExecuteLink
-	if (!State->Release())
-		State = nullptr; // The other side is not interested anymore
+	FPromise::Current().HoldCancellation();
 }
 
-int32 UUE5CoroCallbackTarget::GetExpectedLink() const
+FCancellationGuard::~FCancellationGuard()
 {
-	check(IsInGameThread());
-	checkf(State, TEXT("Unexpected linkage query on inactive object"));
-	return ExpectedLink;
+#if UE5CORO_DEBUG
+	checkf(Promise == &FPromise::Current(), TEXT("Hold/Release mismatch"));
+#endif
+	FPromise::Current().ReleaseCancellation();
 }
 
-void UUE5CoroCallbackTarget::ExecuteLink(int32 Link)
+FOnCoroutineCanceled::FOnCoroutineCanceled(std::function<void()> Fn)
+	: TScopeGuard(std::bind(&CleanupIfCanceled, std::move(Fn)))
 {
-	check(IsInGameThread());
-	checkf(Link == ExpectedLink, TEXT("Unexpected linkage"));
-	if (State)
-	{
-		State->UserData = 1;
-		State = nullptr;
-	}
 }
 
-void UUE5CoroCallbackTarget::Tick(float DeltaTime)
+FCancellationYieldAwaiter UE5Coro::YieldIfCanceled()
 {
-	if (!State)
-		return;
-
-	// ProcessLatentActions refuses to work on non-BP classes.
-	GetClass()->ClassFlags |= CLASS_CompiledFromBlueprint;
-	GetWorld()->GetLatentActionManager().ProcessLatentActions(this, DeltaTime);
-	GetClass()->ClassFlags &= ~CLASS_CompiledFromBlueprint;
+	return {};
 }
 
-TStatId UUE5CoroCallbackTarget::GetStatId() const
+bool FCancellationYieldAwaiter::await_ready()
 {
-	RETURN_QUICK_DECLARE_CYCLE_STAT(UUE5CoroCallbackTarget, STATGROUP_Tickables);
+	return !FPromise::Current().ShouldCancel(false);
+}
+
+void FCancellationYieldAwaiter::Suspend(FPromise& Promise)
+{
+	// Resume is also responsible for cancellation-induced self-destruction
+	Promise.Resume();
 }

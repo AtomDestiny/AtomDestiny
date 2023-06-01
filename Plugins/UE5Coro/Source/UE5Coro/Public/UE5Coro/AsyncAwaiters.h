@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -33,6 +33,7 @@
 
 #include "CoreMinimal.h"
 #include "UE5Coro/Definitions.h"
+#include <optional>
 #include "Async/TaskGraphInterfaces.h"
 #include "UE5Coro/AsyncCoroutine.h"
 
@@ -40,13 +41,15 @@ namespace UE5Coro::Private
 {
 class FAsyncAwaiter;
 class FAsyncPromise;
+class FAsyncYieldAwaiter;
 class FLatentPromise;
 class FNewThreadAwaiter;
 }
 
 namespace UE5Coro::Async
 {
-/** Suspends the coroutine and resumes it on the provided named thread.<br>
+/** Suspends the coroutine and resumes it on the provided named thread, if it's
+ *  not already on that thread. If it is, nothing happens.<br>
  *  The return value of this function is reusable. Repeated co_awaits will keep
  *	moving back into the provided thread. */
 UE5CORO_API Private::FAsyncAwaiter MoveToThread(ENamedThreads::Type);
@@ -56,6 +59,13 @@ UE5CORO_API Private::FAsyncAwaiter MoveToThread(ENamedThreads::Type);
  *  As such, its return value is reusable and will keep co_awaiting back into
  *  the game thread. */
 UE5CORO_API Private::FAsyncAwaiter MoveToGameThread();
+
+/** Always suspends the coroutine and resumes it on the same kind of named
+ *  thread that it's currently running on, or AnyThread otherwise.<br>
+ *  The return value of this function is reusable and always refers to the
+ *  current thread, even if the coroutine has moved threads since this function
+ *  was called. */
+UE5CORO_API Private::FAsyncYieldAwaiter Yield();
 
 /** Starts a new thread with additional control over priority, affinity, etc.
  *  and resumes the coroutine there.<br>
@@ -71,76 +81,96 @@ UE5CORO_API Private::FNewThreadAwaiter MoveToNewThread(
 
 namespace UE5Coro::Private
 {
-class [[nodiscard]] UE5CORO_API FAsyncAwaiter final
+class [[nodiscard]] UE5CORO_API FAsyncAwaiter : public TAwaiter<FAsyncAwaiter>
 {
 	ENamedThreads::Type Thread;
-	FHandle ResumeAfter;
+
+protected:
+	std::optional<TCoroutine<>> ResumeAfter;
 
 public:
 	explicit FAsyncAwaiter(ENamedThreads::Type Thread,
-	                       FHandle ResumeAfter = nullptr)
-		: Thread(Thread), ResumeAfter(ResumeAfter) { }
+	                       std::optional<TCoroutine<>> ResumeAfter)
+		: Thread(Thread), ResumeAfter(std::move(ResumeAfter)) { }
 
-	bool await_ready() { return false; }
-	void await_resume() { }
+	bool await_ready();
+	void Suspend(FPromise&);
+};
 
-	void await_suspend(FAsyncHandle Handle);
-	void await_suspend(FLatentHandle Handle);
+class [[nodiscard]] UE5CORO_API FAsyncYieldAwaiter
+	: public TAwaiter<FAsyncYieldAwaiter>
+{
+public:
+	void Suspend(FPromise&);
 };
 
 template<typename T>
-class [[nodiscard]] TFutureAwaiter final
+class [[nodiscard]] TFutureAwaiter final : public TAwaiter<TFutureAwaiter<T>>
 {
 	TFuture<T> Future;
 	std::remove_reference_t<T>* Result = nullptr; // Dangerous!
 
 public:
-	explicit TFutureAwaiter(TFuture<T>&& Future)
-		: Future(std::move(Future)) { }
+	explicit TFutureAwaiter(TFuture<T>&& Future) : Future(std::move(Future)) { }
 	UE_NONCOPYABLE(TFutureAwaiter);
 
 	bool await_ready()
 	{
-		checkf(this->Future.IsValid(),
+		checkf(!Result, TEXT("Attempting to reuse spent TFutureAwaiter"));
+		checkf(Future.IsValid(),
 		       TEXT("Awaiting invalid/spent future will never resume"));
 		return Future.IsReady();
 	}
 
-	T await_resume()
+	void Suspend(FPromise& Promise)
 	{
-		if constexpr (std::is_lvalue_reference_v<T>)
-			return *Result;
-		else if constexpr (!std::is_void_v<T>)
-			return std::move(*Result);
-	}
+		// Extremely rarely, Then will run synchronously because Future
+		// finished after IsReady but before Suspend.
+		// This is OK and will result in the caller coroutine resuming itself.
 
-	template<typename P>
-	void await_suspend(stdcoro::coroutine_handle<P> Handle)
-	{
-		checkf(!Result, TEXT("Attempting to reuse spent TFutureAwaiter"));
-
-		if constexpr (std::is_same_v<P, FLatentPromise>)
-			Handle.promise().DetachFromGameThread();
-
-		Future.Then([this, Handle](auto InFuture)
+		Future.Then([this, &Promise](auto InFuture)
 		{
+			checkf(!Future.IsValid(),
+			       TEXT("Internal error: future was not consumed"));
+
 			// TFuture<T&> will pass T* for Value, TFuture<void> an int
 			if constexpr (std::is_lvalue_reference_v<T>)
 			{
 				static_assert(std::is_pointer_v<decltype(InFuture.Get())>);
-				checkf(!Future.IsValid(), TEXT("Internal error"));
 				Result = InFuture.Get();
-				Handle.promise().Resume();
+				Promise.Resume();
 			}
 			else
 			{
 				// It's normally dangerous to expose a pointer to a local, but
 				auto Value = InFuture.Get(); // This will be alive while...
-				checkf(!Future.IsValid(), TEXT("Internal error"));
 				Result = &Value;
-				Handle.promise().Resume(); // ...await_resume moves from it here
+				Promise.Resume(); // ...await_resume moves from it here
 			}
 		});
+	}
+
+	T await_resume()
+	{
+		if (!Result)
+		{
+			// Result being nullptr indicates that await_ready returned true,
+			// Then has not and will not run, and Future is still valid
+			checkf(Future.IsValid(), TEXT("Internal error: future was consumed"));
+			static_assert(std::is_same_v<T, decltype(Future.Get())>);
+			Result = reinterpret_cast<decltype(Result)>(-1); // Mark as spent
+			return Future.Get();
+		}
+		else
+		{
+			// Otherwise, we're being called from Then, and Future is spent
+			checkf(!Future.IsValid(),
+			       TEXT("Internal error: future was not consumed"));
+			if constexpr (std::is_lvalue_reference_v<T>)
+				return *Result;
+			else if constexpr (!std::is_void_v<T>)
+				return std::move(*Result); // This will move from Then's local
+		}
 	}
 };
 
@@ -157,20 +187,17 @@ struct TAwaitTransform<P, TFuture<T>>
 };
 
 class [[nodiscard]] UE5CORO_API FNewThreadAwaiter
+	: public TAwaiter<FNewThreadAwaiter>
 {
 	EThreadPriority Priority;
 	uint64 Affinity;
 	EThreadCreateFlags Flags;
 
 public:
-	explicit FNewThreadAwaiter(
-		EThreadPriority Priority, uint64 Affinity, EThreadCreateFlags Flags)
+	explicit FNewThreadAwaiter(EThreadPriority Priority, uint64 Affinity,
+	                           EThreadCreateFlags Flags)
 		: Priority(Priority), Affinity(Affinity), Flags(Flags) { }
 
-	bool await_ready() { return false; }
-	void await_resume() { }
-
-	void await_suspend(FAsyncHandle);
-	void await_suspend(FLatentHandle);
+	void Suspend(FPromise&);
 };
 }

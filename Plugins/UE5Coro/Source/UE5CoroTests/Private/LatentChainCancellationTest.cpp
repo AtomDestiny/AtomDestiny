@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -33,7 +33,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Misc/AutomationTest.h"
 #include "UE5Coro/LatentAwaiters.h"
-#include "UE5Coro/UE5CoroCallbackTarget.h"
+#include "UE5Coro/UE5CoroChainCallbackTarget.h"
 
 using namespace std::placeholders;
 using namespace UE5Coro;
@@ -73,14 +73,14 @@ void DoTest(FAutomationTestBase& Test)
 	};
 
 	{
-		TSet<UUE5CoroCallbackTarget*> Targets;
-		for (auto* Target : TObjectRange<UUE5CoroCallbackTarget>())
+		TSet<UUE5CoroChainCallbackTarget*> Targets;
+		for (auto* Target : TObjectRange<UUE5CoroChainCallbackTarget>())
 			Targets.Add(Target);
 
 		World.Run(CORO
 		{
 			State = 1;
-#if UE5CORO_CPP20
+#if UE5CORO_PRIVATE_LATENT_CHAIN_IS_OK
 			ExpectFail(co_await Latent::Chain(&UKismetSystemLibrary::Delay, 1));
 #else
 			ExpectFail(co_await Latent::ChainEx(&UKismetSystemLibrary::Delay,
@@ -89,8 +89,8 @@ void DoTest(FAutomationTestBase& Test)
 			State = 2;
 		});
 		Test.TestEqual(TEXT("Started"), State, 1);
-		UUE5CoroCallbackTarget* NewTarget = nullptr;
-		for (auto* Target : TObjectRange<UUE5CoroCallbackTarget>())
+		UUE5CoroChainCallbackTarget* NewTarget = nullptr;
+		for (auto* Target : TObjectRange<UUE5CoroChainCallbackTarget>())
 			if (!Targets.Contains(Target))
 			{
 				NewTarget = Target;

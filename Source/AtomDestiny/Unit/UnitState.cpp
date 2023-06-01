@@ -185,7 +185,7 @@ void UUnitState::AddParameter(EObjectParameters parameter, const FParameterEnhan
     case EObjectParameters::Defence:
     case EObjectParameters::MaxShield:
     case EObjectParameters::Shield:
-    case EObjectParameters::Absorbation:
+    case EObjectParameters::Absorption:
         {
             if (m_shield != nullptr)
                 Cast<IParameterizable>(m_shield.GetInterface())->AddParameter(parameter, enhancement);
@@ -225,7 +225,7 @@ void UUnitState::RemoveParameter(EObjectParameters parameter, AActor* enhanceObj
     case EObjectParameters::Defence:
     case EObjectParameters::MaxShield:
     case EObjectParameters::Shield:
-    case EObjectParameters::Absorbation:
+    case EObjectParameters::Absorption:
         {
             if (m_shield != nullptr)
                 Cast<IParameterizable>(m_shield.GetInterface())->RemoveParameter(parameter, enhanceObject);
@@ -265,7 +265,7 @@ void UUnitState::ZeroParameter(EObjectParameters parameter, const FParameterZero
     case EObjectParameters::Defence:
     case EObjectParameters::MaxShield:
     case EObjectParameters::Shield:
-    case EObjectParameters::Absorbation:
+    case EObjectParameters::Absorption:
         {
             if (m_shield != nullptr)
                 Cast<IParameterizable>(m_shield.GetInterface())->ZeroParameter(parameter, pack);

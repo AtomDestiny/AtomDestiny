@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <AtomDestiny/Core/ActorComponentUtils.h>
+#include <AtomDestiny/Core/ActorUtils.h>
 #include <AtomDestiny/Core/ObjectPool/Details/ActorPoolMember.h>
 
 using namespace AtomDestiny;
@@ -66,6 +67,8 @@ void ActorPool::Despawn(TWeakObjectPtr<AActor> object) const
     {
         UE_LOG(LogTemp, Warning, TEXT("The Actor %s wasn't spawned from a pool. Destroying it instead."), GetData(object->GetName()));
         
+        AtomDestiny::Utils::SetActorActive(object, false);
+
         object->SetLifeSpan(0);
         object->Destroy();
     }

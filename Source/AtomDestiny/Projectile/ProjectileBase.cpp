@@ -29,8 +29,8 @@ const FProjectilePoints& AProjectileBase::GetPoints() const
     return m_points;
 }
 
-void AProjectileBase::PreInitializeComponents()
+void AProjectileBase::BeginPlay()
 {
-    Super::PreInitializeComponents();
+    Super::BeginPlay();
     AtomDestiny::ObjectPool::Instance().Preload(m_impactPrefab);
 }

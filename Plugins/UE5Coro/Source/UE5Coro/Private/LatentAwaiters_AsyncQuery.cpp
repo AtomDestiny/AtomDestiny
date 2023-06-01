@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -35,35 +35,23 @@
 using namespace UE5Coro;
 using namespace UE5Coro::Private;
 
-namespace UE5Coro::Private
-{
 namespace
 {
 template<typename T>
 using TQueryDelegate = std::conditional_t<std::is_same_v<T, FHitResult>,
-	FTraceDelegate, FOverlapDelegate>;
+                                          FTraceDelegate, FOverlapDelegate>;
 template<typename T>
 using TQueryDatum = std::conditional_t<std::is_same_v<T, FHitResult>,
-	FTraceDatum, FOverlapDatum>;
+                                       FTraceDatum, FOverlapDatum>;
+}
 
-template<typename T>
-void SuspendCore(T Handle, FOptionalHandleVariant* Variant)
+namespace UE5Coro::Private
 {
-	checkf(IsInGameThread(),
-	       TEXT("Async queries may only be awaited on the game thread."));
-	checkf(std::holds_alternative<std::monostate>(*Variant),
-	       TEXT("Attempted second concurrent co_await"));
-	if constexpr (std::is_same_v<T, FLatentHandle>)
-		Handle.promise().DetachFromGameThread();
-	*Variant = Handle;
-}
-}
-
 template<typename T>
 class TAsyncQueryAwaiter<T>::TImpl
 {
 public:
-	FOptionalHandleVariant Handle;
+	FPromise* Promise = nullptr;
 	std::optional<TArray<T>> Result;
 
 	void ReceiveResult(const FTraceHandle&, TQueryDatum<T>& Datum)
@@ -74,12 +62,9 @@ public:
 		else
 			Result = std::move(Datum.OutOverlaps);
 
-		// If the coroutine is suspended (Handle is valid), resume it now
-		std::visit([](auto InHandle)
-		{
-			if constexpr (!std::is_same_v<decltype(InHandle), std::monostate>)
-				InHandle.promise().Resume();
-		}, Handle);
+		// If the coroutine is suspended (Promise is valid), resume it now
+		if (Promise)
+			Promise->Resume();
 	}
 };
 
@@ -92,13 +77,27 @@ TAsyncQueryAwaiter<T>::TAsyncQueryAwaiter(UWorld* World,
 {
 	checkf(IsInGameThread(),
 	       TEXT("Async queries may only be started from the game thread."));
-	auto Delegate =
-		TQueryDelegate<T>::CreateSP(Impl.ToSharedRef(), &TImpl::ReceiveResult);
+	auto Delegate = TQueryDelegate<T>::CreateSP(Impl.ToSharedRef(),
+	                                            &TImpl::ReceiveResult);
 	(World->*Fn)(Params..., &Delegate, 0);
 }
 
 template<typename T>
 TAsyncQueryAwaiter<T>::~TAsyncQueryAwaiter() = default;
+
+template<typename T>
+TAsyncQueryAwaiter<T>& TAsyncQueryAwaiter<T>::operator co_await() &
+{
+	return *this;
+}
+
+template<typename T>
+TAsyncQueryAwaiterRV<T>& TAsyncQueryAwaiter<T>::operator co_await() &&
+{
+	static_assert(sizeof(*this) == sizeof(TAsyncQueryAwaiterRV<T>));
+	// Technically, this object is not a TAsyncQueryAwaiterRV
+	return *std::launder(reinterpret_cast<TAsyncQueryAwaiterRV<T>*>(this));
+}
 
 template<typename T>
 bool TAsyncQueryAwaiter<T>::await_ready()
@@ -109,33 +108,34 @@ bool TAsyncQueryAwaiter<T>::await_ready()
 }
 
 template<typename T>
-void TAsyncQueryAwaiter<T>::await_suspend(FAsyncHandle Handle)
+void TAsyncQueryAwaiter<T>::Suspend(FPromise& Promise)
 {
-	SuspendCore(Handle, &Impl->Handle);
+	checkf(IsInGameThread(),
+	       TEXT("Async queries may only be awaited on the game thread."));
+	checkf(!Impl->Promise, TEXT("Attempted second concurrent co_await"));
+	Impl->Promise = &Promise;
 }
 
 template<typename T>
-void TAsyncQueryAwaiter<T>::await_suspend(FLatentHandle Handle)
+const TArray<T>& TAsyncQueryAwaiter<T>::await_resume()
 {
-	SuspendCore(Handle, &Impl->Handle);
+	checkf(IsInGameThread(),
+	       TEXT("Internal error: expected to resume on the game thread"));
+	checkf(Impl->Result.has_value(),
+	       TEXT("Internal error: resuming without a query result"));
+	return *Impl->Result;
 }
 
 template<typename T>
-const TArray<T>& TAsyncQueryAwaiter<T>::await_resume() &
+TArray<T> TAsyncQueryAwaiterRV<T>::await_resume()
 {
-	checkf(IsInGameThread() && Impl->Result.has_value(), TEXT("Internal error"));
-	return Impl->Result.value();
+	return const_cast<TArray<T>&&>(TAsyncQueryAwaiter<T>::await_resume());
 }
 
-template<typename T>
-TArray<T> TAsyncQueryAwaiter<T>::await_resume() &&
-{
-	checkf(IsInGameThread() && Impl->Result.has_value(), TEXT("Internal error"));
-	return std::move(Impl->Result).value();
-}
-
-template class TAsyncQueryAwaiter<FHitResult>;
-template class TAsyncQueryAwaiter<FOverlapResult>;
+template class UE5CORO_API TAsyncQueryAwaiter<FHitResult>;
+template class UE5CORO_API TAsyncQueryAwaiterRV<FHitResult>;
+template class UE5CORO_API TAsyncQueryAwaiter<FOverlapResult>;
+template class UE5CORO_API TAsyncQueryAwaiterRV<FOverlapResult>;
 }
 
 TAsyncQueryAwaiter<FHitResult> Latent::AsyncLineTraceByChannel(
@@ -146,8 +146,8 @@ TAsyncQueryAwaiter<FHitResult> Latent::AsyncLineTraceByChannel(
 {
 	return TAsyncQueryAwaiter<FHitResult>(
 		GEngine->GetWorldFromContextObjectChecked(WorldContextObject),
-		&UWorld::AsyncLineTraceByChannel, InTraceType, Start, End,
-		TraceChannel, Params, ResponseParam);
+		&UWorld::AsyncLineTraceByChannel, InTraceType, Start, End, TraceChannel,
+		Params, ResponseParam);
 }
 
 TAsyncQueryAwaiter<FHitResult> Latent::AsyncLineTraceByObjectType(
@@ -156,7 +156,6 @@ TAsyncQueryAwaiter<FHitResult> Latent::AsyncLineTraceByObjectType(
 	const FCollisionObjectQueryParams& ObjectQueryParams,
 	const FCollisionQueryParams& Params)
 {
-	auto* World = GEngine->GetWorldFromContextObjectChecked(WorldContextObject);
 	return TAsyncQueryAwaiter<FHitResult>(
 		GEngine->GetWorldFromContextObjectChecked(WorldContextObject),
 		&UWorld::AsyncLineTraceByObjectType, InTraceType, Start, End,
