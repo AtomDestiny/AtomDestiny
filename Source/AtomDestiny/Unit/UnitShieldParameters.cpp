@@ -9,7 +9,7 @@ void UUnitShieldParameters::TickComponent(float deltaTime, ELevelTick tickType, 
         m_regenerationAccess = false;
         
         RegenerateShield();
-        StartShieldCoolDown();
+        RunCoroutine(StartShieldCoolDown());
     }
     
     RenderShieldBar();

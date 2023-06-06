@@ -16,7 +16,7 @@ enum class EObjectParameters : uint8
     Defence,
     MaxHealth,
     Health,
-    Absorbation,
+    Absorption,
     MaxShield,
     Shield,
     Velocity

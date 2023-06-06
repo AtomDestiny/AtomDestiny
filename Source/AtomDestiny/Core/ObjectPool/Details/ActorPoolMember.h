@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <Core/Public/Templates/SharedPointer.h>
 #include <Engine/Classes/Components/ActorComponent.h>
 

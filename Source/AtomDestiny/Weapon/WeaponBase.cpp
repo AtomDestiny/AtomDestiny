@@ -52,7 +52,7 @@ void UWeaponBase::BeginPlay()
         ExcludeSameLayer();
     }
     
-    AtomDestiny::ObjectPool::Instance().Preload(m_projectileBlueprint, BlueprintPreloadCount);
+    AtomDestiny::ObjectPool::Instance().Preload(m_projectilePrefab, ProjectilePrefabPreloadCount);
 }
 
 void UWeaponBase::EndPlay(const EEndPlayReason::Type type)

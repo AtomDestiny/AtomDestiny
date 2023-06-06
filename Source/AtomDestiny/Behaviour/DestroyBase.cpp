@@ -21,13 +21,10 @@ void UDestroyBase::BeginPlay()
 {
     Super::BeginPlay();
     
-    AtomDestiny::ObjectPool::Instance().Preload(m_explosionBlueprint, BlueprintExplosionPreloadCount);
+    AtomDestiny::ObjectPool::Instance().Preload(m_explosionPrefab);
 }
 
 void UDestroyBase::SpawnExplosion(const FVector& location, const FQuat& rotation)
 {
-    if (IsValid(m_explosionBlueprint))
-    {
-        AtomDestiny::ObjectPool::Instance().Spawn(m_explosionBlueprint.GetDefaultObject(), location, rotation);
-    }
+    AtomDestiny::ObjectPool::Instance().Spawn(m_explosionPrefab, location, rotation);
 }

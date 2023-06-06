@@ -38,7 +38,11 @@ private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Scrap parts destroy time", AllowPrivateAccess = "true"))
     double m_partsDestroyTime = 1.5;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Scrap blueprint", AllowPrivateAccess = "true"))
-    TSubclassOf<AActor> m_scrapBlueprint;
+    ///
+    /// Scrap prefab should be represented by AActor and consists of exploded parts
+    /// that emulates unit parts destruction.
+    ///
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Scrap prefab", AllowPrivateAccess = "true"))
+    TSubclassOf<AActor> m_scrapPrefab;
     constexpr static uint32_t ScrapPreloadCount = 3;
 };

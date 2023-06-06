@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -40,90 +40,76 @@ FHttpAwaiter Http::ProcessAsync(FHttpRequestRef Request)
 	return FHttpAwaiter(std::move(Request));
 }
 
-FHttpAwaiter::FHttpAwaiter(FHttpRequestRef&& Request)
+FHttpAwaiter::FState::FState(FHttpRequestRef&& Request)
 	: Thread(FTaskGraphInterface::Get().GetCurrentThreadIfKnown())
 	, Request(std::move(Request))
 {
-	Request->OnProcessRequestComplete().BindRaw(
-		this, &FHttpAwaiter::RequestComplete);
-	Request->ProcessRequest();
+}
+
+FHttpAwaiter::FHttpAwaiter(FHttpRequestRef&& Request)
+	: State(new FState(std::move(Request)))
+{
+	State->Request->OnProcessRequestComplete().BindSP(State.ToSharedRef(),
+	                                                  &FState::RequestComplete);
+	State->Request->ProcessRequest();
 }
 
 bool FHttpAwaiter::await_ready()
 {
-	Lock.Lock();
-
-	checkCode(std::visit([](stdcoro::coroutine_handle<> InHandle)
-	{
-		checkf(!InHandle, TEXT("Attempting to reuse HTTP awaiter"));
-	}, Handle));
+	State->Lock.Lock();
 
 	// Skip suspension if the request finished first
-	if (Result.has_value())
+	if (State->Result.has_value())
 	{
-		Lock.Unlock();
+		State->Lock.Unlock();
 		return true;
 	}
 	else
 	{
-		// Lock is deliberately left locked
-		bSuspended = true;
+		// State->Lock is deliberately left locked
+		checkf(!State->bSuspended, TEXT("Attempted second concurrent co_await"));
+		State->bSuspended = true;
 		return false;
 	}
 }
 
-void FHttpAwaiter::await_suspend(FLatentHandle InHandle)
-{
-	// Even if the entire co_await starts and ends on the game thread we need
-	// to take temporary ownership in case the latent action manager decides to
-	// delete the latent action.
-	InHandle.promise().DetachFromGameThread();
-	SetHandleAndUnlock(InHandle);
-}
-
-void FHttpAwaiter::await_suspend(FAsyncHandle InHandle)
-{
-	SetHandleAndUnlock(InHandle);
-}
-
-template<typename T>
-void FHttpAwaiter::SetHandleAndUnlock(stdcoro::coroutine_handle<T> InHandle)
+void FHttpAwaiter::Suspend(FPromise& Promise)
 {
 	// This should be locked from await_ready
-	checkf(!Lock.TryLock(), TEXT("Internal error"));
-	Handle = InHandle;
-	Lock.Unlock();
+	checkf(!State->Lock.TryLock(), TEXT("Internal error: lock wasn't taken"));
+	State->Promise = &Promise;
+	State->Lock.Unlock();
 }
 
-void FHttpAwaiter::Resume()
+void FHttpAwaiter::FState::Resume()
 {
 	// Don't needlessly dispatch AsyncTasks to the GT from the GT
-	ensureMsgf(IsInGameThread(), TEXT("Internal error"));
-	bSuspended = false; // Technically not needed since this is not reusable
+	ensureMsgf(IsInGameThread(),
+	           TEXT("Internal error: expected HTTP callback on the game thread"));
+	// leave bSuspended true to prevent any further suspensions (not co_awaits)
 
 	if (Thread == ENamedThreads::GameThread)
-		std::visit([](auto InHandle)
-		{
-			InHandle.promise().Resume();
-		}, Handle);
+		Promise->Resume();
 	else
-		std::visit([Thread = Thread](auto InHandle)
-		{
-			AsyncTask(Thread, [InHandle] { InHandle.promise().Resume(); });
-		}, Handle);
+		AsyncTask(Thread, [Promise = Promise] { Promise->Resume(); });
 }
 
-void FHttpAwaiter::RequestComplete(FHttpRequestPtr, FHttpResponsePtr Response,
-                                   bool bConnectedSuccessfully)
+void FHttpAwaiter::FState::RequestComplete(FHttpRequestPtr,
+                                           FHttpResponsePtr Response,
+                                           bool bConnectedSuccessfully)
 {
 	UE::TScopeLock _(Lock);
 	Result = {std::move(Response), bConnectedSuccessfully};
 	if (bSuspended)
+	{
+		_.Unlock();
 		Resume();
+	}
 }
 
 TTuple<FHttpResponsePtr, bool> FHttpAwaiter::await_resume()
 {
-	checkf(Result.has_value(), TEXT("Internal error"));
-	return std::move(Result).value();
+	checkf(State->Result.has_value(),
+	       TEXT("Internal error: resuming with no value"));
+	return *State->Result;
 }

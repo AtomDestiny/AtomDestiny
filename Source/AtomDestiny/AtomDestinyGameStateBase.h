@@ -37,15 +37,18 @@ public:
     bool IsEnemiesExist(EGameSide side) const;
     const FEnemiesList& GetEnemies(EGameSide side) const;
     
-    // Adds damage from projectile to object with explosion point parameters
+    ///
+    /// Adds damage from projectile to object with explosion point parameters.
+    /// Clients should be able to add damage only throught projectile implementation.
+    ///
     UFUNCTION()
     static void AddDamage(const TScriptInterface<IProjectile>& projectile, EProjectileDamageOptions options = EProjectileDamageOptions::ProjectilePoint);
+
+protected:
 
     // Adds damage to ObjectState directly
     UFUNCTION()
     static void AddDamageToState(const TScriptInterface<IParameters>& objectState, const FWeaponParameters& parameters);
-
-protected:
 
     // called by GameMode directly
     virtual void HandleBeginPlay() override;

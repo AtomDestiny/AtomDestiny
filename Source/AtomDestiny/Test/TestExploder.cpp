@@ -15,9 +15,9 @@ void UTestExploder::BeginPlay()
 
 void UTestExploder::Explode()
 {
-    if (IsValid(m_explosionBlueprint))
+    if (IsValid(m_explosionPrefab))
     {
-        AtomDestiny::ObjectPool::Instance().Spawn(m_explosionBlueprint.GetDefaultObject(), GetOwner()->GetActorLocation(), GetOwner()->GetActorQuat());
+        AtomDestiny::ObjectPool::Instance().Spawn(m_explosionPrefab.GetDefaultObject(), GetOwner()->GetActorLocation(), GetOwner()->GetActorQuat());
     }
     
     for (const auto component : AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(GetOwner()))

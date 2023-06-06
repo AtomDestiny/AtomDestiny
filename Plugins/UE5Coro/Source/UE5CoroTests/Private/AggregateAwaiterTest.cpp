@@ -1,21 +1,21 @@
 // Copyright © Laura Andelare
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted (subject to the limitations in the disclaimer
 // below) provided that the following conditions are met:
-// 
+//
 // 1. Redistributions of source code must retain the above copyright notice,
 //    this list of conditions and the following disclaimer.
-// 
+//
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
 //    and/or other materials provided with the distribution.
-// 
+//
 // 3. Neither the name of the copyright holder nor the names of its
 //    contributors may be used to endorse or promote products derived from
 //    this software without specific prior written permission.
-// 
+//
 // NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
 // THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 // CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
@@ -33,8 +33,7 @@
 #include "TestWorld.h"
 #include "Misc/AutomationTest.h"
 #include "UE5Coro/AggregateAwaiters.h"
-#include "UE5Coro/AsyncAwaiters.h"
-#include "UE5Coro/LatentAwaiters.h"
+#include "UE5Coro/CoroutineAwaiters.h"
 
 using namespace UE5Coro;
 using namespace UE5Coro::Private::Test;
@@ -83,6 +82,7 @@ void DoTest(FAutomationTestBase& Test)
 		Test.TestEqual("First tick", State, 5); // A resumed
 		World.Tick();
 		Test.TestEqual("Second tick", State, 7); // B and outer resumed
+		World.Tick();
 	}
 
 	{
@@ -112,9 +112,10 @@ void DoTest(FAutomationTestBase& Test)
 		Test.TestFalse("Not resumed yet", First.has_value());
 		World.Tick();
 		Test.TestEqual("First tick", State, 6); // A and outer resumed
-		Test.TestEqual("Resumer index", First.value(), 0);
+		Test.TestEqual("Resumer index", *First, 0);
 		World.Tick();
 		Test.TestEqual("Second tick", State, 7); // B resumed
+		World.Tick();
 	}
 
 	{
@@ -130,7 +131,8 @@ void DoTest(FAutomationTestBase& Test)
 		World.EndTick();
 		Test.TestFalse("Not resumed yet", First.has_value());
 		World.Tick();
-		Test.TestEqual("Resumer index", First.value(), 2);
+		Test.TestEqual("Resumer index", *First, 2);
+		World.Tick();
 	}
 
 	{
@@ -140,14 +142,95 @@ void DoTest(FAutomationTestBase& Test)
 			auto A = Latent::Ticks(1);
 			auto B = Latent::Ticks(2);
 			co_await Latent::Ticks(3);
-			First = co_await WhenAny(A, B);
+			First = co_await WhenAny(std::move(A), std::move(B));
 		});
 		World.EndTick();
 		Test.TestFalse("Not resumed yet", First.has_value());
 		World.Tick();
+		Test.TestFalse("Not resumed yet", First.has_value());
 		World.Tick();
+		Test.TestFalse("Not resumed yet", First.has_value());
 		World.Tick();
-		Test.TestEqual("Resumer index", First.value(), 0);
+		Test.TestEqual("Resumer index", *First, 0);
+		World.Tick();
+	}
+
+	{
+		std::optional<int> First;
+		World.Run(CORO
+		{
+			auto A = Latent::Ticks(1);
+			auto B = Latent::Ticks(2);
+			First = co_await WhenAny(std::move(A), std::move(B));
+		});
+		World.EndTick();
+		Test.TestFalse("Not resumed yet", First.has_value());
+		World.Tick();
+		Test.TestEqual("Resumer index", *First, 0);
+		World.Tick();
+	}
+
+	{
+		int State = 0;
+		World.Run(CORO
+		{
+			auto A = Latent::Ticks(1);
+			auto B = Latent::Ticks(2);
+			auto C = Latent::Ticks(3);
+			auto D = Latent::Ticks(4);
+			auto E = WhenAll(std::move(A), std::move(C));
+			auto F = WhenAny(std::move(B), std::move(D));
+			auto E2 = E;
+			auto F2 = F;
+			State = 1;
+			co_await WhenAll(std::move(E2), std::move(F2));
+			State = 2;
+		});
+		World.EndTick();
+		Test.TestEqual(TEXT("Initial state"), State, 1);
+		World.Tick();
+		Test.TestEqual(TEXT("Hasn't resumed yet"), State, 1);
+		World.Tick();
+		Test.TestEqual(TEXT("Hasn't resumed yet"), State, 1);
+		World.Tick();
+		Test.TestEqual(TEXT("Resumed"), State, 2);
+		World.Tick();
+	}
+
+	{
+		int State = 0;
+		auto Coro = World.Run(CORO_R(int)
+		{
+			auto A = World.Run(CORO
+			{
+				ON_SCOPE_EXIT { State = 2; };
+				co_await Latent::Ticks(5);
+				for (;;)
+					co_await Latent::NextTick();
+			});
+
+			auto B = World.Run(CORO
+			{
+				ON_SCOPE_EXIT { State = 1; };
+				co_await Latent::NextTick();
+			});
+
+			co_return co_await Race(A, B);
+		});
+		World.EndTick();
+		World.Tick(); // NextTick
+		Test.TestEqual(TEXT("State"), State, 1);
+		World.Tick(); // A needs to poll to process the cancellation from Race
+		IF_NOT_CORO_LATENT
+		{
+			// Only latent->latent awaits poll, async needs all 5 ticks
+			World.Tick();
+			World.Tick();
+			Test.TestEqual(TEXT("State"), State, 1);
+			World.Tick();
+		}
+		Test.TestEqual(TEXT("State"), State, 2);
+		Test.TestEqual(TEXT("Return value"), Coro.GetResult(), 1);
 	}
 }
 }
