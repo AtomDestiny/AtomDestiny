@@ -40,6 +40,7 @@ ACommanderController::ACommanderController() : APlayerController()
     bEnableMouseOverEvents = true;
     bEnableClickEvents = true;
     bShowMouseCursor = true;
+    bShouldPerformFullTickWhenPaused = true;
 }
 
 void ACommanderController::SetupInputComponent()

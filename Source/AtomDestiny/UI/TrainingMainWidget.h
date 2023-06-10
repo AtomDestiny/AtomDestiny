@@ -27,13 +27,14 @@ public:
 	bool m_flSetupArmy = false;
 
 	UFUNCTION(BlueprintCallable)
-	void SetupUnits(const TArray<FUnitInfo>& units);
+	void SetupUnits(const TArray<EUnitType>& units);
 
 	UFUNCTION(BlueprintCallable)
 	void ChangeMode(bool setupArmy);
 	
 protected:
-
+	virtual void NativeConstruct() override;
+	
 	UPROPERTY(EditAnywhere, meta = (BindWidget))
 	UButton* BnSetupArmy;
 
