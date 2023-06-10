@@ -3,6 +3,7 @@
 #include "UI/TrainingMainWidget.h"
 
 #include <Unit/Unit.h>
+#include <Gameplay/UnitStorage.h>
 
 #include <vector>
 
@@ -15,9 +16,14 @@ UTrainingMainWidget::UTrainingMainWidget(const FObjectInitializer& ObjectInitial
 
 static const std::vector<ESlateVisibility> VisibilityBool = { ESlateVisibility::Hidden, ESlateVisibility::Visible };
 
-void UTrainingMainWidget::SetupUnits(TArray<FUnitInfo> const& units)
+void UTrainingMainWidget::SetupUnits(const TArray<EUnitType>& units)
 {
-	//UEnum::GetValueAsString(EUnitType::Lancer);
+	for (const auto& u : units)
+	{
+		//CreateWidget<UButton>(Scroll, );
+		/*UButton *bn = CreateDefaultSubobject<UButton>(UEnum::GetValueAsName(u));
+		Scroll->AddChild(bn);*/
+	}
 }
 
 void UTrainingMainWidget::ChangeMode(bool setupArmy)
@@ -25,4 +31,11 @@ void UTrainingMainWidget::ChangeMode(bool setupArmy)
 	BnSetupArmy->SetVisibility(VisibilityBool[!setupArmy]);
 	BnEndSetupArmy->SetVisibility(VisibilityBool[setupArmy]);
 	UnitsList->SetVisibility(VisibilityBool[setupArmy]);
+}
+
+void UTrainingMainWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	SetupUnits(AtomDestiny::UnitStorage::Instance().GetUnits());
 }
