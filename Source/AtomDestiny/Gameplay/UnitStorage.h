@@ -30,6 +30,8 @@ namespace AtomDestiny
 
         bool Contains(const EUnitType type) const;
         TOptional<FUnitInfo> GetInfo(const EUnitType type) const;
+
+        TArray<EUnitType> GetUnits() const;
         
     private:
         TMap<EUnitType, FUnitInfo> m_storage;
@@ -69,6 +71,15 @@ namespace AtomDestiny
         }
 
         return NullOpt;
+    }
+
+    inline TArray<EUnitType> UnitStorage::GetUnits() const
+    {
+        TArray<EUnitType> units;
+        for (auto const& it: m_storage)
+            units.Add(it.Key);
+            
+        return units;
     }
     
 } // namespace AtomDestiny
