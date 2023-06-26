@@ -5,10 +5,11 @@
 #include "CoreMinimal.h"
 #include <Blueprint/UserWidget.h>
 #include <Gameplay/UnitStorage.h>
+#include <UI/UnitCardWidget.h>
 
 #include <Components/Button.h>
-#include <Components/Border.h>
-#include <Components/ScrollBox.h>
+#include <Components/ListView.h>
+//#include <Components/ScrollBox.h>
 
 #include "TrainingMainWidget.generated.h"
 
@@ -20,6 +21,9 @@ class ATOMDESTINY_API UTrainingMainWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
+private:
+	TSubclassOf<UUnitCardWidget> unitCardClass;
+	
 public:
 	UTrainingMainWidget(const FObjectInitializer& ObjectInitializer);
 	
@@ -33,7 +37,7 @@ public:
 	void ChangeMode(bool setupArmy);
 	
 protected:
-	virtual void NativeConstruct() override;
+	virtual bool Initialize() override;
 	
 	UPROPERTY(EditAnywhere, meta = (BindWidget))
 	UButton* BnSetupArmy;
@@ -42,8 +46,11 @@ protected:
 	UButton* BnEndSetupArmy;
 
 	UPROPERTY(EditAnywhere, meta = (BindWidget))
+	UListView* UnitsList;
+	
+	/*UPROPERTY(EditAnywhere, meta = (BindWidget))
 	UBorder* UnitsList;
 	
 	UPROPERTY(EditAnywhere, meta = (BindWidget))
-	UScrollBox* Scroll;
+	UScrollBox* Scroll;*/
 };
