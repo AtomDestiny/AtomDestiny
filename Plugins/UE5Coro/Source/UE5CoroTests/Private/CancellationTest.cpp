@@ -34,6 +34,7 @@
 #include "UE5Coro/AsyncAwaiters.h"
 #include "UE5Coro/Cancellation.h"
 #include "UE5Coro/LatentAwaiters.h"
+#include "UE5Coro/LatentCallbacks.h"
 
 using namespace UE5Coro;
 using namespace UE5Coro::Private;
@@ -47,7 +48,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCancelTestAsync, "UE5Coro.Cancel.Async",
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCancelTestLatent, "UE5Coro.Cancel.Latent",
                                  EAutomationTestFlags::ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
-                                 EAutomationTestFlags::ProductFilter);
+                                 EAutomationTestFlags::ProductFilter)
 
 namespace
 {
@@ -59,59 +60,55 @@ void DoTest(FAutomationTestBase& Test)
 	IF_CORO_LATENT
 	{
 		bool bCanceled = false;
+		bool bAborted = false;
+		bool bDestroyed = false;
 		auto Coro = World.Run(CORO_R(int)
 		{
-			FOnCoroutineCanceled _([&] { bCanceled = true; });
+			FOnCoroutineCanceled _1([&]
+			{
+				bCanceled = true;
+				Test.TestTrue(TEXT("Read cancellation from within"),
+				              IsCurrentCoroutineCanceled());
+			});
+			Latent::FOnActionAborted _2([&] { bAborted = true; });
+			Latent::FOnObjectDestroyed _3([&] { bDestroyed = true; });
 			co_await Latent::Cancel();
 			co_return 1;
 		});
 		Test.TestTrue(TEXT("Done"), Coro.IsDone());
 		Test.TestTrue(TEXT("Canceled"), bCanceled);
+		Test.TestFalse(TEXT("Not aborted"), bAborted);
+		Test.TestFalse(TEXT("Not destroyed"), bDestroyed);
+		Test.TestFalse(TEXT("Not successful"), Coro.WasSuccessful());
 		Test.TestEqual(TEXT("No return value"), Coro.GetResult(), 0);
 	}
 
 	IF_CORO_LATENT
 	{
 		std::atomic<bool> bCanceled = false;
+		std::atomic<bool> bAborted = false;
+		std::atomic<bool> bDestroyed = false;
 		auto Coro = World.Run(CORO_R(int)
 		{
-			FOnCoroutineCanceled _([&] { bCanceled = true; });
+			FOnCoroutineCanceled _1([&]
+			{
+				bCanceled = true;
+				Test.TestTrue(TEXT("Back on the game thread"), IsInGameThread());
+			});
+			Latent::FOnActionAborted _2([&] { bAborted = true; });
+			Latent::FOnObjectDestroyed _3([&] { bDestroyed = true; });
+			Test.TestFalse(TEXT("Not canceled yet"),
+			               IsCurrentCoroutineCanceled());
 			co_await Async::MoveToNewThread();
 			co_await Latent::Cancel();
 			co_return 1;
 		});
 		FTestHelper::PumpGameThread(World, [&] { return Coro.IsDone(); });
 		Test.TestTrue(TEXT("Canceled"), bCanceled);
+		Test.TestFalse(TEXT("Not aborted"), bAborted);
+		Test.TestFalse(TEXT("Not destroyed"), bDestroyed);
+		Test.TestFalse(TEXT("Not successful"), Coro.WasSuccessful());
 		Test.TestEqual(TEXT("No return value"), Coro.GetResult(), 0);
-	}
-
-	{
-		bool bCanceled = false;
-		bool bDestroyed = false;
-		World.Run(CORO
-		{
-			FOnCoroutineCanceled _([&] { bCanceled = true; });
-			ON_SCOPE_EXIT { bDestroyed = true; };
-			co_return;
-		});
-		Test.TestTrue(TEXT("Destroyed"), bDestroyed);
-		Test.TestFalse(TEXT("Not canceled"), bCanceled);
-	}
-
-	{
-		bool bCanceled = false;
-		bool bDestroyed = false;
-		{
-			FTestWorld World2;
-			World2.Run(CORO
-			{
-				FOnCoroutineCanceled _([&] { bCanceled = true; });
-				ON_SCOPE_EXIT { bDestroyed = true; };
-				co_await Latent::NextTick();
-			});
-		} // Indirectly cancel by destroying the world during a latent co_await
-		Test.TestTrue(TEXT("Destroyed"), bDestroyed);
-		Test.TestTrue(TEXT("Canceled"), bCanceled);
 	}
 
 	{
@@ -119,13 +116,84 @@ void DoTest(FAutomationTestBase& Test)
 		bool bDestroyed = false;
 		auto Coro = World.Run(CORO
 		{
-			FOnCoroutineCanceled _([&] { bCanceled = true; });
-			ON_SCOPE_EXIT { bDestroyed = true; };
+			FOnCoroutineCanceled _([&]
+			{
+				bCanceled = true;
+				Test.TestFalse(TEXT("Not canceled"),
+				               IsCurrentCoroutineCanceled());
+			});
+			ON_SCOPE_EXIT
+			{
+				bDestroyed = true;
+				Test.TestFalse(TEXT("Not canceled"),
+				               IsCurrentCoroutineCanceled());
+			};
+			Test.TestFalse(TEXT("Not canceled yet"),
+			               IsCurrentCoroutineCanceled());
+			co_return;
+		});
+		Test.TestTrue(TEXT("Destroyed"), bDestroyed);
+		Test.TestFalse(TEXT("Not canceled"), bCanceled);
+		Test.TestTrue(TEXT("Successful"), Coro.WasSuccessful());
+	}
+
+	{
+		bool bCanceled = false;
+		bool bDestroyed = false;
+		std::optional<TCoroutine<>> Coro;
+		{
+			FTestWorld World2;
+			Coro = World2.Run(CORO
+			{
+				FOnCoroutineCanceled _([&]
+				{
+					bCanceled = true;
+					Test.TestTrue(TEXT("Read cancellation from within"),
+					              IsCurrentCoroutineCanceled());
+				});
+				ON_SCOPE_EXIT
+				{
+					bDestroyed = true;
+					Test.TestTrue(TEXT("Read cancellation from within"),
+					              IsCurrentCoroutineCanceled());
+				};
+				Test.TestFalse(TEXT("Not canceled yet"),
+				               IsCurrentCoroutineCanceled());
+				co_await Latent::NextTick();
+			});
+			Test.TestFalse(TEXT("Still running"), Coro->WasSuccessful());
+		} // Indirectly cancel by destroying the world during a latent co_await
+		Test.TestTrue(TEXT("Destroyed"), bDestroyed);
+		Test.TestTrue(TEXT("Canceled"), bCanceled);
+		Test.TestFalse(TEXT("Not successful"), Coro->WasSuccessful());
+	}
+
+	{
+		bool bCanceled = false;
+		bool bDestroyed = false;
+		auto Coro = World.Run(CORO
+		{
+			FOnCoroutineCanceled _([&]
+			{
+				bCanceled = true;
+				Test.TestTrue(TEXT("Read cancellation from within"),
+				              IsCurrentCoroutineCanceled());
+			});
+			ON_SCOPE_EXIT
+			{
+				bDestroyed = true;
+				Test.TestTrue(TEXT("Read cancellation from within"),
+				              IsCurrentCoroutineCanceled());
+			};
+			Test.TestFalse(TEXT("Not canceled yet"),
+			               IsCurrentCoroutineCanceled());
 			co_await Latent::Ticks(5);
 		});
 		World.EndTick();
 		Test.TestFalse(TEXT("Active"), bCanceled);
 		Test.TestFalse(TEXT("Active"), bDestroyed);
+		Test.TestFalse(TEXT("Not done yet"), Coro.IsDone());
+		Test.TestFalse(TEXT("Still running"), Coro.WasSuccessful());
 		Coro.Cancel();
 		for (int i = 0; i < 5; ++i) // Async needs to attempt to resume
 		{
@@ -135,13 +203,22 @@ void DoTest(FAutomationTestBase& Test)
 		}
 		Test.TestTrue(TEXT("Canceled"), bCanceled);
 		Test.TestTrue(TEXT("Canceled"), bDestroyed);
+		Test.TestFalse(TEXT("Not successful"), Coro.WasSuccessful());
 	}
 
 	{
 		std::atomic<bool> bDone = false;
 		auto Coro = World.Run(CORO
 		{
-			ON_SCOPE_EXIT { bDone = true; };
+			ON_SCOPE_EXIT
+			{
+				bDone = true;
+				IF_CORO_LATENT
+					Test.TestTrue(TEXT("Back on the game thread"),
+					              IsInGameThread());
+			};
+			Test.TestFalse(TEXT("Not canceled yet"),
+			               IsCurrentCoroutineCanceled());
 			co_await Async::MoveToThread(ENamedThreads::AnyThread);
 			for (;;)
 				co_await Async::Yield();
@@ -155,6 +232,7 @@ void DoTest(FAutomationTestBase& Test)
 		// Also acts as a busy wait for the async test
 		FTestHelper::PumpGameThread(World, [&] { return bDone.load(); });
 		Test.TestTrue(TEXT("Canceled"), bDone);
+		Test.TestFalse(TEXT("Not successful"), Coro.WasSuccessful());
 	}
 
 	{
@@ -168,8 +246,12 @@ void DoTest(FAutomationTestBase& Test)
 				FCancellationGuard _;
 				while (!bContinue)
 					co_await Latent::NextTick();
+				Test.TestTrue(TEXT("Incoming guarded cancellation"),
+				              IsCurrentCoroutineCanceled());
 			}
 			// Then, allow cancellations
+			Test.TestTrue(TEXT("Incoming unguarded cancellation"),
+			              IsCurrentCoroutineCanceled());
 			for (;;)
 				co_await Latent::NextTick();
 		});
@@ -185,16 +267,25 @@ void DoTest(FAutomationTestBase& Test)
 		IF_NOT_CORO_LATENT
 			World.Tick();
 		Test.TestTrue(TEXT("Canceled"), bDone);
+		Test.TestFalse(TEXT("Not successful"), Coro.WasSuccessful());
 	}
 
 	{
 		bool bDone = false;
 		auto Coro = World.Run(CORO
 		{
+			Test.TestFalse(TEXT("Not canceled yet"),
+			               IsCurrentCoroutineCanceled());
 			co_await Async::MoveToNewThread();
-			ON_SCOPE_EXIT { bDone = true; };
+			ON_SCOPE_EXIT
+			{
+				bDone = true;
+				IF_CORO_LATENT
+					Test.TestTrue(TEXT("Back on the game thread"),
+					              IsInGameThread());
+			};
 			for (;;)
-				co_await YieldIfCanceled();
+				co_await FinishNowIfCanceled();
 		});
 		for (int i = 0; i < 10; ++i)
 		{

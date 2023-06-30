@@ -37,19 +37,33 @@
 #include "UE5Coro/LatentAwaiters.h"
 #include "UE5CoroTestObject.generated.h"
 
+class UUE5CoroTestObject;
+
+DECLARE_DYNAMIC_MULTICAST_SPARSE_DELEGATE(FUE5CoroTestSparseDelegate,
+                                          UUE5CoroTestObject, SparseDelegate);
+DECLARE_DYNAMIC_MULTICAST_SPARSE_DELEGATE_TwoParams(
+	FUE5CoroTestSparseParamsDelegate, UUE5CoroTestObject, SparseParamsDelegate,
+	int, A, int&, B);
+
 UCLASS(MinimalAPI, Hidden)
 class UUE5CoroTestObject : public UObject
 {
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(BlueprintAssignable)
+	FUE5CoroTestSparseDelegate SparseDelegate;
+	UPROPERTY(BlueprintAssignable)
+	FUE5CoroTestSparseParamsDelegate SparseParamsDelegate;
+
 	std::function<void()> Callback;
 
 	UFUNCTION()
-	void RunCallback() { Callback(); }
-
-	UFUNCTION()
-	void Empty() { }
+	void Core()
+	{
+		if (Callback)
+			Callback();
+	}
 
 	virtual UWorld* GetWorld() const override { return GWorld; }
 

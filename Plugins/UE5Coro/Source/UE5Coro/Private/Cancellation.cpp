@@ -66,17 +66,22 @@ FOnCoroutineCanceled::FOnCoroutineCanceled(std::function<void()> Fn)
 {
 }
 
-FCancellationYieldAwaiter UE5Coro::YieldIfCanceled()
+FCancellationAwaiter UE5Coro::FinishNowIfCanceled()
 {
 	return {};
 }
 
-bool FCancellationYieldAwaiter::await_ready()
+bool UE5Coro::IsCurrentCoroutineCanceled()
+{
+	return FPromise::Current().ShouldCancel(true);
+}
+
+bool FCancellationAwaiter::await_ready()
 {
 	return !FPromise::Current().ShouldCancel(false);
 }
 
-void FCancellationYieldAwaiter::Suspend(FPromise& Promise)
+void FCancellationAwaiter::Suspend(FPromise& Promise)
 {
 	// Resume is also responsible for cancellation-induced self-destruction
 	Promise.Resume();

@@ -12,7 +12,7 @@ TOptional<uint64_t> AtomDestiny::CoroutinesRunner::RunCoroutine(FAsyncCoroutine&
         return NullOpt;
     }
 
-    coroutine.OnCompletion().AddLambda([this, id] {
+    coroutine.ContinueWith([this, id] {
         if (this != nullptr)
         {
             this->m_coroutines.Remove(id);
@@ -38,7 +38,6 @@ void AtomDestiny::CoroutinesRunner::StopAllCoroutines()
 {
     for ([[maybe_unused]] auto& [id, coroutine] : m_coroutines)
     {
-        coroutine.OnCompletion().Clear();
         coroutine.Cancel();
     }
 

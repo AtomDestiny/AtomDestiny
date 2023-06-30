@@ -69,19 +69,30 @@ after the last one has gone out of scope.
 ## Manual cancellation check
 
 If you're running in a tight loop without a natural co_await but want to poll
-for incoming cancellation requests, `co_await UE5Coro::YieldIfCanceled()` lets
-you process them manually.
+for incoming cancellation requests, `co_await UE5Coro::FinishNowIfCanceled()`
+lets you process them manually.
 
 * If the coroutine was not canceled, this will continue running **synchronously**
 and instantly.
-* If the coroutine was canceled, co_await will instead divert to cleanup, as usual.
+* If the coroutine was canceled, co_await will instead divert to cleanup,
+as usual.
 
-The return value of `YieldIfCanceled()` is copyable, reusable, but meaningless.
+The return value of `FinishNowIfCanceled()` is copyable, reusable, but
+meaningless.
 co_awaiting it will behave the same regardless of which object is used, you
 cannot use it to listen to the cancellation of another coroutine.
 
 Cancellation will be processed normally: FCancellationGuard is respected, except
-for incoming `delete`s, etc.
+for incoming `delete`s, etc. It's usually pointless to co_await this if
+there's an active FCancellationGuard.
 
 Async mode cancellations are processed on the thread that co_awaited.
 Latent mode cancellations are always processed on the game thread.
+
+`UE5Coro::IsCurrentCoroutineCanceled()` is also available that simply returns a
+bool but does not process the cancellation.
+This function "sees through" FCancellationGuards and will return `true` if an
+incoming cancellation request is currently deferred.
+
+Prefer `co_await FinishNowIfCanceled();` to
+`if (IsCurrentCoroutineCanceled()) co_return;`.

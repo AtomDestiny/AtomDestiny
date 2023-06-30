@@ -29,65 +29,24 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#pragma once
+
+#include "CoreMinimal.h"
+#include "UE5Coro/Definitions.h"
 #include "UE5Coro/AsyncAwaiters.h"
+#include "UE5CoroDelegateCallbackTarget.generated.h"
 
-using namespace UE5Coro::Private;
+UCLASS(Hidden)
+class UUE5CoroDelegateCallbackTarget : public UObject
+{
+	GENERATED_BODY()
 
-namespace
-{
-class FResumeTask
-{
-	ENamedThreads::Type Thread;
-	FPromise& Promise;
+	std::function<void(void*)> Fn;
 
 public:
-	explicit FResumeTask(ENamedThreads::Type Thread, FPromise& Promise)
-		: Thread(Thread), Promise(Promise) { }
+	void Init(std::function<void(void*)>);
+	virtual void ProcessEvent(UFunction*, void*) override;
 
-	void DoTask(ENamedThreads::Type, FGraphEvent*) { Promise.Resume(); }
-
-	ENamedThreads::Type GetDesiredThread() const { return Thread; }
-
-	TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FResumeTask,
-		                                STATGROUP_ThreadPoolAsyncTasks);
-	}
-
-	static ESubsequentsMode::Type GetSubsequentsMode()
-	{
-		return ESubsequentsMode::FireAndForget;
-	}
+	UFUNCTION()
+	void Core();
 };
-}
-
-bool FAsyncAwaiter::await_ready()
-{
-	// This needs to be scheduled after the coroutine's completion regardless of
-	// the target thread
-	if (ResumeAfter.has_value() && !ResumeAfter->IsDone())
-		return false;
-
-	// Don't move threads if we're already on the target thread
-	auto ThisThread = FTaskGraphInterface::Get().GetCurrentThreadIfKnown();
-	return (ThisThread & ThreadTypeMask) == (Thread & ThreadTypeMask);
-}
-
-void FAsyncAwaiter::Suspend(FPromise& Promise)
-{
-	auto* Task = TGraphTask<FResumeTask>::CreateTask()
-	                                     .ConstructAndHold(Thread, Promise);
-
-	// await_ready returning false and the coroutine having finished since is OK,
-	// ContinueWith will run this synchronously
-	if (ResumeAfter.has_value())
-		ResumeAfter->ContinueWith([Task] { Task->Unlock(); });
-	else
-		Task->Unlock();
-}
-
-void FAsyncYieldAwaiter::Suspend(FPromise& Promise)
-{
-	TGraphTask<FResumeTask>::CreateTask().ConstructAndDispatchWhenReady(
-		FTaskGraphInterface::Get().GetCurrentThreadIfKnown(), Promise);
-}
