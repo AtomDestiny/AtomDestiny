@@ -6,6 +6,7 @@
 #include <AtomDestiny/Core/Concepts.h>
 
 #include <Runtime/Core/Public/Containers/Map.h>
+#include <RunTime/Core/Public/Containers/Array.h>
 
 namespace AtomDestiny
 {
@@ -30,6 +31,8 @@ namespace AtomDestiny
 
         bool Contains(const EUnitType type) const;
         TOptional<FUnitInfo> GetInfo(const EUnitType type) const;
+
+        TArray<EUnitType> GetUnits() const; // copy specially, you should not use this method frequently
         
     private:
         TMap<EUnitType, FUnitInfo> m_storage;
@@ -69,6 +72,19 @@ namespace AtomDestiny
         }
 
         return NullOpt;
+    }
+
+    inline TArray<EUnitType> UnitStorage::GetUnits() const
+    {
+        TArray<EUnitType> units;
+        units.Reserve(m_storage.Num());
+        
+        for ([[maybe_unused]] const auto& [unit, info] : m_storage)
+        {
+            units.Add(unit);
+        }
+        
+        return units;
     }
     
 } // namespace AtomDestiny
