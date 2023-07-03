@@ -32,61 +32,24 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UE5Coro/Definitions.h"
-#include <functional>
-#include "UE5Coro/AsyncCoroutine.h"
-#include "UE5Coro/UE5CoroSubsystem.h"
+#include "TestDelegates.generated.h"
 
-#define CORO [&](T...) -> FAsyncCoroutine
-#define CORO_R(Type) [&](T...) -> TCoroutine<Type>
-#define IF_CORO_LATENT if constexpr (sizeof...(T) == 1)
-#define IF_NOT_CORO_LATENT if constexpr (sizeof...(T) != 1)
-
-namespace UE5Coro::Private::Test
+USTRUCT()
+struct FUE5CoroTestConstructionChecker
 {
-class FTestWorld
-{
-	UWorld* World;
-
-	UWorld* PrevWorld;
-	decltype(GFrameCounter) OldFrameCounter;
-
-public:
-	FTestWorld();
-	~FTestWorld();
-
-	UWorld* operator->() const { return World; }
-
-	void Tick(float DeltaSeconds = 0.125);
-	void EndTick();
-
-	template<typename T>
-	std::invoke_result_t<T> Run(T Fn)
-	{
-		// Extend the lifetime of Fn's lambda captures until it's complete
-		auto* Copy = new T(std::move(Fn));
-		auto Coro = (*Copy)();
-		Coro.ContinueWith([=] { delete Copy; });
-		return Coro;
-	}
-
-	template<typename T>
-	std::invoke_result_t<T, FLatentActionInfo> Run(T Fn)
-	{
-		auto* Sys = World->GetSubsystem<UUE5CoroSubsystem>();
-		auto LatentInfo = Sys->MakeLatentInfo();
-
-		auto* Copy = new T(std::move(Fn));
-		auto Coro = (*Copy)(LatentInfo);
-		Coro.ContinueWith([=] { delete Copy; });
-		return Coro;
-	}
+	GENERATED_BODY()
+	static inline bool bConstructed = false;
+	FUE5CoroTestConstructionChecker() { bConstructed = true; }
 };
 
-class FTestHelper
-{
-public:
-	static void PumpGameThread(FTestWorld& World,
-	                           std::function<bool()> ExitCondition);
-};
-}
+DECLARE_DYNAMIC_DELEGATE(FUE5CoroTestDynamicVoidDelegate);
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FUE5CoroTestDynamicParamsDelegate,
+                                   int, A, int&, B);
+DECLARE_DYNAMIC_DELEGATE_RetVal(FUE5CoroTestConstructionChecker,
+                                FUE5CoroTestDynamicRetvalDelegate);
+DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(FUE5CoroTestConstructionChecker,
+                                          FUE5CoroTestDynamicAllDelegate,
+                                          int, A, int&, B);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FUE5CoroTestDynamicMulticastVoidDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+	FUE5CoroTestDynamicMulticastParamsDelegate, int, A, int&, B);

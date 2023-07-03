@@ -33,55 +33,54 @@
 
 #include "CoreMinimal.h"
 #include "UE5Coro/Definitions.h"
-#include "Engine/LatentActionManager.h"
-#include "Subsystems/WorldSubsystem.h"
-#include "UE5CoroSubsystem.generated.h"
+#include <optional>
+#include <variant>
+#include "UE5Coro/AsyncCoroutine.h"
+#include "UE5CoroAnimCallbackTarget.generated.h"
 
-namespace UE5Coro::Private
-{
-class [[nodiscard]] UE5CORO_API FTwoLives
-{
-	std::atomic<int> RefCount = 2;
-
-public:
-	int UserData = 0;
-
-	bool Release(); // Dangerous! Only call externally exactly once!
-
-	// Generic implementation for FLatentAwaiter
-	static bool ShouldResume(void* State, bool bCleanup);
-};
-}
-
-/**
- * Subsystem supporting some async coroutine functionality.<br>
- * You never need to interact with it directly.
- */
 UCLASS(Hidden)
-class UE5CORO_API UUE5CoroSubsystem final : public UTickableWorldSubsystem
+class UE5CORO_API UUE5CoroAnimCallbackTarget : public UObject,
+                                               public FTickableGameObject
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
-	TMap<int32, class UUE5CoroChainCallbackTarget*> ChainCallbackTargets;
-	int32 NextLinkage = 0;
-	FDelegateHandle LatentActionsChangedHandle;
+	TWeakObjectPtr<UAnimInstance> WeakInstance;
+	UE5Coro::Private::FPromise* Promise = nullptr;
+	// UPlayMontageCallbackProxy uses this value as the default
+	int32 MontageIDFilter = INDEX_NONE;
+	std::optional<FName> NotifyFilter; // "None" is a valid name for a notify
+
+	void TryResume();
 
 public:
-	/** Creates a unique LatentInfo that does not lead anywhere. */
-	FLatentActionInfo MakeLatentInfo();
+	// Void's result is indicated by this holding a bool, not monostate
+	std::variant<std::monostate, bool, const FBranchingPointNotifyPayload*,
+	             TTuple<FName, const FBranchingPointNotifyPayload*>> Result;
 
-	/** Creates a LatentInfo suitable for the Latent::Chain* functions. */
-	FLatentActionInfo MakeLatentInfo(UE5Coro::Private::FTwoLives* State);
+	void ListenForMontageEvent(UAnimInstance*, UAnimMontage*, bool);
+	void ListenForNotify(UAnimInstance*, UAnimMontage*, FName);
+	void ListenForPlayMontageNotify(UAnimInstance*, UAnimMontage*,
+	                                std::optional<FName>, bool);
+	void RequestResume(UE5Coro::Private::FPromise&);
+	void CancelResume();
 
-#pragma region UTickableWorldSubsystem overrides
-	virtual void Deinitialize() override;
-	virtual bool IsTickableWhenPaused() const override { return true; }
+#pragma region Callbacks
+	// These function names are chosen to match predefined FNames
+	UFUNCTION()
+	void Core(); // void
+	UFUNCTION()
+	void BoolProperty(UAnimMontage* Montage, bool bInterrupted);
+	UFUNCTION()
+	void NameProperty(FName NotifyName, const FBranchingPointNotifyPayload& Payload);
+#pragma endregion
+
+#pragma region FTickableGameObject overrides
+	// These are needed to catch the anim instance getting destroyed without
+	// a callback. Editor tick is needed to handle Persona and the end of PIE.
+	virtual ETickableTickType GetTickableTickType() const override;
 	virtual bool IsTickableInEditor() const override { return true; }
+	virtual bool IsTickableWhenPaused() const override { return true; }
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
 #pragma endregion
-
-private:
-	void LatentActionsChanged(UObject* Object, ELatentActionChangeType Change);
 };

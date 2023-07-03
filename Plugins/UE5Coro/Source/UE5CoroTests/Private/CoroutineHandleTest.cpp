@@ -30,6 +30,7 @@
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <map>
+#include <unordered_map>
 #include "TestWorld.h"
 #include "Misc/AutomationTest.h"
 #include "UE5CoroTestObject.h"
@@ -48,7 +49,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHandleTestAsync, "UE5Coro.Handle.Async",
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHandleTestLatent, "UE5Coro.Handle.Latent",
                                  EAutomationTestFlags::ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
-                                 EAutomationTestFlags::ProductFilter);
+                                 EAutomationTestFlags::ProductFilter)
 
 namespace
 {
@@ -163,7 +164,7 @@ void DoTest(FAutomationTestBase& Test)
 
 		// Waiting itself has to run on another thread.
 		// In the latent case, not doing this would deadlock the game thread.
-		std::atomic<bool> bDone;
+		std::atomic<bool> bDone = false;
 		World.Run(CORO
 		{
 			co_await Async::MoveToNewThread();
@@ -173,13 +174,16 @@ void DoTest(FAutomationTestBase& Test)
 			bDone = true;
 		});
 		FTestHelper::PumpGameThread(World, [&] { return bDone.load(); });
+		Test.TestTrue(TEXT("Reports done"), Coro.IsDone());
+		Test.TestTrue(TEXT("Successful"), Coro.WasSuccessful());
 	}
 
 	{
 		int Value = 0;
-		World.Run(CORO_R(int) { co_return 1; })
-		     .ContinueWith([&](int InValue) { Value = InValue; });
+		auto Coro = World.Run(CORO_R(int) { co_return 1; });
+		Coro.ContinueWith([&](int InValue) { Value = InValue; });
 		Test.TestEqual(TEXT("Value"), Value, 1);
+		Test.TestTrue(TEXT("Successful"), Coro.WasSuccessful());
 	}
 
 	{
@@ -198,6 +202,7 @@ void DoTest(FAutomationTestBase& Test)
 		FTestHelper::PumpGameThread(World, [&] { return Coro.IsDone(); });
 		CoroToTest->Wait();
 		Test.TestTrue(TEXT("Done"), true);
+		Test.TestTrue(TEXT("Successful"), Coro.WasSuccessful());
 	}
 
 	{
@@ -211,18 +216,19 @@ void DoTest(FAutomationTestBase& Test)
 			// Unconditionally move to the GT, ContinueWithWeak is on a UObject
 			co_await Async::MoveToGameThread();
 		});
-		Coro.ContinueWithWeak(Object.Get(), &UUE5CoroTestObject::RunCallback);
+		Coro.ContinueWithWeak(Object.Get(), &UUE5CoroTestObject::Core);
 		Test.TestFalse(TEXT("Not triggered yet"), CoroToTest->Wait(0));
 		TestToCoro->Trigger();
 		FTestHelper::PumpGameThread(World, [&] { return Coro.IsDone(); });
 		CoroToTest->Wait();
 		Test.TestTrue(TEXT("Done"), true);
+		Test.TestTrue(TEXT("Successful"), Coro.WasSuccessful());
 	}
 
 	{
 		FEventRef TestToCoro;
 		std::atomic<bool> bContinued = false;
-		TWeakObjectPtr Object(NewObject<UUE5CoroTestObject>());
+		TWeakObjectPtr<UUE5CoroTestObject> Object(NewObject<UUE5CoroTestObject>());
 		auto Coro = World.Run(CORO
 		{
 			co_await Async::MoveToNewThread();
@@ -235,25 +241,31 @@ void DoTest(FAutomationTestBase& Test)
 		CollectGarbage(RF_NoFlags);
 		Test.TestFalse(TEXT("Object destroyed"), Object.IsValid());
 		Test.TestFalse(TEXT("Coroutine still running"), Coro.IsDone());
+		Test.TestFalse(TEXT("Not successful yet"), Coro.WasSuccessful());
 		TestToCoro->Trigger();
 		FTestHelper::PumpGameThread(World, [&] { return Coro.IsDone(); });
 		// There's a data race with IsDone() when async, wait a little
 		for (int i = 0; i < 10; ++i)
 			World.Tick();
 		Test.TestFalse(TEXT("Continuation not called"), bContinued);
+		Test.TestTrue(TEXT("Successful"), Coro.WasSuccessful());
 	}
 
 	{
 		auto Coro = TCoroutine<>::CompletedCoroutine;
 		Test.TestTrue(TEXT("Completed"), Coro.IsDone());
+		Test.TestTrue(TEXT("Successful"), Coro.WasSuccessful());
 
 		auto Ptr = std::make_unique<int>(1); // move-only
 		auto Coro1 = TCoroutine<>::FromResult(std::move(Ptr));
 		auto Coro2 = TCoroutine<>::FromResult(2);
 		auto Coro3 = TCoroutine<int>::FromResult(3);
 		Test.TestTrue(TEXT("Completed 1"), Coro1.IsDone());
+		Test.TestTrue(TEXT("Successful 1"), Coro.WasSuccessful());
 		Test.TestTrue(TEXT("Completed 2"), Coro2.IsDone());
+		Test.TestTrue(TEXT("Successful 2"), Coro.WasSuccessful());
 		Test.TestTrue(TEXT("Completed 3"), Coro3.IsDone());
+		Test.TestTrue(TEXT("Successful 3"), Coro.WasSuccessful());
 		Test.TestNull(TEXT("Moved from"), Ptr.get());
 		Test.TestEqual(TEXT("Moved to"), *Coro1.GetResult(), 1);
 		Test.TestEqual(TEXT("Coro2"), Coro2.GetResult(), 2);

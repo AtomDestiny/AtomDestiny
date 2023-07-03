@@ -29,7 +29,7 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/UE5CoroChainCallbackTarget.h"
+#include "UE5CoroChainCallbackTarget.h"
 #include "UE5Coro/UE5CoroSubsystem.h"
 
 using namespace UE5Coro::Private;
@@ -47,7 +47,7 @@ void UUE5CoroChainCallbackTarget::Deactivate()
 {
 	check(IsInGameThread());
 	checkf(State, TEXT("Unexpected deactivation while not active"));
-	// Leave ExpectedLink stale for the check in ExecuteLink
+	// Leave ExpectedLink stale for the check in Core()
 	if (!State->Release())
 		State = nullptr; // The other side is not interested anymore
 }
@@ -59,7 +59,7 @@ int32 UUE5CoroChainCallbackTarget::GetExpectedLink() const
 	return ExpectedLink;
 }
 
-void UUE5CoroChainCallbackTarget::ExecuteLink(int32 Link)
+void UUE5CoroChainCallbackTarget::Core(int32 Link)
 {
 	check(IsInGameThread());
 	checkf(Link == ExpectedLink, TEXT("Unexpected linkage"));
@@ -90,4 +90,13 @@ TStatId UUE5CoroChainCallbackTarget::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UUE5CoroChainCallbackTarget,
 	                                STATGROUP_Tickables);
+}
+
+// This is only used by tests
+namespace UE5Coro::Private
+{
+UE5CORO_API UClass* ChainCallbackTarget_StaticClass()
+{
+	return UUE5CoroChainCallbackTarget::StaticClass();
+}
 }

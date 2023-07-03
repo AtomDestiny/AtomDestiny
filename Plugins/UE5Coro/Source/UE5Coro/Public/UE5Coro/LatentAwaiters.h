@@ -36,6 +36,7 @@
 #include <functional>
 #include "Engine/StreamableManager.h"
 #include "UE5Coro/AsyncCoroutine.h"
+#include "UE5Coro/Private.h"
 
 namespace UE5Coro::Private
 {
@@ -48,13 +49,15 @@ class FPackageLoadAwaiter;
 template<typename, int> class TAsyncLoadAwaiter;
 template<typename> class TAsyncQueryAwaiter;
 template<typename> class TAsyncQueryAwaiterRV;
+
+UE5CORO_API std::tuple<FLatentAwaiter, UObject*> UntilDelegateCore();
 }
 
 namespace UE5Coro::Latent
 {
 /** Stops the latent coroutine immediately WITHOUT firing the latent exec pin.<br>
  *  The coroutine WILL NOT be resumed.
- *  This does not count as the coroutine being aborted.
+ *  This does not count as the coroutine being aborted for FOnActionAborted.
  *  @see TCoroutine<>::Cancel to cancel a coroutine from outside. */
 Private::FLatentCancellation Cancel() noexcept;
 
@@ -69,6 +72,14 @@ UE5CORO_API Private::FLatentAwaiter Ticks(int64);
 
 /** Polls the provided function, resumes the coroutine when it returns true. */
 UE5CORO_API Private::FLatentAwaiter Until(std::function<bool()> Function);
+
+/** Resumes the coroutine after the delegate executes.<br>
+ *  Delegate parameters are ignored, a return value is not provided.<br>
+ *  Delegates are also co_awaitable without this wrapper.
+ *  See the documentation for details on the differences in behavior. */
+template<typename T>
+auto UntilDelegate(T& Delegate)
+	-> std::enable_if_t<Private::TIsDelegate<T>, Private::FLatentAwaiter>;
 
 #pragma endregion
 
@@ -304,10 +315,10 @@ class [[nodiscard]] UE5CORO_API FLatentAwaiter // not TAwaiter
 
 protected:
 	void* State;
-	bool (*Resume)(void*& State, bool bCleanup);
+	bool (*Resume)(void* State, bool bCleanup);
 
 public:
-	explicit FLatentAwaiter(void* State, bool (*Resume)(void*&, bool)) noexcept
+	explicit FLatentAwaiter(void* State, bool (*Resume)(void*, bool)) noexcept
 		: State(State), Resume(Resume) { }
 	FLatentAwaiter(const FLatentAwaiter&) = delete;
 	FLatentAwaiter(FLatentAwaiter&&) noexcept;
@@ -430,6 +441,30 @@ public:
 inline UE5Coro::Private::FLatentCancellation UE5Coro::Latent::Cancel() noexcept
 {
 	return {};
+}
+
+template<typename T>
+auto UE5Coro::Latent::UntilDelegate(T& Delegate)
+	-> std::enable_if_t<Private::TIsDelegate<T>, Private::FLatentAwaiter>
+{
+	using namespace UE5Coro::Private;
+	auto [Awaiter, Target] = UntilDelegateCore();
+
+	if constexpr (TIsMulticastDelegate<T>)
+	{
+		if constexpr (TIsDynamicDelegate<T>)
+		{
+			FScriptDelegate D;
+			D.BindUFunction(Target, NAME_Core);
+			Delegate.Add(D);
+		}
+		else
+			Delegate.AddUFunction(Target, NAME_Core);
+	}
+	else
+		Delegate.BindUFunction(Target, NAME_Core);
+
+	return std::move(Awaiter);
 }
 
 template<typename T>

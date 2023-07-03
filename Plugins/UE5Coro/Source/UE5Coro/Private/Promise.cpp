@@ -67,7 +67,11 @@ FPromise::~FPromise()
 	checkf(!Extras->Lock.TryLock(), TEXT("Internal error: lock not held"));
 	checkf(!Extras->IsComplete(),
 	       TEXT("Unexpected late/double coroutine destruction"));
-	auto Continuations = std::move(Extras->Continuations_DEPRECATED);
+#if PLATFORM_EXCEPTIONS_DISABLED
+	Extras->bWasSuccessful = !GDestroyedEarly;
+#else
+	Extras->bWasSuccessful = !GDestroyedEarly && !bUnhandledException;
+#endif
 	GDestroyedEarly = false;
 
 	// The coroutine is considered completed NOW
@@ -77,8 +81,6 @@ FPromise::~FPromise()
 	for (auto& Fn : OnCompleted)
 		Fn(Extras->ReturnValuePtr);
 	Extras->ReturnValuePtr = nullptr;
-
-	Continuations.Broadcast();
 }
 
 void FPromise::ThreadSafeDestroy()
@@ -119,9 +121,9 @@ void FPromise::ReleaseCancellation()
 
 void FPromise::Resume(bool bBypassCancellationHolds)
 {
+	checkf(this, TEXT("Corruption")); // Still useful on some compilers
 	checkf(!Extras->IsComplete(),
 	       TEXT("Attempting to resume completed coroutine"));
-	checkf(this, TEXT("Corruption")); // Still useful on some compilers
 	auto* CallerPromise = GCurrentPromise;
 	GCurrentPromise = this;
 	ON_SCOPE_EXIT
@@ -141,6 +143,17 @@ void FPromise::Resume(bool bBypassCancellationHolds)
 		stdcoro::coroutine_handle<FPromise>::from_promise(*this).resume();
 }
 
+void FPromise::ResumeFast()
+{
+	checkf(!Extras->IsComplete() && !ShouldCancel(true),
+	       TEXT("Internal error: Fast resume preconditions not met"));
+	// If this is a FLatentPromise, !LF_Detached is also assumed
+	auto* CallerPromise = GCurrentPromise;
+	GCurrentPromise = this;
+	ON_SCOPE_EXIT { GCurrentPromise = CallerPromise; };
+	stdcoro::coroutine_handle<FPromise>::from_promise(*this).resume();
+}
+
 void FPromise::AddContinuation(std::function<void(void*)> Fn)
 {
 	// Expecting a non-empty function and the lock to be held by the caller
@@ -155,6 +168,7 @@ void FPromise::unhandled_exception()
 #if PLATFORM_EXCEPTIONS_DISABLED
 	check(!"Exceptions are not supported");
 #else
+	bUnhandledException = true;
 	throw;
 #endif
 }
