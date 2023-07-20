@@ -12,4 +12,19 @@ UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
 class AInvisibleProjectile : public AProjectileBase
 { 
     GENERATED_BODY()
+
+public:
+    explicit AInvisibleProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+    
+    // Base values initialization to projectile and generating impact prefab
+    virtual void Launch() override;
+    
+private:
+
+    // Generates impact damage and particle prefab
+    FAsyncCoroutine GenerateImpact();
+    
+    // Time after spawn to add damage
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Add damage delay", AllowPrivateAccess = "true"))
+    double m_damageDelay = 0.1;
 };
