@@ -16,7 +16,6 @@
 ///
 /// Represents super base core class for AtomDestiny game.
 /// You should use this class as base for any game mode.
-/// To has a better compile time and scaling it stores data as pointer implementation.
 ///
 UCLASS(Blueprintable)
 class ATOMDESTINY_API AAtomDestinyGameStateBase : public AGameStateBase
