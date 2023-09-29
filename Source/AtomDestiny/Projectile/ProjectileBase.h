@@ -4,7 +4,7 @@
 #include <AtomDestiny/Projectile/Projectile.h>
 #include <AtomDestiny/Coroutines/CoroutinesRunner.h>
 
-#include <Engine/Classes/GameFramework/Actor.h>
+#include <GameFramework/Actor.h>
 
 #include "ProjectileBase.generated.h"
 

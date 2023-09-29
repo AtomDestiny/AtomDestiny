@@ -8,7 +8,7 @@
 #include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Logic/UnitLogicBase.h>
 
-#include <Engine/Classes/GameFramework/Actor.h>
+#include <GameFramework/Actor.h>
 
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>

@@ -8,8 +8,8 @@
 #include <AtomDestiny/Projectile/Projectile.h>
 #include <AtomDestiny/Parameters/Parameters.h>
 
-#include <Runtime/Engine/Classes/GameFramework/GameStateBase.h>
-#include <Core/Public/Templates/UnrealTemplate.h>
+#include <GameFramework/GameStateBase.h>
+#include <Templates/UnrealTemplate.h>
 
 #include "AtomDestinyGameStateBase.generated.h"
 

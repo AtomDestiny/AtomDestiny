@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include <Engine/Classes/Components/ActorComponent.h>
+#include <Components/ActorComponent.h>
 
 #include <AtomDestiny/Logic/Logic.h>
 #include <AtomDestiny/Unit/Animation.h>

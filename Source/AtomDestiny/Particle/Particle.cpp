@@ -1,7 +1,7 @@
 ﻿#include "Particle.h"
 
 #include <Components/SceneComponent.h>
-#include <Niagara/Public/NiagaraComponent.h>
+#include <NiagaraComponent.h>
 
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 

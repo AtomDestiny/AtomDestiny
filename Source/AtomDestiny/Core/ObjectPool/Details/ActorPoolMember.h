@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include <Core/Public/Templates/SharedPointer.h>
-#include <Engine/Classes/Components/ActorComponent.h>
+#include <Templates/SharedPointer.h>
+#include <Components/ActorComponent.h>
 
 #include "ActorPoolMember.generated.h"
 

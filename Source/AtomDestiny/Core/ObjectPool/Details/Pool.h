@@ -3,9 +3,9 @@
 #include <stack>
 #include <memory>
 
-#include <Engine/Classes/GameFramework/Actor.h>
+#include <GameFramework/Actor.h>
 
-#include <Core/Public/Math/MathFwd.h>
+#include <Math/MathFwd.h>
 
 namespace AtomDestiny
 {

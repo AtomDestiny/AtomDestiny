@@ -2,7 +2,7 @@
 
 #include <type_traits>
 
-#include <Engine/Classes/GameFramework/Actor.h>
+#include <GameFramework/Actor.h>
 
 namespace AtomDestiny::Utils
 {
