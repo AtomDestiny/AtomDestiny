@@ -27,7 +27,7 @@ struct FUnitStateParameters
     double defence = 0;
     EShieldType shieldType;
     EDefenceType defenceType;
-    EUnitType unitType;
+    EADUnitType unitType;
     bool hasShield = false;
     TArray<TScriptInterface<IWeapon>> weaponList;
     double maxDamage = 0;

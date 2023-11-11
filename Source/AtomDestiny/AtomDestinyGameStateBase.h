@@ -58,10 +58,10 @@ protected:
     ///
     
     UFUNCTION()
-    void OnUnitCreated(AActor* actor, EGameSide side, EUnitType unitType);
+    void OnUnitCreated(AActor* actor, EGameSide side, EADUnitType unitType);
     
     UFUNCTION()
-    void OnUnitDestroyed(AActor* actor, EGameSide side, EUnitType unitType);
+    void OnUnitDestroyed(AActor* actor, EGameSide side, EADUnitType unitType);
     
     void InitializeSides();
     void InitializeEnemies();

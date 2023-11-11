@@ -20,7 +20,7 @@ class ATOMDESTINY_API UUnitLogicBase : public UADObject, public ILogic
     
     // Any unit actions
     UDELEGATE()
-    DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FUnitAction, AActor*, actor, EGameSide, side, EUnitType, unitType);
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FUnitAction, AActor*, actor, EGameSide, side, EADUnitType, unitType);
     
 public:
     explicit UUnitLogicBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
@@ -38,7 +38,7 @@ public:
     virtual int32 GetCost() const override;
     
     // Returns unit type
-    virtual EUnitType GetUnitType() const override;
+    virtual EADUnitType GetUnitType() const override;
     
     // Returns current velocity
     virtual double GetVelocity() const override;
@@ -130,7 +130,7 @@ protected:
     
     // Game unit type
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit type"))
-    EUnitType m_unitType;
+    EADUnitType m_unitType;
     
     // Game unit size
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit size"))
