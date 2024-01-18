@@ -29,7 +29,7 @@ public:
 
     // Returns current unit type
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual EUnitType GetUnitType() const = 0;
+    virtual EADUnitType GetUnitType() const = 0;
 
     // Returns current unit size
     UFUNCTION(Meta = (AllowOverride = true))

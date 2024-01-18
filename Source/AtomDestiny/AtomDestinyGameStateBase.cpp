@@ -8,7 +8,7 @@
 #include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Logic/UnitLogicBase.h>
 
-#include <Engine/Classes/GameFramework/Actor.h>
+#include <GameFramework/Actor.h>
 
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
@@ -195,12 +195,12 @@ void AAtomDestinyGameStateBase::EndPlay(const EEndPlayReason::Type EndPlayReason
     AtomDestiny::ObjectPool::Instance().DestroyAll();
 }
 
-void AAtomDestinyGameStateBase::OnUnitCreated(AActor* actor, EGameSide side, EUnitType)
+void AAtomDestinyGameStateBase::OnUnitCreated(AActor* actor, EGameSide side, EADUnitType)
 {
     AddUnit(MakeWeakObjectPtr(actor), side);
 }
 
-void AAtomDestinyGameStateBase::OnUnitDestroyed(AActor* actor, EGameSide side, EUnitType)
+void AAtomDestinyGameStateBase::OnUnitDestroyed(AActor* actor, EGameSide side, EADUnitType)
 {
     RemoveUnit(MakeWeakObjectPtr(actor), side);
 }

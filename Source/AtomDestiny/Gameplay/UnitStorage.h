@@ -11,7 +11,7 @@
 namespace AtomDestiny
 {
     template <typename T>
-    concept UnitStorageMap = Concepts::IsAnyOf<T, TMap<EUnitType, FUnitInfo>>;
+    concept UnitStorageMap = Concepts::IsAnyOf<T, TMap<EADUnitType, FUnitInfo>>;
     
     ///
     /// Stores pointers to all units and additional information.
@@ -24,18 +24,18 @@ namespace AtomDestiny
         static UnitStorage& Instance();
 
         template <typename Value>
-        void Add(EUnitType type, Value&& value);
+        void Add(EADUnitType type, Value&& value);
 
         template <typename Values>
         void Add(Values&& values) requires UnitStorageMap<Values>;
 
-        bool Contains(const EUnitType type) const;
-        TOptional<FUnitInfo> GetInfo(const EUnitType type) const;
+        bool Contains(const EADUnitType type) const;
+        TOptional<FUnitInfo> GetInfo(const EADUnitType type) const;
 
-        TArray<EUnitType> GetUnits() const; // copy specially, you should not use this method frequently
+        TArray<EADUnitType> GetUnits() const; // copy specially, you should not use this method frequently
         
     private:
-        TMap<EUnitType, FUnitInfo> m_storage;
+        TMap<EADUnitType, FUnitInfo> m_storage;
     };
 
     //////////////////////////////////////////
@@ -47,7 +47,7 @@ namespace AtomDestiny
     }
 
     template <typename Value>
-    void UnitStorage::Add(EUnitType type, Value&& value)
+    void UnitStorage::Add(EADUnitType type, Value&& value)
     {
         static_assert(std::is_same_v<std::remove_cvref_t<Value>, FUnitInfo>, "Value should be only FUnitInfo");
         m_storage.Add(type, std::forward<Value>(value));
@@ -59,12 +59,12 @@ namespace AtomDestiny
         m_storage = std::forward<Values>(values);
     }
     
-    inline bool UnitStorage::Contains(const EUnitType type) const
+    inline bool UnitStorage::Contains(const EADUnitType type) const
     {
         return m_storage.Contains(type);
     }
 
-    inline TOptional<FUnitInfo> UnitStorage::GetInfo(const EUnitType type) const
+    inline TOptional<FUnitInfo> UnitStorage::GetInfo(const EADUnitType type) const
     {
         if (const auto info = m_storage.Find(type); info != nullptr)
         {
@@ -74,9 +74,9 @@ namespace AtomDestiny
         return NullOpt;
     }
 
-    inline TArray<EUnitType> UnitStorage::GetUnits() const
+    inline TArray<EADUnitType> UnitStorage::GetUnits() const
     {
-        TArray<EUnitType> units;
+        TArray<EADUnitType> units;
         units.Reserve(m_storage.Num());
         
         for ([[maybe_unused]] const auto& [unit, info] : m_storage)

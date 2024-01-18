@@ -31,7 +31,7 @@ int32 UUnitLogicBase::GetCost() const
     return m_unitCost;
 }
 
-EUnitType UUnitLogicBase::GetUnitType() const
+EADUnitType UUnitLogicBase::GetUnitType() const
 {
     return m_unitType;
 }

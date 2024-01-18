@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <Core/Public/Templates/SharedPointer.h>
+#include <Templates/SharedPointer.h>
 
 //
 // Possibility to work std::unordered_map with TSharedPtr<T>, TWeakPtr and similar

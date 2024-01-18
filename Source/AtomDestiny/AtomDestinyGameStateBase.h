@@ -8,8 +8,8 @@
 #include <AtomDestiny/Projectile/Projectile.h>
 #include <AtomDestiny/Parameters/Parameters.h>
 
-#include <Runtime/Engine/Classes/GameFramework/GameStateBase.h>
-#include <Core/Public/Templates/UnrealTemplate.h>
+#include <GameFramework/GameStateBase.h>
+#include <Templates/UnrealTemplate.h>
 
 #include "AtomDestinyGameStateBase.generated.h"
 
@@ -58,10 +58,10 @@ protected:
     ///
     
     UFUNCTION()
-    void OnUnitCreated(AActor* actor, EGameSide side, EUnitType unitType);
+    void OnUnitCreated(AActor* actor, EGameSide side, EADUnitType unitType);
     
     UFUNCTION()
-    void OnUnitDestroyed(AActor* actor, EGameSide side, EUnitType unitType);
+    void OnUnitDestroyed(AActor* actor, EGameSide side, EADUnitType unitType);
     
     void InitializeSides();
     void InitializeEnemies();

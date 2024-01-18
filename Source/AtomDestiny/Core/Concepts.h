@@ -3,7 +3,7 @@
 #include <concepts>
 
 #include <RunTime/Core/Public/Math/MathFwd.h>
-#include <Engine/Classes/GameFramework/Actor.h>
+#include <GameFramework/Actor.h>
 
 namespace AtomDestiny::Concepts
 {

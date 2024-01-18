@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include <Engine/Classes/Components/ActorComponent.h>
+#include <Components/ActorComponent.h>
 
 #include <AtomDestiny/Logic/Logic.h>
 #include <AtomDestiny/Unit/Animation.h>
@@ -99,7 +99,7 @@ public:
     int32 GetCost() const { return m_logic->GetCost(); }
     
     // Current unit type
-    EUnitType GetUnitType() const { return m_logic->GetUnitType(); }
+    EADUnitType GetUnitType() const { return m_logic->GetUnitType(); }
     
     ///
     /// Stores full info about unit.

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <Engine/Classes/Components/ActorComponent.h>
+#include <Components/ActorComponent.h>
 
 #include <AtomDestiny/Behaviour/Destroyable.h>
 #include <AtomDestiny/Particle/Particle.h>
