@@ -34,8 +34,10 @@
 #include "CoreMinimal.h"
 #include "UE5Coro/Definitions.h"
 #include <optional>
+#include <tuple>
 #include "Async/TaskGraphInterfaces.h"
 #include "UE5Coro/AsyncCoroutine.h"
+#include "UE5Coro/Private.h"
 
 namespace UE5Coro::Private
 {
@@ -44,6 +46,8 @@ class FAsyncPromise;
 class FAsyncYieldAwaiter;
 class FLatentPromise;
 class FNewThreadAwaiter;
+template<typename, typename...> class TDelegateAwaiter;
+template<typename, typename...> class TDynamicDelegateAwaiter;
 }
 
 namespace UE5Coro::Async
@@ -81,6 +85,10 @@ UE5CORO_API Private::FNewThreadAwaiter MoveToNewThread(
 
 namespace UE5Coro::Private
 {
+// Bits used to identify a kind of thread, without the scheduling flags
+constexpr auto ThreadTypeMask = ENamedThreads::ThreadIndexMask |
+                                ENamedThreads::ThreadPriorityMask;
+
 class [[nodiscard]] UE5CORO_API FAsyncAwaiter : public TAwaiter<FAsyncAwaiter>
 {
 	ENamedThreads::Type Thread;
@@ -186,6 +194,40 @@ struct TAwaitTransform<P, TFuture<T>>
 	TFutureAwaiter<T> operator()(TFuture<T>&) = delete;
 };
 
+template<typename>
+struct TDelegateAwaiterFor;
+template<typename T, typename R, typename... A>
+struct TDelegateAwaiterFor<R (T::*)(A...) const>
+{
+	using type = std::conditional_t<TIsDynamicDelegate<T>,
+	                                TDynamicDelegateAwaiter<R, A...>,
+	                                TDelegateAwaiter<R, A...>>;
+};
+
+template<typename P, typename T>
+struct TAwaitTransform<P, T, std::enable_if_t<TIsDelegate<T>>>
+{
+	static constexpr auto ExecutePtr(T)
+	{
+		if constexpr (TIsSparseDelegate<T>)
+		{
+			using Ptr = decltype(std::declval<T>().GetShared().Get());
+			return &std::remove_pointer_t<Ptr>::Broadcast;
+		}
+		else if constexpr (TIsMulticastDelegate<T>)
+			return &T::Broadcast;
+		else
+			return &T::Execute;
+	}
+	using FExecutePtr = decltype(ExecutePtr(std::declval<T>()));
+	using FAwaiter = typename TDelegateAwaiterFor<FExecutePtr>::type;
+
+	FAwaiter operator()(T& Delegate) { return FAwaiter(Delegate); }
+
+	// The delegate needs to live longer than the awaiter. Use lvalues only.
+	FAwaiter operator()(T&& Delegate) = delete;
+};
+
 class [[nodiscard]] UE5CORO_API FNewThreadAwaiter
 	: public TAwaiter<FNewThreadAwaiter>
 {
@@ -200,4 +242,141 @@ public:
 
 	void Suspend(FPromise&);
 };
+
+// Stores references as values. Structured bindings will give references.
+// Used with DYNAMIC delegates.
+// The memory layout has to match TBaseUFunctionDelegateInstance::Execute!
+template<typename... T>
+class TDecayedPayload : private TPayload<void(std::decay_t<T>...)>
+{
+	template<size_t N>
+	using TType = std::tuple_element_t<N, std::tuple<T...>>;
+
+public:
+	// Objects of this type are never made, it's only used to reinterpret params
+	TDecayedPayload() = delete;
+
+	template<size_t N>
+	TType<N>& get() { return this->Values.template Get<N>(); }
+};
+
+class [[nodiscard]] UE5CORO_API FDelegateAwaiter
+	: public TAwaiter<FDelegateAwaiter>
+{
+protected:
+	FPromise* Promise = nullptr;
+	std::function<void()> Cleanup;
+	void TryResumeOnce();
+	UObject* SetupCallbackTarget(std::function<void(void*)>);
+
+public:
+	~FDelegateAwaiter();
+	void Suspend(FPromise& InPromise);
+};
+
+template<typename R, typename... A>
+class [[nodiscard]] TDelegateAwaiter : public FDelegateAwaiter
+{
+	using ThisClass = TDelegateAwaiter;
+	using FResult = std::conditional_t<sizeof...(A) != 0, TTuple<A...>, void>;
+	TTuple<A...>* Result = nullptr;
+
+public:
+	template<typename T>
+	explicit TDelegateAwaiter(T& Delegate)
+	{
+		static_assert(!TIsDynamicDelegate<T>);
+		if constexpr (TIsMulticastDelegate<T>)
+		{
+			auto Handle = Delegate.AddRaw(this, &ThisClass::ResumeWith<A...>);
+			Cleanup = [Handle, &Delegate] { Delegate.Remove(Handle); };
+		}
+		else
+		{
+			Delegate.BindRaw(this, &ThisClass::ResumeWith<A...>);
+			Cleanup = [&Delegate] { Delegate.Unbind(); };
+		}
+	}
+	UE_NONCOPYABLE(TDelegateAwaiter);
+
+	template<typename... T>
+	R ResumeWith(T... Args)
+	{
+		TTuple<T...> Values(std::forward<T>(Args)...);
+		Result = &Values; // This exposes a pointer to a local, but...
+		TryResumeOnce(); // ...it's only read by await_resume, right here
+#if UE5CORO_DEBUG
+		Result = nullptr;
+#endif
+		return R();
+	}
+
+	FResult await_resume()
+	{
+		checkf(Result, TEXT("Internal error: resumed without a result"));
+		if constexpr (sizeof...(A) != 0)
+			return std::move(*Result);
+	}
+};
+
+template<typename R, typename... A>
+class [[nodiscard]] TDynamicDelegateAwaiter : public FDelegateAwaiter
+{
+	using FResult = std::conditional_t<sizeof...(A) != 0,
+	                                   TDecayedPayload<A...>&, void>;
+	using FPayload = std::conditional_t<std::is_void_v<R>, TDecayedPayload<A...>,
+	                                    TDecayedPayload<A..., R>>;
+	union
+	{
+		TDecayedPayload<A...>* Result; // Missing R, for the coroutine
+		FPayload* Payload = nullptr; // With R, for the delegate
+	};
+
+public:
+	template<typename T>
+	explicit TDynamicDelegateAwaiter(T& InDelegate)
+	{
+		static_assert(TIsDynamicDelegate<T>);
+		// SetupCallbackTarget sets Cleanup and ties Target's lifetime to this
+		auto* Target = SetupCallbackTarget([this](void* Params)
+		{
+			// This matches the hack in TBaseUFunctionDelegateInstance::Execute
+			Result = static_cast<TDecayedPayload<A...>*>(Params);
+			TryResumeOnce();
+			if constexpr (!std::is_void_v<R>)
+				Payload->template get<sizeof...(A)>() = R();
+		});
+
+		if constexpr (TIsMulticastDelegate<T>)
+		{
+			FScriptDelegate Delegate;
+			Delegate.BindUFunction(Target, NAME_Core);
+			InDelegate.Add(Delegate);
+		}
+		else
+			InDelegate.BindUFunction(Target, NAME_Core);
+	}
+	UE_NONCOPYABLE(TDynamicDelegateAwaiter);
+
+	FResult await_resume()
+	{
+		if constexpr (sizeof...(A) != 0)
+		{
+			checkf(Result, TEXT("Internal error: resumed without a result"));
+			return *Result;
+		}
+	}
+};
 }
+
+template<typename... T>
+struct std::tuple_size<UE5Coro::Private::TDecayedPayload<T...>>
+{
+	static constexpr size_t value = sizeof...(T);
+};
+
+template<size_t N, typename... T>
+struct std::tuple_element<N, UE5Coro::Private::TDecayedPayload<T...>>
+{
+	using type = std::tuple_element_t<N, std::tuple<T...>>;
+};

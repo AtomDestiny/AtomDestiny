@@ -1,22 +1,22 @@
-﻿#include "PlasmaShotProjectile.h"
+﻿#include "InvisibleProjectile.h"
 
 #include <AtomDestiny/AtomDestinyGameStateBase.h>
 
+// ReSharper disable once CppUnusedIncludeDirective
 #include <AtomDestiny/Particle/Particle.h>
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
-#include <AtomDestiny/Core/ActorComponentUtils.h>
 
-APlasmaShotProjectile::APlasmaShotProjectile(const FObjectInitializer& objectInitializer):
+AInvisibleProjectile::AInvisibleProjectile(const FObjectInitializer& objectInitializer):
     AProjectileBase(objectInitializer)
 {
 }
 
-void APlasmaShotProjectile::Launch()
+void AInvisibleProjectile::Launch()
 {
     RunCoroutine(GenerateImpact());
 }
 
-FAsyncCoroutine APlasmaShotProjectile::GenerateImpact()
+FAsyncCoroutine AInvisibleProjectile::GenerateImpact()
 {
     co_await Coroutines::Latent::Seconds(m_damageDelay);
 

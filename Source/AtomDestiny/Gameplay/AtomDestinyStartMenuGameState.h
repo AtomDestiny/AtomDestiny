@@ -24,5 +24,5 @@ private:
     inline static std::once_flag Initialized;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit prefabs", AllowPrivateAccess = "true"))
-    TMap<EUnitType, FUnitInfo> m_units;
+    TMap<EADUnitType, FUnitInfo> m_units;
 };

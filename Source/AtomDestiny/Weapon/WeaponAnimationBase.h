@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <Engine/Classes/Components/ActorComponent.h>
+#include <Components/ActorComponent.h>
 
 #include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/Weapon/WeaponAnimation.h>

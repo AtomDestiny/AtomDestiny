@@ -29,65 +29,22 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/AsyncAwaiters.h"
+#include "UE5CoroDelegateCallbackTarget.h"
 
-using namespace UE5Coro::Private;
-
-namespace
+void UUE5CoroDelegateCallbackTarget::Init(std::function<void(void*)> InFn)
 {
-class FResumeTask
-{
-	ENamedThreads::Type Thread;
-	FPromise& Promise;
-
-public:
-	explicit FResumeTask(ENamedThreads::Type Thread, FPromise& Promise)
-		: Thread(Thread), Promise(Promise) { }
-
-	void DoTask(ENamedThreads::Type, FGraphEvent*) { Promise.Resume(); }
-
-	ENamedThreads::Type GetDesiredThread() const { return Thread; }
-
-	TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FResumeTask,
-		                                STATGROUP_ThreadPoolAsyncTasks);
-	}
-
-	static ESubsequentsMode::Type GetSubsequentsMode()
-	{
-		return ESubsequentsMode::FireAndForget;
-	}
-};
+	Fn = std::move(InFn);
 }
 
-bool FAsyncAwaiter::await_ready()
+void UUE5CoroDelegateCallbackTarget::ProcessEvent(UFunction*, void* Parms)
 {
-	// This needs to be scheduled after the coroutine's completion regardless of
-	// the target thread
-	if (ResumeAfter.has_value() && !ResumeAfter->IsDone())
-		return false;
-
-	// Don't move threads if we're already on the target thread
-	auto ThisThread = FTaskGraphInterface::Get().GetCurrentThreadIfKnown();
-	return (ThisThread & ThreadTypeMask) == (Thread & ThreadTypeMask);
+	// This might also be caused by a multithreaded race condition
+	checkf(Fn, TEXT("Internal error: Unexpected early or double callback"));
+	std::exchange(Fn, nullptr)(Parms);
+	MarkAsGarbage(); // Prevent further calls from dynamic delegates
 }
 
-void FAsyncAwaiter::Suspend(FPromise& Promise)
+void UUE5CoroDelegateCallbackTarget::Core()
 {
-	auto* Task = TGraphTask<FResumeTask>::CreateTask()
-	                                     .ConstructAndHold(Thread, Promise);
-
-	// await_ready returning false and the coroutine having finished since is OK,
-	// ContinueWith will run this synchronously
-	if (ResumeAfter.has_value())
-		ResumeAfter->ContinueWith([Task] { Task->Unlock(); });
-	else
-		Task->Unlock();
-}
-
-void FAsyncYieldAwaiter::Suspend(FPromise& Promise)
-{
-	TGraphTask<FResumeTask>::CreateTask().ConstructAndDispatchWhenReady(
-		FTaskGraphInterface::Get().GetCurrentThreadIfKnown(), Promise);
+	check(!"Internal error: This function should never run");
 }

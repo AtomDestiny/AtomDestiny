@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include <Engine/Classes/GameFramework/Actor.h>
+#include <GameFramework/Actor.h>
 #include <AtomDestiny/Core/Details/ActorUtilsHelper.h>
 
 namespace AtomDestiny::Utils

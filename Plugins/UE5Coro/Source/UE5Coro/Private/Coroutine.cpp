@@ -47,16 +47,6 @@ void TCoroutine<void>::Cancel()
 		Extras->Promise->Cancel();
 }
 
-TMulticastDelegate<void()>& TCoroutine<>::OnCompletion()
-{
-	UE::TScopeLock _(Extras->Lock);
-	checkf(!Extras->IsComplete(),
-	       TEXT("Attempting to use a complete/invalid TCoroutine"));
-	return Extras->Continuations_DEPRECATED;
-	// It's unsafe to return the delegate with the lock unlocked,
-	// but this is the old, deprecated behavior
-}
-
 bool TCoroutine<>::Wait(uint32 WaitTimeMilliseconds,
                         bool bIgnoreThreadIdleStats) const
 {
@@ -66,6 +56,11 @@ bool TCoroutine<>::Wait(uint32 WaitTimeMilliseconds,
 bool TCoroutine<>::IsDone() const
 {
 	return Wait(0, true);
+}
+
+bool TCoroutine<>::WasSuccessful() const
+{
+	return Extras->bWasSuccessful;
 }
 
 void TCoroutine<>::SetDebugName(const TCHAR* Name)

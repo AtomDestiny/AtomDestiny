@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <Runtime/Core/Public/Containers/Map.h>
-#include <Engine/Classes/Components/ActorComponent.h>
+#include <Components/ActorComponent.h>
 
 #include "ScrapConstruction.generated.h"
 

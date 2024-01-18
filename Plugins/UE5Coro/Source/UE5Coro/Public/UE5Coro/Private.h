@@ -29,65 +29,43 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/AsyncAwaiters.h"
+#pragma once
 
-using namespace UE5Coro::Private;
+#include "CoreMinimal.h"
+#include "UE5Coro/Definitions.h"
+#include "Delegates/DelegateBase.h"
 
-namespace
+/******************************************************************************
+ *          This file only contains private implementation details.           *
+ ******************************************************************************/
+
+namespace UE5Coro::Private
 {
-class FResumeTask
-{
-	ENamedThreads::Type Thread;
-	FPromise& Promise;
+template<typename T>
+constexpr bool TIsSparseDelegate = std::is_base_of_v<FSparseDelegate, T>;
 
-public:
-	explicit FResumeTask(ENamedThreads::Type Thread, FPromise& Promise)
-		: Thread(Thread), Promise(Promise) { }
+template<typename T>
+constexpr bool TIsDynamicDelegate =
+	std::is_base_of_v<FScriptDelegate, T> ||
+	std::is_base_of_v<FMulticastScriptDelegate, T> ||
+	// Sparse delegates are always dynamic multicast
+	TIsSparseDelegate<T>;
 
-	void DoTask(ENamedThreads::Type, FGraphEvent*) { Promise.Resume(); }
+template<typename T>
+constexpr bool TIsMulticastDelegate =
+	std::is_base_of_v<FDefaultDelegateUserPolicy::FMulticastDelegateExtras, T> ||
+#if ENGINE_MINOR_VERSION >= 1
+	std::is_base_of_v<FDefaultTSDelegateUserPolicy::FMulticastDelegateExtras, T> ||
+#endif
+	std::is_base_of_v<TMulticastScriptDelegate<>, T> ||
+	// Sparse delegates are always dynamic multicast
+	TIsSparseDelegate<T>;
 
-	ENamedThreads::Type GetDesiredThread() const { return Thread; }
-
-	TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FResumeTask,
-		                                STATGROUP_ThreadPoolAsyncTasks);
-	}
-
-	static ESubsequentsMode::Type GetSubsequentsMode()
-	{
-		return ESubsequentsMode::FireAndForget;
-	}
-};
-}
-
-bool FAsyncAwaiter::await_ready()
-{
-	// This needs to be scheduled after the coroutine's completion regardless of
-	// the target thread
-	if (ResumeAfter.has_value() && !ResumeAfter->IsDone())
-		return false;
-
-	// Don't move threads if we're already on the target thread
-	auto ThisThread = FTaskGraphInterface::Get().GetCurrentThreadIfKnown();
-	return (ThisThread & ThreadTypeMask) == (Thread & ThreadTypeMask);
-}
-
-void FAsyncAwaiter::Suspend(FPromise& Promise)
-{
-	auto* Task = TGraphTask<FResumeTask>::CreateTask()
-	                                     .ConstructAndHold(Thread, Promise);
-
-	// await_ready returning false and the coroutine having finished since is OK,
-	// ContinueWith will run this synchronously
-	if (ResumeAfter.has_value())
-		ResumeAfter->ContinueWith([Task] { Task->Unlock(); });
-	else
-		Task->Unlock();
-}
-
-void FAsyncYieldAwaiter::Suspend(FPromise& Promise)
-{
-	TGraphTask<FResumeTask>::CreateTask().ConstructAndDispatchWhenReady(
-		FTaskGraphInterface::Get().GetCurrentThreadIfKnown(), Promise);
+template<typename T>
+constexpr bool TIsDelegate =
+	std::is_base_of_v<FDefaultDelegateUserPolicy::FDelegateExtras, T> ||
+#if ENGINE_MINOR_VERSION >= 1
+	std::is_base_of_v<FDefaultTSDelegateUserPolicy::FDelegateExtras, T> ||
+#endif
+	TIsDynamicDelegate<T> || TIsMulticastDelegate<T>;
 }

@@ -58,7 +58,7 @@ namespace Test { class FTestHelper; }
 
 extern thread_local bool GDestroyedEarly;
 
-template<typename, typename A>
+template<typename, typename A, typename = void>
 struct TAwaitTransform
 {
 	// Default passthrough
@@ -117,7 +117,7 @@ struct FInitialSuspend
 	{
 		switch (Action)
 		{
-			case Resume: Handle.promise().Resume(); break;
+			case Resume: Handle.promise().ResumeFast(); break;
 			// This is very early and doesn't yet count as cancellation
 			case Destroy: Handle.destroy(); break;
 		}
@@ -149,13 +149,15 @@ public:
 #endif
 
 	FEventRef Completed{EEventMode::ManualReset};
+	// This could be read from another thread
+	std::atomic<bool> bWasSuccessful = false;
+
 	UE::FSpinLock Lock;
 	union
 	{
 		FPromise* Promise; // nullptr once destroyed
 		void* ReturnValuePtr; // in the destructor only
 	};
-	TMulticastDelegate<void()> Continuations_DEPRECATED;
 
 	explicit FPromiseExtras(FPromise& Promise) noexcept : Promise(&Promise) { }
 	UE_NONCOPYABLE(FPromiseExtras);
@@ -205,6 +207,9 @@ class [[nodiscard]] UE5CORO_API FPromise
 protected:
 	std::shared_ptr<FPromiseExtras> Extras;
 	TArray<std::function<void(void*)>> OnCompleted;
+#if !PLATFORM_EXCEPTIONS_DISABLED
+	std::atomic<bool> bUnhandledException = false;
+#endif
 
 	explicit FPromise(std::shared_ptr<FPromiseExtras>, const TCHAR* PromiseType);
 	UE_NONCOPYABLE(FPromise);
@@ -221,6 +226,7 @@ public:
 	void HoldCancellation();
 	void ReleaseCancellation();
 	virtual void Resume(bool bBypassCancellationHolds = false);
+	void ResumeFast();
 	void AddContinuation(std::function<void(void*)>);
 
 	void unhandled_exception();
@@ -270,7 +276,6 @@ class [[nodiscard]] UE5CORO_API FLatentPromise : public FPromise
 	void CreateLatentAction(FLatentActionInfo&&);
 	void Init();
 	template<typename... T> void Init(const UObject*, T&...);
-	template<typename... T> void Init(FForceLatentCoroutine, T&...);
 	template<typename... T> void Init(FLatentActionInfo, T&...);
 	template<typename T, typename... A> void Init(T&, A&...);
 
@@ -295,6 +300,7 @@ public:
 	void SetCurrentAwaiter(FLatentAwaiter*);
 
 	FInitialSuspend initial_suspend();
+	template<bool bTriggerBP = true>
 	FFinalSuspend final_suspend() noexcept;
 
 	template<typename T>
@@ -411,16 +417,6 @@ void FLatentPromise::Init(const UObject* WorldContext, T&... Args)
 }
 
 template<typename... T>
-void FLatentPromise::Init(FForceLatentCoroutine, T&... Args)
-{
-	// The static_assert on coroutine_traits prevents this
-	check(!PendingLatentCoroutine);
-	CreateLatentAction();
-
-	Init(Args...);
-}
-
-template<typename... T>
 void FLatentPromise::Init(FLatentActionInfo LatentInfo, T&... Args)
 {
 	// The static_assert on coroutine_traits prevents this
@@ -447,14 +443,14 @@ struct UE5Coro::Private::stdcoro::coroutine_traits<UE5Coro::TCoroutine<T>,
 {
 	static constexpr int LatentInfoCount =
 		(0 + ... + std::is_convertible_v<Args, FLatentActionInfo>);
-	static constexpr bool LatentForceCount =
+	static constexpr int LatentForceCount =
 		(0 + ... + std::is_same_v<Args, FForceLatentCoroutine>);
 	static_assert(LatentInfoCount + LatentForceCount <= 1,
 	              "Multiple latent info/force parameters found in coroutine");
 	static constexpr bool bUseLatent = LatentInfoCount || LatentForceCount;
 	using promise_type = UE5Coro::Private::TCoroutinePromise<
-	    T, std::conditional_t<bUseLatent, UE5Coro::Private::FLatentPromise,
-	                                      UE5Coro::Private::FAsyncPromise>>;
+		T, std::conditional_t<bUseLatent, UE5Coro::Private::FLatentPromise,
+		                                  UE5Coro::Private::FAsyncPromise>>;
 };
 
 template<typename T, typename... Args>

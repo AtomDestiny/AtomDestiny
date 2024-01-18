@@ -30,7 +30,7 @@
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "UE5Coro/UE5CoroSubsystem.h"
-#include "UE5Coro/UE5CoroChainCallbackTarget.h"
+#include "UE5CoroChainCallbackTarget.h"
 
 using namespace UE5Coro::Private;
 
@@ -47,7 +47,7 @@ bool FTwoLives::Release()
 	return true;
 }
 
-bool FTwoLives::ShouldResume(void*& State, bool bCleanup)
+bool FTwoLives::ShouldResume(void* State, bool bCleanup)
 {
 	auto* This = static_cast<FTwoLives*>(State);
 	if (UNLIKELY(bCleanup))
@@ -85,7 +85,7 @@ FLatentActionInfo UUE5CoroSubsystem::MakeLatentInfo(FTwoLives* State)
 	auto* Target = NewObject<UUE5CoroChainCallbackTarget>(this);
 	Target->Activate(Linkage, State);
 	ChainCallbackTargets.Add(Linkage, Target);
-	return {Linkage, Linkage, TEXT("ExecuteLink"), Target};
+	return {Linkage, Linkage, TEXT("Core"), Target};
 }
 
 void UUE5CoroSubsystem::Deinitialize()

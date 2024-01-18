@@ -40,7 +40,7 @@ namespace UE5Coro
 namespace Private
 {
 class FPromise;
-class FCancellationYieldAwaiter;
+class FCancellationAwaiter;
 }
 
 /**
@@ -85,14 +85,23 @@ struct [[nodiscard]] UE5CORO_API FOnCoroutineCanceled
 
 /** co_awaiting the return value of this function does nothing if the calling
  *  coroutine is not currently canceled.
- *  If it is canceled, the cancellation will be processed immediately. */
-UE5CORO_API Private::FCancellationYieldAwaiter YieldIfCanceled();
+ *  If it is canceled, the cancellation will be processed immediately.
+ *  FCancellationGuards are respected. */
+UE5CORO_API Private::FCancellationAwaiter FinishNowIfCanceled();
+
+/** Checks if the current coroutine is canceled, without processing the
+ *  cancellation.<br>
+ *  Prefer co_await to invoke normal cancellation processing instead.<br>
+ *  Only valid to call from within a coroutine returning TCoroutine.
+ *  @return True if the current coroutine is canceled.<br>
+ *  FCancellationGuards do not affect the return value of this function. */
+[[nodiscard]] UE5CORO_API bool IsCurrentCoroutineCanceled();
 }
 
 namespace UE5Coro::Private
 {
-class [[nodiscard]] UE5CORO_API FCancellationYieldAwaiter
-	: public TAwaiter<FCancellationYieldAwaiter>
+class [[nodiscard]] UE5CORO_API FCancellationAwaiter
+	: public TAwaiter<FCancellationAwaiter>
 {
 public:
 	bool await_ready();

@@ -5,7 +5,7 @@
 /// Add new unit types here.
 ///
 UENUM(BlueprintType)
-enum class EUnitType : uint8
+enum class EADUnitType : uint8
 {
     Shooter,
     Lancer,

@@ -33,40 +33,60 @@
 
 #include "CoreMinimal.h"
 #include "UE5Coro/Definitions.h"
-#include "UE5CoroChainCallbackTarget.generated.h"
+#include <functional>
+#include "UE5Coro/AsyncCoroutine.h"
+#include "UE5Coro/UE5CoroSubsystem.h"
 
-namespace UE5Coro::Private
+#define CORO [&](T...) -> FAsyncCoroutine
+#define CORO_R(Type) [&](T...) -> TCoroutine<Type>
+#define IF_CORO_LATENT if constexpr (sizeof...(T) == 1)
+#define IF_NOT_CORO_LATENT if constexpr (sizeof...(T) != 1)
+
+namespace UE5Coro::Private::Test
 {
-class FTwoLives;
-}
-
-/**
- * Internal class supporting some async coroutine functionality.<br>
- * You never need to interact with it directly.
- */
-UCLASS(Hidden, Within = UE5CoroSubsystem)
-class UE5CORO_API UUE5CoroChainCallbackTarget : public UObject,
-                                                public FTickableGameObject
+class UE5COROTESTS_API FTestWorld
 {
-	GENERATED_BODY()
+	UWorld* World;
 
-	int32 ExpectedLink = 0;
-	UE5Coro::Private::FTwoLives* State = nullptr;
+	UWorld* PrevWorld;
+	decltype(GFrameCounter) OldFrameCounter;
 
 public:
-	void Activate(int32 InExpectedLink, UE5Coro::Private::FTwoLives* InState);
-	void Deactivate();
-	[[nodiscard]] int32 GetExpectedLink() const;
+	FTestWorld();
+	~FTestWorld();
 
-	/** Signals the coroutine suspended with this linkage that it may resume. */
-	UFUNCTION()
-	void ExecuteLink(int32 Link);
+	UWorld* operator->() const { return World; }
 
-#pragma region FTickableGameObject overrides
-	virtual ETickableTickType GetTickableTickType() const override;
-	virtual bool IsTickableWhenPaused() const override { return true; }
-	virtual bool IsTickableInEditor() const override { return true; }
-	virtual void Tick(float DeltaTime) override;
-	virtual TStatId GetStatId() const override;
-#pragma endregion
+	void Tick(float DeltaSeconds = 0.125);
+	void EndTick();
+
+	template<typename T>
+	std::invoke_result_t<T> Run(T Fn)
+	{
+		// Extend the lifetime of Fn's lambda captures until it's complete
+		auto* Copy = new T(std::move(Fn));
+		auto Coro = (*Copy)();
+		Coro.ContinueWith([=] { delete Copy; });
+		return Coro;
+	}
+
+	template<typename T>
+	std::invoke_result_t<T, FLatentActionInfo> Run(T Fn)
+	{
+		auto* Sys = World->GetSubsystem<UUE5CoroSubsystem>();
+		auto LatentInfo = Sys->MakeLatentInfo();
+
+		auto* Copy = new T(std::move(Fn));
+		auto Coro = (*Copy)(LatentInfo);
+		Coro.ContinueWith([=] { delete Copy; });
+		return Coro;
+	}
 };
+
+class UE5COROTESTS_API FTestHelper
+{
+public:
+	static void PumpGameThread(FTestWorld& World,
+	                           std::function<bool()> ExitCondition);
+};
+}

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <Engine/Classes/Components/PrimitiveComponent.h>
+#include <Components/PrimitiveComponent.h>
 
 namespace AtomDestiny::Utils::Details
 {

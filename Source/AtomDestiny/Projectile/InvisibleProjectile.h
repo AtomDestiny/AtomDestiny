@@ -3,20 +3,19 @@
 #include <AtomDestiny/Projectile/ProjectileBase.h>
 #include <AtomDestiny/Coroutines/Coroutines.h>
 
-#include "PlasmaShotProjectile.generated.h"
+#include "InvisibleProjectile.generated.h"
 
 ///
-/// Represents tank shot, that deals damage and spawns impact particle prefab,
-/// driven by raycasted weapon controller.
+/// Represents 'non-render' shot. It can be used to deal damage and spawns impact particle prefab.
 ///
 UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
-class ATOMDESTINY_API APlasmaShotProjectile : public AProjectileBase
-{
+class AInvisibleProjectile : public AProjectileBase
+{ 
     GENERATED_BODY()
 
 public:
-    explicit APlasmaShotProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
-
+    explicit AInvisibleProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+    
     // Base values initialization to projectile and generating impact prefab
     virtual void Launch() override;
     

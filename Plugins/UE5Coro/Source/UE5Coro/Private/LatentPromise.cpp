@@ -47,7 +47,7 @@ class [[nodiscard]] FPendingLatentCoroutine final : public FPendingLatentAction
 	// Since latent promises are destroyed on the game thread, there's nothing
 	// to synchronize and the lock is not used to access Extras->Promise.
 	std::shared_ptr<FPromiseExtras> Extras;
-	bool bCoroutineWasSuccessful = false;
+	bool bTriggerLink = false;
 	FLatentActionInfo LatentInfo;
 	FLatentAwaiter* CurrentAwaiter = nullptr;
 
@@ -130,11 +130,11 @@ public:
 
 	const FLatentActionInfo& GetLatentInfo() const { return LatentInfo; }
 
-	void SetCoroutineWasSuccessful() { bCoroutineWasSuccessful = true; }
+	void RequestLink() { bTriggerLink = true; }
 
 	void FinishNow(FLatentResponse& Response)
 	{
-		if (bCoroutineWasSuccessful)
+		if (bTriggerLink)
 			Response.TriggerLink(LatentInfo.ExecutionFunction,
 			                     LatentInfo.Linkage, LatentInfo.CallbackTarget);
 		Response.DoneIf(true);
@@ -163,7 +163,7 @@ void FLatentPromise::CreateLatentAction()
 // This is a separate function so that template Init() doesn't need the type
 void FLatentPromise::CreateLatentAction(FLatentActionInfo&& LatentInfo)
 {
-	// The static_assert on coroutine_traits prevents this
+	// The static_assert on coroutine_traits and Init() logic prevent this
 	checkf(!PendingLatentCoroutine,
 	       TEXT("Internal error: multiple latent infos were not prevented"));
 
@@ -172,16 +172,16 @@ void FLatentPromise::CreateLatentAction(FLatentActionInfo&& LatentInfo)
 
 void FLatentPromise::Init()
 {
-	// This should have been an async promise without a LatentActionInfo
-	checkf(PendingLatentCoroutine,
-	       TEXT("Internal error: wrong coroutine promise type used"));
-
 	// Last resort if we got this far without a world
 	if (!World)
 	{
 		World = GWorld;
 		checkf(World, TEXT("Could not determine world for latent coroutine"));
 	}
+
+	// Handle being forced to latent without a FLatentActionInfo
+	if (!PendingLatentCoroutine)
+		CreateLatentAction();
 }
 
 FLatentPromise::~FLatentPromise()
@@ -321,11 +321,13 @@ FInitialSuspend FLatentPromise::initial_suspend()
 	return {FInitialSuspend::Resume};
 }
 
+template<bool bTriggerBP>
 FFinalSuspend FLatentPromise::final_suspend() noexcept
 {
-	// Too late for cancellations now, continue with BP
-	static_cast<FPendingLatentCoroutine*>(PendingLatentCoroutine)
-		->SetCoroutineWasSuccessful();
+	// Too late for cancellations now, continue with BP if requested
+	if constexpr (bTriggerBP)
+		static_cast<FPendingLatentCoroutine*>(PendingLatentCoroutine)
+			->RequestLink();
 
 	// Flags are overwritten, i.e., the coroutine is unconditionally reattached
 	LatentFlags = LF_Successful;
@@ -337,3 +339,5 @@ FFinalSuspend FLatentPromise::final_suspend() noexcept
 	// Otherwise, let FPendingLatentCoroutine deal with it when it's ticked.
 	return {IsInGameThread()};
 }
+template UE5CORO_API FFinalSuspend FLatentPromise::final_suspend<false>();
+template UE5CORO_API FFinalSuspend FLatentPromise::final_suspend<true>();

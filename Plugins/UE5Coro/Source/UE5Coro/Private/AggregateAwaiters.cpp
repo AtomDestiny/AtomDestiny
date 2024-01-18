@@ -95,8 +95,9 @@ FRaceAwaiter::FRaceAwaiter(TArray<TCoroutine<>>&& Array)
 				return;
 			Data->Index = i;
 
-			for (auto& C : Data->Handles)
-				C.Cancel();
+			for (int j = 0; j < Data->Handles.Num(); ++j)
+				if (j != i) // Cancel the others
+					Data->Handles[j].Cancel();
 
 			if (auto* Promise = Data->Promise)
 			{

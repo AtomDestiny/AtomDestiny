@@ -80,14 +80,6 @@ public:
 	 *  Has no effect on coroutines that have already completed. */
 	void Cancel();
 
-	/** Returns a delegate broadcasting this coroutine's completion for any
-	 *  reason, including being unsuccessful or canceled.
-	 *  This will be Broadcast() on the same thread where the coroutine is
-	 *	destroyed. */
-	[[deprecated("This method only works if the coroutine is not complete yet. "
-	             "Use ContinueWith instead.")]]
-	TMulticastDelegate<void()>& OnCompletion();
-
 	/** Blocks until the coroutine completes for any reason, including being
 	 *  unsuccessful or canceled.
 	 *  This could result in a deadlock if the coroutine wants to use the thread
@@ -96,8 +88,13 @@ public:
 	bool Wait(uint32 WaitTimeMilliseconds = MAX_uint32,
 	          bool bIgnoreThreadIdleStats = false) const;
 
-	/** Returns if the coroutine has run to completion or faulted. */
+	/** Returns true if the coroutine has ended for any reason, including normal
+	 *  completion, cancellation, or an unhandled exception. */
 	[[nodiscard]] bool IsDone() const;
+
+	/** Returns true if the coroutine ran to completion successfully.
+	 *  Cancellations after completion don't change this flag. */
+	[[nodiscard]] bool WasSuccessful() const;
 
 	/** Calls the provided functor when this coroutine is complete, including
 	 *  unsuccessful completions such as being canceled.<br>
