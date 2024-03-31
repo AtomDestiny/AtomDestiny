@@ -15,7 +15,7 @@ class AParticle;
 /// that implements IWeapon interface.
 ///
 UCLASS(Abstract)
-class AProjectileBase : public ACoroutineActor, public IProjectile
+class ATOMDESTINY_API AProjectileBase : public ACoroutineActor, public IProjectile
 {
     GENERATED_BODY()
 

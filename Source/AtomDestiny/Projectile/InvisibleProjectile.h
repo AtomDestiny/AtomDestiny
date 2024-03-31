@@ -9,7 +9,7 @@
 /// Represents 'non-render' shot. It can be used to deal damage and spawns impact particle prefab.
 ///
 UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
-class AInvisibleProjectile : public AProjectileBase
+class ATOMDESTINY_API AInvisibleProjectile : public AProjectileBase
 { 
     GENERATED_BODY()
 

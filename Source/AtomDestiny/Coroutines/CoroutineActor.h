@@ -10,7 +10,7 @@
 /// Represents adapter to CoroutinesRunner as UE Actor.
 /// 
 UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
-class ACoroutineActor: public AActor
+class ATOMDESTINY_API ACoroutineActor: public AActor
 {
     GENERATED_BODY()
     
