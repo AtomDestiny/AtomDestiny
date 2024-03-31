@@ -2,9 +2,9 @@
 
 #include <AtomDestiny/Core/Logger.h>
 
-TOptional<uint64_t> AtomDestiny::CoroutinesRunner::RunCoroutine(FAsyncCoroutine&& coroutine)
+TOptional<uint64_t> AtomDestiny::CoroutinesRunner::RunCoroutine(FAsyncCoroutine&& coroutine, UObject* owner)
 {
-    const uint64_t id = ++m_id;
+    const uint64_t id = ++Id;
 
     if (m_coroutines.Contains(id))
     {
@@ -12,11 +12,8 @@ TOptional<uint64_t> AtomDestiny::CoroutinesRunner::RunCoroutine(FAsyncCoroutine&
         return NullOpt;
     }
 
-    coroutine.ContinueWith([this, id] {
-        if (this != nullptr)
-        {
-            this->m_coroutines.Remove(id);
-        }
+    coroutine.ContinueWithWeak(owner, [this, id] {
+        this->m_coroutines.Remove(id);
     });
 
     m_coroutines.Add(id, std::move(coroutine));
