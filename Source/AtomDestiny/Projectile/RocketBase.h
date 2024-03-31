@@ -14,5 +14,5 @@ class ATOMDESTINY_API ARocketBase : public AProjectileBase
     GENERATED_BODY()
 
 public:
-    explicit ARocketBase(const FObjectInitializer& objectInitializer);
+    explicit ARocketBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 };
