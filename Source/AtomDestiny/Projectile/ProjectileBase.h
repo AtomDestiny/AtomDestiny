@@ -1,10 +1,8 @@
 ﻿#pragma once
 
-#include <AtomDestiny/Core/Macros.h>
-#include <AtomDestiny/Projectile/Projectile.h>
-#include <AtomDestiny/Coroutines/CoroutinesRunner.h>
-
-#include <GameFramework/Actor.h>
+#include "AtomDestiny/Core/Macros.h"
+#include "AtomDestiny/Projectile/Projectile.h"
+#include "AtomDestiny/Coroutines/CoroutineActor.h"
 
 #include "ProjectileBase.generated.h"
 
@@ -17,7 +15,7 @@ class AParticle;
 /// that implements IWeapon interface.
 ///
 UCLASS(Abstract)
-class AProjectileBase : public AActor, public AtomDestiny::CoroutinesRunner, public IProjectile
+class AProjectileBase : public ACoroutineActor, public IProjectile
 {
     GENERATED_BODY()
 

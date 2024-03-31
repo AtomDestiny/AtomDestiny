@@ -9,7 +9,7 @@
 #include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/Core/ADObject/Parameterizable.h>
 
-#include <AtomDestiny/Coroutines/CoroutinesRunner.h>
+#include <AtomDestiny/Coroutines/CoroutineComponent.h>
 
 #include "ADObject.generated.h"
 
@@ -19,7 +19,7 @@
 /// (Units, Buildings, Abilities, Weapons and so on).
 ///
 UCLASS(Abstract)
-class ATOMDESTINY_API UADObject : public UActorComponent, public AtomDestiny::CoroutinesRunner, public IParameterizable
+class ATOMDESTINY_API UADObject : public UCoroutineComponent, public IParameterizable
 {
     GENERATED_BODY()
 
@@ -82,9 +82,6 @@ protected:
 
     // enables or disables tick by state
     void SetTickEnabled(bool enable);
-
-    // called when Despawn to ObjectPool
-    virtual void Deactivate() override;
 
 private:
     

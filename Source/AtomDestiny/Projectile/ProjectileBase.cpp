@@ -5,7 +5,7 @@
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 
 AProjectileBase::AProjectileBase(const FObjectInitializer& objectInitializer):
-    AActor(objectInitializer)
+    ACoroutineActor(objectInitializer)
 {
 }
 
