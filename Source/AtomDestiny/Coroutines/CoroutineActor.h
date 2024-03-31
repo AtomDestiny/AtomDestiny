@@ -22,7 +22,7 @@ public:
     void StopAllCoroutines();
 
 protected:
-    void SetActorHiddenInGame(const bool isHidden) override;
+    virtual void SetActorHiddenInGame(const bool isHidden) override;
     
 private:
     AtomDestiny::CoroutinesRunner m_runner;
@@ -46,4 +46,14 @@ inline bool ACoroutineActor::StopCoroutine(const uint64_t id)
 inline void ACoroutineActor::StopAllCoroutines()
 {
     m_runner.StopAllCoroutines();
+}
+
+inline void ACoroutineActor::SetActorHiddenInGame(const bool isHidden)
+{
+    if (isHidden)
+    {
+        StopAllCoroutines();
+    }
+    
+    Super::SetActorHiddenInGame(isHidden);
 }
