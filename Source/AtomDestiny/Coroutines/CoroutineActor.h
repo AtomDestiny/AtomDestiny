@@ -23,6 +23,8 @@ public:
 
 protected:
     virtual void SetActorHiddenInGame(const bool isHidden) override;
+    virtual void OnEnabled() {}
+    virtual void OnDisabled() {}
     
 private:
     AtomDestiny::CoroutinesRunner m_runner;
@@ -50,10 +52,15 @@ inline void ACoroutineActor::StopAllCoroutines()
 
 inline void ACoroutineActor::SetActorHiddenInGame(const bool isHidden)
 {
+    Super::SetActorHiddenInGame(isHidden);
+    
     if (isHidden)
     {
         StopAllCoroutines();
+        OnDisabled();
     }
-    
-    Super::SetActorHiddenInGame(isHidden);
+    else
+    {
+        OnEnabled();
+    }
 }

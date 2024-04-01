@@ -1,3 +1,4 @@
+// ReSharper disable CppMemberFunctionMayBeStatic
 #include "ActorPool.h"
 #include "Despawner.h"
 
@@ -60,7 +61,6 @@ TWeakObjectPtr<AActor> ActorPool::Spawn(const TSubclassOf<AActor>& object)
     return Spawn(MakeWeakObjectPtr(object.GetDefaultObject()));
 }
 
-// ReSharper disable once CppMemberFunctionMayBeStatic
 void ActorPool::Despawn(TWeakObjectPtr<AActor> object) const
 {
     if (const auto poolMember = object->FindComponentByClass<UActorPoolMember>(); poolMember == nullptr)

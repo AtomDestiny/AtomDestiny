@@ -41,10 +41,9 @@ public:
     // Initializes base data and launches a projectile
     virtual void Launch() ABSTRACT_METHOD;
 
-private:
+protected:
     virtual void BeginPlay() override;
     
-protected:
     FWeaponParameters m_parameters;
     FProjectilePoints m_points;
     
