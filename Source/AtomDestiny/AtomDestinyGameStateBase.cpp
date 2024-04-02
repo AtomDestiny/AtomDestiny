@@ -124,11 +124,10 @@ void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& p
         const FVector impactPoint = GetImpactPoint(projectile, options);
         const UWorld* world = GetWorldFromWeaponParameters(weaponParameters);
 
-        TArray<FOverlapResult> collisionResult;
         FCollisionShape sphere;
         sphere.SetSphere(weaponParameters.explosionRadius);
         
-        if (world->OverlapMultiByObjectType(collisionResult, impactPoint, FQuat::Identity, FCollisionObjectQueryParams::DefaultObjectQueryParam, sphere))
+        if (TArray<FOverlapResult> collisionResult; world->OverlapMultiByObjectType(collisionResult, impactPoint, FQuat::Identity, FCollisionObjectQueryParams::DefaultObjectQueryParam, sphere))
         {
             std::unordered_set<AActor*> filteredActors;
 
@@ -157,17 +156,17 @@ void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& p
 
 void AAtomDestinyGameStateBase::AddDamageToState(const TScriptInterface<IParameters>& objectState, const FWeaponParameters& parameters)
 {
+    if (objectState == nullptr)
+        return;
+    
     double resultDamage = parameters.damage;
 
     if (parameters.criticalChance > 0 && parameters.criticalRate > 1)
     {
         resultDamage = CalculatePossibleCriticalDamage(parameters.criticalChance, parameters.criticalRate, resultDamage);
     }
-
-    if (objectState != nullptr)
-    {
-        objectState->AddDamage(resultDamage, parameters.weaponType, parameters.owner.Get());
-    }
+    
+    objectState->AddDamage(resultDamage, parameters.weaponType, parameters.owner.Get());
 }
 
 void AAtomDestinyGameStateBase::HandleBeginPlay()

@@ -23,8 +23,7 @@ protected:
     virtual void OnDisabled() override;
     virtual void NotifyActorBeginOverlap(AActor* other) override;
 
-    FAsyncCoroutine LockOnDelay();
-    FAsyncCoroutine LaunchDelay();
+    FAsyncCoroutine LockOn();
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Rocket max speed"))
     double m_speed = 6.0;

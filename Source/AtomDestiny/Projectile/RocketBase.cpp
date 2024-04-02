@@ -43,16 +43,24 @@ void ARocketBase::OnDisabled()
     // reset rigid body
 }
 
-FAsyncCoroutine ARocketBase::LockOnDelay()
+FAsyncCoroutine ARocketBase::LockOn()
 {
-    co_await Coroutines::Latent::Seconds(m_lockedTime);
-    m_locked = true;
-}
+    if (m_activationTime <= m_lockedTime)
+    {
+        co_await Coroutines::Latent::Seconds(m_activationTime);
+        m_launched = true;
 
-FAsyncCoroutine ARocketBase::LaunchDelay()
-{
-    co_await Coroutines::Latent::Seconds(m_activationTime);
-    m_launched = true;
+        co_await Coroutines::Latent::Seconds(m_lockedTime - m_activationTime);
+        m_locked = true;
+    }
+    else
+    {
+        co_await Coroutines::Latent::Seconds(m_lockedTime);
+        m_locked = true;
+
+        co_await Coroutines::Latent::Seconds(m_activationTime - m_lockedTime);
+        m_launched = true;
+    }
 }
 
 void ARocketBase::NotifyActorBeginOverlap(AActor*)
