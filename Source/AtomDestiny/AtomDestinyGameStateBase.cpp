@@ -118,10 +118,8 @@ void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& p
     {
         return;
     }
-    
-    const FWeaponParameters& weaponParameters = projectile->GetParameters();
 
-    if (weaponParameters.explosionRadius > 0)
+    if (const FWeaponParameters& weaponParameters = projectile->GetParameters(); weaponParameters.explosionRadius > 0)
     {
         const FVector impactPoint = GetImpactPoint(projectile, options);
         const UWorld* world = GetWorldFromWeaponParameters(weaponParameters);

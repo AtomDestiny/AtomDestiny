@@ -4,6 +4,8 @@
 
 #include "RocketBase.generated.h"
 
+class UBoxComponent;
+
 ///
 /// Represents basic rocket.
 /// It contains all common parameters to rocket and missile.
@@ -19,6 +21,7 @@ public:
 protected:
     virtual void BeginPlay() override;
     virtual void OnDisabled() override;
+    virtual void NotifyActorBeginOverlap(AActor* other) override;
 
     FAsyncCoroutine LockOnDelay();
     FAsyncCoroutine LaunchDelay();
@@ -43,6 +46,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Trace prefab"))
     TSubclassOf<AParticle> m_tracePrefab;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Box collider"))
+    TObjectPtr<UBoxComponent> m_boxCollider;
     
     bool m_locked = false;
     bool m_launched = false;

@@ -1,11 +1,23 @@
 ﻿#include "RocketBase.h"
 
+#include <Components/BoxComponent.h>
+
 #include <AtomDestiny/Particle/Particle.h>
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
+
+#include <AtomDestiny/AtomDestinyGameStateBase.h>
 
 ARocketBase::ARocketBase(const FObjectInitializer& objectInitializer):
     AProjectileBase(objectInitializer)
 {
+    if (RootComponent == nullptr)
+    {
+        m_boxCollider = objectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("BoxCollider"));
+        m_boxCollider->SetGenerateOverlapEvents(true);
+        m_boxCollider->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+        
+        RootComponent = m_boxCollider;
+    }
 }
 
 void ARocketBase::BeginPlay()
@@ -43,3 +55,13 @@ FAsyncCoroutine ARocketBase::LaunchDelay()
     m_launched = true;
 }
 
+void ARocketBase::NotifyActorBeginOverlap(AActor*)
+{
+    if (!m_launched)
+        return;
+
+    AtomDestiny::GetGameState(this)->AddDamage(this, EProjectileDamageOptions::ProjectilePoint);    // TODO: mb use Impact point instead
+    AtomDestiny::ObjectPool::Instance().Spawn(m_impactPrefab, m_points.impactPosition, FQuat::Identity);
+
+    AtomDestiny::ObjectPool::Instance().Despawn(this);
+}
