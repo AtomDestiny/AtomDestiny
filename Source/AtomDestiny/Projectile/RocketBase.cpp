@@ -2,7 +2,6 @@
 
 #include <Components/BoxComponent.h>
 
-#include <AtomDestiny/Particle/Particle.h>
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 
 #include <AtomDestiny/AtomDestinyGameStateBase.h>

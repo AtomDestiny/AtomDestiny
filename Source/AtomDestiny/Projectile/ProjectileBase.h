@@ -4,6 +4,8 @@
 #include "AtomDestiny/Projectile/Projectile.h"
 #include "AtomDestiny/Coroutines/CoroutineActor.h"
 
+#include <AtomDestiny/Particle/Particle.h>
+
 #include "ProjectileBase.generated.h"
 
 class AParticle;

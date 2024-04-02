@@ -54,4 +54,6 @@ protected:
     
     FVector m_rocketForward;
     double m_startLifeTime = 0;
+
+    TWeakObjectPtr<AActor> m_trace;
 };
