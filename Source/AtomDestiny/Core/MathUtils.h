@@ -9,15 +9,32 @@ namespace AtomDestiny
         // Calculates an angle between two vectors (Positions)
         static double Angle(const FVector& lhs, const FVector& rhs)
         {
-            const double sqrtLenght = FMath::Sqrt(lhs.SquaredLength() * rhs.SquaredLength());
+            const double sqrtLength = FMath::Sqrt(lhs.SquaredLength() * rhs.SquaredLength());
         
-            if (sqrtLenght < 1E-15)
+            if (sqrtLength < 1E-15)
                 return 0;
 
             const auto dot = FVector::DotProduct(lhs, rhs);
-            const double clampRes = FMath::Clamp(dot / sqrtLenght, -1, 1);
+            const double clampRes = FMath::Clamp(dot / sqrtLength, -1, 1);
             
             return FMath::Acos(clampRes) * 57.29578;
+        }
+
+        static FVector RotateTowards(const FVector& from, const FVector& to, const double maxRadiansDelta)
+        {
+            FVector fromDirection = from;
+            FVector toDirection = to;
+            
+            fromDirection.Normalize();
+            toDirection.Normalize();
+            
+            const double angleRadians = FGenericPlatformMath::Acos(FVector::DotProduct(fromDirection,toDirection));
+            const double resultAngleRadians = FGenericPlatformMath::Min(angleRadians, maxRadiansDelta);
+
+            const FVector axis = FVector::CrossProduct(fromDirection, toDirection);
+            const FQuat rotationIncrement { axis, resultAngleRadians }; // Quaternion.AngleAxis
+
+            return rotationIncrement * from;
         }
         
     } // namespace Vector
