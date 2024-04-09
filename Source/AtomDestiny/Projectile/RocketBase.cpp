@@ -72,3 +72,16 @@ void ARocketBase::NotifyActorBeginOverlap(AActor*)
 
     AtomDestiny::ObjectPool::Instance().Despawn(this);
 }
+
+void ARocketBase::Tick(float deltaSeconds)
+{
+    Super::Tick(deltaSeconds);
+
+    m_lifeTime -= static_cast<double>(deltaSeconds);
+    
+    if (m_lifeTime <= 0)
+    {
+        AtomDestiny::ObjectPool::Instance().Spawn(m_impactPrefab, GetActorTransform().GetLocation(), FQuat::Identity);
+        AtomDestiny::ObjectPool::Instance().Despawn(this);
+    }
+}

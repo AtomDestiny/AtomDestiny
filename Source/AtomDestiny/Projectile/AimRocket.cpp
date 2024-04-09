@@ -11,7 +11,12 @@ AAimRocket::AAimRocket(const FObjectInitializer& objectInitializer):
 
 void AAimRocket::Tick(float deltaSeconds)
 {
+    Super::Tick(deltaSeconds);
     
+    if (m_locked)
+    {
+        
+    }
 }
 
 void AAimRocket::Launch()

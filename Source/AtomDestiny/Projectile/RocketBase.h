@@ -22,16 +22,17 @@ protected:
     virtual void BeginPlay() override;
     virtual void OnDisabled() override;
     virtual void NotifyActorBeginOverlap(AActor* other) override;
+    virtual void Tick(float deltaSeconds) override;
 
     FAsyncCoroutine LockOn();
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Rocket max speed"))
     double m_speed = 6.0;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Time after launch to lock target"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Time after launch to lock target, seconds"))
     double m_lockedTime = 0.3;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Rocket life time after launch"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Rocket life time after launch, seconds"))
     double m_lifeTime = 10.0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Rocket angular speed after lock"))
