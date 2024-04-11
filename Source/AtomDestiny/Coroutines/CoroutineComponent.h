@@ -12,7 +12,7 @@
 /// CoroutineComponent mainly derived by ADObject.
 /// 
 UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
-class UCoroutineComponent : public UActorComponent
+class ATOMDESTINY_API UCoroutineComponent : public UActorComponent
 {
     GENERATED_BODY()
 

@@ -10,7 +10,7 @@
 /// Represents adapter to CoroutinesRunner as UE Actor.
 /// 
 UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
-class ACoroutineActor: public AActor
+class ATOMDESTINY_API ACoroutineActor: public AActor
 {
     GENERATED_BODY()
     
@@ -23,6 +23,8 @@ public:
 
 protected:
     virtual void SetActorHiddenInGame(const bool isHidden) override;
+    virtual void OnEnabled() {}
+    virtual void OnDisabled() {}
     
 private:
     AtomDestiny::CoroutinesRunner m_runner;
@@ -50,10 +52,15 @@ inline void ACoroutineActor::StopAllCoroutines()
 
 inline void ACoroutineActor::SetActorHiddenInGame(const bool isHidden)
 {
+    Super::SetActorHiddenInGame(isHidden);
+    
     if (isHidden)
     {
         StopAllCoroutines();
+        OnDisabled();
     }
-    
-    Super::SetActorHiddenInGame(isHidden);
+    else
+    {
+        OnEnabled();
+    }
 }

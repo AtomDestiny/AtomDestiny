@@ -23,10 +23,10 @@ struct FWeaponParameters
 {
     GENERATED_BODY()
     
-    double damage;
-    double criticalChance;
-    double criticalRate;
-    double explosionRadius;
+    double damage = 0;
+    double criticalChance = 0;
+    double criticalRate = 0;
+    double explosionRadius = 0;
     EWeaponType weaponType;
     TWeakObjectPtr<AActor> owner;
     TWeakObjectPtr<AActor> target;

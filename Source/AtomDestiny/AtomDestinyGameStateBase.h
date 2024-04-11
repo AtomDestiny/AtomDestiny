@@ -38,7 +38,7 @@ public:
     
     ///
     /// Adds damage from projectile to object with explosion point parameters.
-    /// Clients should be able to add damage only throught projectile implementation.
+    /// Clients should be able to add damage only through projectile implementation.
     ///
     UFUNCTION()
     static void AddDamage(const TScriptInterface<IProjectile>& projectile, EProjectileDamageOptions options = EProjectileDamageOptions::ProjectilePoint);
