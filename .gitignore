@@ -12,6 +12,12 @@
 /Plugins/Developer/RiderLink
 /Plugins/UE5Coro/Intermediate
 /Plugins/UE5Coro/Binaries
+/Plugins/UE5Coro/Plugins/UE5Coro/Binaries
+/Plugins/UE5Coro/Plugins/UE5Coro/Intermediate
+/Plugins/UE5Coro/Plugins/UE5CoroAI/Binaries
+/Plugins/UE5Coro/Plugins/UE5CoroAI/Intermediate
+/Plugins/UE5Coro/Plugins/UE5CoroGAS/Binaries
+/Plugins/UE5Coro/Plugins/UE5CoroGAS/Intermediate
 /AtomDestiny.uproject.DotSettings.user
 /Binaries
 /CMakeLists.txt.user
