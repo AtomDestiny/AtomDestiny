@@ -20,4 +20,4 @@
         if (!(CheckStatement)) \
                 LOG_FATAL(Format, ##__VA_ARGS__);
 
-#define ENSURE(Expression, Format, ...) UE_ENSURE_IMPL(&, false, Expression, Format, ##__VA_ARGS__)
+#define ENSURE(Expression, Format, ...) UE_ENSURE_IMPL2(&, false, Expression, Format, ##__VA_ARGS__)
