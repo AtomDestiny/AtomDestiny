@@ -22,15 +22,15 @@ public:
     
 private:
     
-    // Rigidbody min explosion power. Random value between min and max values
+    // Rigid body min explosion power. Random value between min and max values
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Min explosion power", AllowPrivateAccess = "true"))
     double m_minExplosionPower = 1000.0;
     
-    // Rigidbody max explosion power. Random value between min and max values
+    // Rigid body max explosion power. Random value between min and max values
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Max explosion power", AllowPrivateAccess = "true"))
     double m_maxExplosionPower = 3000.0;
     
-    // Rigidbody explosion radius
+    // Rigid body explosion radius
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Explosion radius", AllowPrivateAccess = "true"))
     double m_explosionRadius = 125.0;
     

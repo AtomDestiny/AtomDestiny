@@ -94,10 +94,25 @@ If your function (probably a UFUNCTION in this case but this is **not** checked
 or required) takes `FLatentActionInfo` or `FForceLatentCoroutine`, the coroutine
 is running in "latent mode".
 The world will be fetched from the first UObject* parameter that returns a valid
-pointer from GetWorld() with GWorld used as a last resort fallback.
-
+pointer from GetWorld().
+If there's a FLatentActionInfo parameter, its callback target will be used with
+the highest priority.
 The latent info will be registered with that world's latent action manager,
 there's no need to call FLatentActionManager::AddNewAction().
+
+> [!IMPORTANT]
+> A future update will simplify this logic to make it more performant, reliable,
+> and match BP behavior even more closely.
+> To prepare, make sure your world context object is the first parameter (`this`
+> for nonstatic members).
+
+The detected world context (most often `this` for non-static member UFUNCTIONs)
+will act as the latent action's owner, and the coroutine will enjoy a measure of
+lifetime tracking and protection from the latent action manager, mostly
+eliminating the need to check the validity of `this` after each `co_await`.
+There are still situations where the coroutine can resume on an invalid object,
+e.g., if the owning object was destroyed and the destructors of the coroutine's
+local variables are being run as a response.
 
 The output exec pin will fire in BP when the coroutine co_returns (most often
 this happens naturally as control leaves the scope of the function), but you can
@@ -183,9 +198,8 @@ caller when the callee coroutine finishes for any reason, **including**
 The return type of co_awaiting TCoroutine&lt;T&gt; is T.
 If the coroutine completed without co_returning a value, the result will be T().
 
-Async coroutines try to resume on a similar thread as they were on when co_await
-was issued (game thread to game thread, render thread to render thread, etc.),
-latent coroutines resume on the next tick after the callee ended.
+Async coroutines resume on the thread where the awaited coroutine finished.
+Latent coroutines resume on the next tick after the callee ended.
 co_awaiting a coroutine that's already complete will not release the current
 thread and will continue running with the result obtained synchronously.
 
@@ -270,3 +284,7 @@ TCoroutine<> UMyExampleClass::DontDoThisAtHome(UObject* Dangerous)
     SomeMemberVariable++; // Even `this` could be GC'd by now!
 }
 ```
+
+### Pending kill
+
+UE5Coro supports both `gc.PendingKillEnabled` 1 and the more modern setting of 0.

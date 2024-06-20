@@ -1,11 +1,13 @@
+// ReSharper disable CppMemberFunctionMayBeStatic
 #include "ActorPool.h"
 #include "Despawner.h"
 
-#include <vector>
+#include "AtomDestiny/Core/Logger.h"
+#include "AtomDestiny/Core/ActorComponentUtils.h"
+#include "AtomDestiny/Core/ActorUtils.h"
+#include "AtomDestiny/Core/ObjectPool/Details/ActorPoolMember.h"
 
-#include <AtomDestiny/Core/ActorComponentUtils.h>
-#include <AtomDestiny/Core/ActorUtils.h>
-#include <AtomDestiny/Core/ObjectPool/Details/ActorPoolMember.h>
+#include <vector>
 
 using namespace AtomDestiny;
 
@@ -28,6 +30,7 @@ TWeakObjectPtr<AActor> ActorPool::Spawn(TWeakObjectPtr<AActor> object, const FVe
 {
     if (object.Get() == nullptr)
     {
+        LOG_WARNING(TEXT("The Actor is invalid, it can not be spawned"));
         return nullptr;
     }
 
@@ -39,6 +42,7 @@ TWeakObjectPtr<AActor> ActorPool::Spawn(const TSubclassOf<AActor>& object, const
 {
     if (!IsValid(object))
     {
+        LOG_WARNING(TEXT("The subclassof is invalid, can not spawn an Actor"));
         return nullptr;
     }
     
@@ -54,20 +58,20 @@ TWeakObjectPtr<AActor> ActorPool::Spawn(const TSubclassOf<AActor>& object)
 {
     if (!IsValid(object))
     {
+        LOG_WARNING(TEXT("The subclassof is invalid, can not spawn an Actor"));
         return nullptr;
     }
 
     return Spawn(MakeWeakObjectPtr(object.GetDefaultObject()));
 }
 
-// ReSharper disable once CppMemberFunctionMayBeStatic
 void ActorPool::Despawn(TWeakObjectPtr<AActor> object) const
 {
     if (const auto poolMember = object->FindComponentByClass<UActorPoolMember>(); poolMember == nullptr)
     {
-        UE_LOG(LogTemp, Warning, TEXT("The Actor %s wasn't spawned from a pool. Destroying it instead."), GetData(object->GetName()));
+        LOG_WARNING(TEXT("The Actor %s wasn't spawned from a pool. Destroying it instead."), GetData(object->GetName()));
         
-        AtomDestiny::Utils::SetActorActive(object, false);
+        Utils::SetActorActive(object, false);
 
         object->SetLifeSpan(0);
         object->Destroy();

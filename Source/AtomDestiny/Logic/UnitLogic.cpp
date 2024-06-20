@@ -109,9 +109,7 @@ void UUnitLogic::CreateDestination()
         return;
     }
 
-    const TWeakObjectPtr<AActor> destination = AtomDestiny::GetGameState(GetOwner())->GetDestination(m_side);
-    
-    if (destination.Get() && m_behaviour == EUnitBehaviour::MoveToTransform)
+    if (const TWeakObjectPtr<AActor> destination = AtomDestiny::GetGameState(GetOwner())->GetDestination(m_side); destination.Get() && m_behaviour == EUnitBehaviour::MoveToTransform)
     {
         m_mainDestination = destination;
         m_currentDestination = m_mainDestination;
@@ -225,9 +223,7 @@ void UUnitLogic::MoveNearestEnemyIfCan()
 
 void UUnitLogic::ScanEnemy()
 {
-    TWeakObjectPtr<AActor> target = FindEnemy(m_minScanDistance, m_scanDistance);
-
-    if (target.IsValid())
+    if (TWeakObjectPtr<AActor> target = FindEnemy(m_minScanDistance, m_scanDistance); target.IsValid())
     {
         m_currentDestination = std::move(target);
         m_isTargetFound = true;

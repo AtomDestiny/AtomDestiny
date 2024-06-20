@@ -5,7 +5,7 @@
 #include <AtomDestiny/Core/Logger.h>
 
 UADObject::UADObject(const FObjectInitializer& objectInitializer):
-    UActorComponent(objectInitializer)
+    UCoroutineComponent(objectInitializer)
 {
     bWantsInitializeComponent = true;
 }
@@ -211,12 +211,6 @@ void UADObject::SetTickEnabled(bool enable)
     UActorComponent::PrimaryComponentTick.bStartWithTickEnabled = enable;
 
     Super::SetComponentTickEnabled(enable);
-}
-
-void UADObject::Deactivate()
-{
-    Super::Deactivate();
-    StopAllCoroutines();
 }
 
 void UADObject::RemoveNullParameters(EObjectParameters parameter)

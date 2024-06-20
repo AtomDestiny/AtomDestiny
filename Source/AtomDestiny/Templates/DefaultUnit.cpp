@@ -41,7 +41,8 @@ void ADefaultUnit::BeginPlay()
     Super::BeginPlay();
     
     // Setup Health bar here because HealthBarComponent creates it after BeginPlay 
-    auto hb = Cast<UHealthBar>(m_healthBar->GetUserWidgetObject());
-    hb->SetEnergyVisible(false);
-    m_unitParameters->SetHealthBarWidget(hb);
+    const auto healthBar = Cast<UHealthBar>(m_healthBar->GetUserWidgetObject());
+    healthBar->SetEnergyVisible(false);
+    
+    m_unitParameters->SetHealthBarWidget(healthBar);
 }

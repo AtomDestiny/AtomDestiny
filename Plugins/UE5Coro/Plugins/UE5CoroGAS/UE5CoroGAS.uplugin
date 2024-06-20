@@ -1,16 +1,16 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "1.9",
-	"FriendlyName": "UE5Coro",
-	"Description": "C++17/20 coroutine implementation for Unreal Engine",
+	"VersionName": "1.10.1",
+	"FriendlyName": "UE5Coro – Gameplay Ability System",
+	"Description": "C++17/20 coroutines for GAS",
 	"Category": "Programming",
 	"CreatedBy": "Laura Andelare",
 	"CreatedByURL": "https://github.com/landelare/ue5coro",
 	"DocsURL": "",
 	"MarketplaceURL": "",
 	"SupportURL": "",
-	"EnabledByDefault": true,
+	"EnabledByDefault": false,
 	"CanContainContent": false,
 	"CanContainVerse": false,
 	"IsBetaVersion": false,
@@ -18,19 +18,24 @@
 	"Installed": false,
 	"Modules": [
 		{
-			"Name": "UE5Coro",
+			"Name": "UE5CoroGAS",
 			"Type": "Runtime",
-			"LoadingPhase": "PostConfigInit"
+			"LoadingPhase": "PreDefault"
 		},
 		{
-			"Name": "UE5CoroK2",
+			"Name": "UE5CoroGASTests",
 			"Type": "UncookedOnly",
-			"LoadingPhase": "PostConfigInit"
+			"LoadingPhase": "PreDefault"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "GameplayAbilities",
+			"Enabled": true
 		},
 		{
-			"Name": "UE5CoroTests",
-			"Type": "UncookedOnly",
-			"LoadingPhase": "PostConfigInit"
+			"Name": "UE5Coro",
+			"Enabled": true
 		}
 	]
 }

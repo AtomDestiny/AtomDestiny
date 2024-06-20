@@ -1,10 +1,10 @@
 ﻿#pragma once
 
-#include <AtomDestiny/Core/Macros.h>
-#include <AtomDestiny/Projectile/Projectile.h>
-#include <AtomDestiny/Coroutines/CoroutinesRunner.h>
+#include "AtomDestiny/Core/Macros.h"
+#include "AtomDestiny/Projectile/Projectile.h"
+#include "AtomDestiny/Coroutines/CoroutineActor.h"
 
-#include <GameFramework/Actor.h>
+#include <AtomDestiny/Particle/Particle.h>
 
 #include "ProjectileBase.generated.h"
 
@@ -17,7 +17,7 @@ class AParticle;
 /// that implements IWeapon interface.
 ///
 UCLASS(Abstract)
-class AProjectileBase : public AActor, public AtomDestiny::CoroutinesRunner, public IProjectile
+class ATOMDESTINY_API AProjectileBase : public ACoroutineActor, public IProjectile
 {
     GENERATED_BODY()
 
@@ -43,10 +43,9 @@ public:
     // Initializes base data and launches a projectile
     virtual void Launch() ABSTRACT_METHOD;
 
-private:
+protected:
     virtual void BeginPlay() override;
     
-protected:
     FWeaponParameters m_parameters;
     FProjectilePoints m_points;
     

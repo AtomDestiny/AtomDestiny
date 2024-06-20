@@ -38,8 +38,21 @@ public:
     // Returns unit animation
     TScriptInterface<IAnimation> GetAnimation() const { return m_animation; }
     
-    // Returns ground transform
-    TWeakObjectPtr<USceneComponent> GetGroundPoint() const { return m_groundPoint; }
+    template <typename T>
+    auto GetGroundPoint() const
+    {
+        static_assert(std::is_same_v<T, USceneComponent> || std::is_same_v<T, FVector>);
+
+        if constexpr(std::is_same_v<T, USceneComponent>)
+        {
+            return m_groundPoint;
+        }
+        else
+        {
+            return m_groundPoint->GetComponentLocation();
+        }
+    }
+    
     void SetGroundPoint(TWeakObjectPtr<USceneComponent> groundPoint) { m_groundPoint = std::move(groundPoint); }
 
     // Returns current health
