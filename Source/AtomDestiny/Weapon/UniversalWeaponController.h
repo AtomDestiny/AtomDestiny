@@ -48,7 +48,7 @@ private:
     ///
     /// Particle prefab that spawns by weapon at firing.
     /// Current controller do not attack target with damage,
-    /// only projectile prefabs should make a real damage to target.
+    /// only projectile prefabs should make real damage to target.
     /// 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shot particle prefab", AllowPrivateAccess = "true"))
     TSubclassOf<AParticle> m_shotParticlePrefab;
