@@ -17,11 +17,11 @@ class ATOMDESTINY_API ULancerCannonAnimation final : public UWeaponAnimationBase
     GENERATED_BODY()
     
 public:
-    virtual void BeginPlay() override;
+    void BeginPlay() override;
     
-    virtual bool IsReady() const override;
-    virtual void Animate() override;
-    virtual void SetDefaultState() override;
+    bool IsReady() const override;
+    void Animate() override;
+    void SetDefaultState() override;
 
 private:
     TWeakObjectPtr<UAnimSingleNodeInstance> m_animation;
