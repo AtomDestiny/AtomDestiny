@@ -17,7 +17,7 @@ UTrainingMainWidget::UTrainingMainWidget(const FObjectInitializer& ObjectInitial
 
 static const std::vector<ESlateVisibility> VisibilityBool = { ESlateVisibility::Hidden, ESlateVisibility::Visible };
 
-void UTrainingMainWidget::SetupUnits(const TArray<EUnitType>& units)
+void UTrainingMainWidget::SetupUnits(const TArray<EADUnitType>& units)
 {
 	auto wdg = CreateWidget<UUnitCardWidget>(this, unitCardClass);
 	wdg->SetTitle("Unit 1");

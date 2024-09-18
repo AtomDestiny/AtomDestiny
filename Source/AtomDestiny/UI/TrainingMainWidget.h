@@ -31,7 +31,7 @@ public:
 	bool m_flSetupArmy = false;
 
 	UFUNCTION(BlueprintCallable)
-	void SetupUnits(const TArray<EUnitType>& units);
+	void SetupUnits(const TArray<EADUnitType>& units);
 
 	UFUNCTION(BlueprintCallable)
 	void ChangeMode(bool setupArmy);

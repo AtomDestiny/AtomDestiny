@@ -33,8 +33,6 @@ namespace AtomDestiny
         TOptional<FUnitInfo> GetInfo(const EADUnitType type) const;
 
         TArray<EADUnitType> GetUnits() const; // copy specially, you should not use this method frequently
-
-        TArray<EUnitType> GetUnits() const;
         
     private:
         TMap<EADUnitType, FUnitInfo> m_storage;
