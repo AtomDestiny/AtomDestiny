@@ -24,7 +24,7 @@ void UHunterAnimation::Walk()
 {
     if (m_animation.IsValid())
     {
-        m_animation->PlayAnim();
+        m_animation->PlayAnim(true);
     }
 }
 
