@@ -23,4 +23,7 @@ public:
     
 private:
     TWeakObjectPtr<UAnimSingleNodeInstance> m_animation;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Walking transition", AllowPrivateAccess = "true"))
+    bool m_isWalking = false;
 };
