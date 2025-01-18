@@ -31,12 +31,12 @@
 
 #pragma once
 
+#pragma region Private
 namespace UE5Coro
 {
 // Argument deduction on TCoroutine<>
 template<typename V>
-auto TCoroutine<>::FromResult(V&& Value)
-	-> TCoroutine<std::remove_cv_t<std::remove_reference_t<V>>>
+TCoroutine<std::decay_t<V>> TCoroutine<>::FromResult(V&& Value)
 {
 	co_return std::forward<V>(Value);
 }
@@ -53,6 +53,9 @@ const T& TCoroutine<T>::GetResult() const
 {
 	Wait();
 	auto* ExtrasT = static_cast<Private::TPromiseExtras<T>*>(Extras.get());
+#if UE5CORO_DEBUG
+	ensureMsgf(!ExtrasT->bMoveUsed, TEXT("GetResult called after MoveResult"));
+#endif
 	return ExtrasT->ReturnValue;
 }
 
@@ -69,86 +72,70 @@ T&& TCoroutine<T>::MoveResult()
 	return std::move(ExtrasT->ReturnValue);
 }
 
-template<typename F>
-auto TCoroutine<>::ContinueWith(F Continuation)
-	-> std::enable_if_t<std::is_invocable_v<F>>
+void TCoroutine<>::ContinueWith(std::invocable auto Fn)
 {
-	Extras->ContinueWith<void>(std::move(Continuation));
+	Extras->ContinueWith<void>(std::move(Fn));
 }
 
-template<typename U, typename F>
-auto TCoroutine<>::ContinueWithWeak(U Ptr, F Continuation)
-	-> std::enable_if_t<Private::TWeak<U>::value && std::is_invocable_v<F>>
+void TCoroutine<>::ContinueWithWeak(Private::TStrongPtr auto Ptr,
+                                    std::invocable auto Fn)
 {
-	ContinueWith([Weak = typename Private::TWeak<U>::weak(std::move(Ptr)),
-	              Fn = std::move(Continuation)]
+	using FWeak = Private::TWeak<decltype(Ptr)>;
+	ContinueWith([Weak = typename FWeak::weak(std::move(Ptr)),
+	              Fn = std::move(Fn)]
 	{
-		auto Strong = Private::TWeak<U>::Strengthen(Weak);
-		if (Private::TWeak<U>::Get(Strong))
+		auto Strong = FWeak::Strengthen(Weak);
+		if (FWeak::Get(Strong))
 			Fn();
 	});
 }
 
-template<typename U, typename F>
-auto TCoroutine<>::ContinueWithWeak(U Ptr, F Continuation)
-	-> std::enable_if_t<std::is_invocable_v<F, typename Private::TWeak<U>::ptr>>
+void TCoroutine<>::ContinueWithWeak(Private::TStrongPtr auto Ptr,
+	Private::TInvocableWithPtr<decltype(Ptr)> auto Fn)
 {
-	ContinueWith([Weak = typename Private::TWeak<U>::weak(std::move(Ptr)),
-	              Fn = std::move(Continuation)]
+	using FWeak = Private::TWeak<decltype(Ptr)>;
+	ContinueWith([Weak = typename FWeak::weak(std::move(Ptr)),
+	              Fn = std::move(Fn)]
 	{
-		auto Strong = Private::TWeak<U>::Strengthen(Weak);
-		if (auto* Raw = Private::TWeak<U>::Get(Strong))
+		auto Strong = FWeak::Strengthen(Weak);
+		if (auto* Raw = FWeak::Get(Strong))
 			std::invoke(Fn, Raw);
 	});
 }
 
 template<typename T>
-template<typename F>
-auto TCoroutine<T>::ContinueWith(F Continuation)
-	-> std::enable_if_t<std::is_invocable_v<F> || std::is_invocable_v<F, T>>
+void TCoroutine<T>::ContinueWith(std::invocable<T> auto Fn)
 {
-	// Handle functors that can't take (T) with the void specialization.
-	// This can't be an overload, it would be considered ambiguous.
-	if constexpr (!std::is_invocable_v<F, T>)
-		TCoroutine<>::ContinueWith(std::move(Continuation));
-	else
-		Extras->ContinueWith<T>(std::move(Continuation));
+	Extras->ContinueWith<T>(std::move(Fn));
 }
 
 template<typename T>
-template<typename U, typename F>
-auto TCoroutine<T>::ContinueWithWeak(U Ptr, F Continuation)
-	-> std::enable_if_t<Private::TWeak<U>::value &&
-	                    (std::is_invocable_v<F> || std::is_invocable_v<F, T>)>
+void TCoroutine<T>::ContinueWithWeak(Private::TStrongPtr auto Ptr,
+                                     std::invocable<T> auto Fn)
 {
-	if constexpr (!std::is_invocable_v<F, T>)
-		TCoroutine<>::ContinueWithWeak(std::move(Ptr), std::move(Continuation));
-	else
-		ContinueWith([Weak = typename Private::TWeak<U>::weak(std::move(Ptr)),
-		              Fn = std::move(Continuation)](const T& Result)
-		{
-			auto Strong = Private::TWeak<U>::Strengthen(Weak);
-			if (Private::TWeak<U>::Get(Strong))
-				std::invoke(Fn, Result);
-		});
+	using FWeak = Private::TWeak<decltype(Ptr)>;
+	ContinueWith([Weak = typename FWeak::weak(std::move(Ptr)),
+	              Fn = std::move(Fn)](const T& Result)
+	{
+		auto Strong = FWeak::Strengthen(Weak);
+		if (FWeak::Get(Strong))
+			std::invoke(Fn, Result);
+	});
 }
 
 template<typename T>
-template<typename U, typename F>
-auto TCoroutine<T>::ContinueWithWeak(U Ptr, F Continuation)
-	-> std::enable_if_t<std::is_invocable_v<F, typename Private::TWeak<U>::ptr> ||
-	                    std::is_invocable_v<F, typename Private::TWeak<U>::ptr, T>>
+void TCoroutine<T>::ContinueWithWeak(
+	Private::TStrongPtr auto Ptr,
+	Private::TInvocableWithPtr<decltype(Ptr), T> auto Fn)
 {
-	if constexpr (!std::is_invocable_v<F, typename Private::TWeak<U>::ptr, T>)
-		TCoroutine<>::ContinueWithWeak(std::move(Ptr), std::move(Continuation));
-	else
-		ContinueWith([Weak = typename Private::TWeak<U>::weak(std::move(Ptr)),
-		              Fn = std::move(Continuation)](const T& Result)
-		{
-			auto Strong = Private::TWeak<U>::Strengthen(Weak);
-			if (auto* Raw = Private::TWeak<U>::Get(Strong))
-				std::invoke(Fn, Raw, Result);
-		});
+	using FWeak = Private::TWeak<decltype(Ptr)>;
+	ContinueWith([Weak = typename FWeak::weak(std::move(Ptr)),
+	              Fn = std::move(Fn)](const T& Result)
+	{
+		auto Strong = FWeak::Strengthen(Weak);
+		if (auto* Raw = FWeak::Get(Strong))
+			std::invoke(Fn, Raw, Result);
+	});
 }
 }
 
@@ -156,27 +143,25 @@ auto TCoroutine<T>::ContinueWithWeak(U Ptr, F Continuation)
 // They're implemented in another header.
 namespace UE5Coro::Private
 {
-template<typename T> class TAsyncCoroutineAwaiter;
-template<typename T> class TLatentCoroutineAwaiter;
+template<typename, bool> class TAsyncCoroutineAwaiter;
+template<typename, bool> struct TLatentCoroutineAwaiter;
 
 template<typename T>
-struct Private::TAwaitTransform<FAsyncPromise, TCoroutine<T>>
+struct TAwaitTransform<FAsyncPromise, TCoroutine<T>>
 {
-	TAsyncCoroutineAwaiter<T> operator()(TCoroutine<T>);
+	TAsyncCoroutineAwaiter<T, false> operator()(const TCoroutine<T>&);
+	TAsyncCoroutineAwaiter<T, true> operator()(TCoroutine<T>&&);
 };
 
 template<typename T>
-struct Private::TAwaitTransform<FLatentPromise, TCoroutine<T>>
+struct TAwaitTransform<FLatentPromise, TCoroutine<T>>
 {
-	TLatentCoroutineAwaiter<T> operator()(TCoroutine<T>);
+	TLatentCoroutineAwaiter<T, false> operator()(const TCoroutine<T>&);
+	TLatentCoroutineAwaiter<T, true> operator()(TCoroutine<T>&&);
 };
 
 template<typename P>
-struct Private::TAwaitTransform<P, FAsyncCoroutine>
-{
-	auto operator()(FAsyncCoroutine Coro)
-	{
-		return TAwaitTransform<P, TCoroutine<>>()(std::move(Coro));
-	}
-};
+struct TAwaitTransform<P, FVoidCoroutine>
+	: TAwaitTransform<P, TCoroutine<>> { };
 }
+#pragma endregion

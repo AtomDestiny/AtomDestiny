@@ -31,7 +31,8 @@
 
 #include "UE5Coro/LatentTimeline.h"
 #include "UE5Coro/Coroutine.h"
-#include "UE5Coro/LatentAwaiters.h"
+#include "UE5Coro/LatentAwaiter.h"
+#include "UE5Coro/UnrealTypes.h"
 
 using namespace UE5Coro;
 using namespace UE5Coro::Latent;
@@ -40,74 +41,100 @@ namespace
 {
 // Force to latent, otherwise it would keep running even after the world is gone.
 template<auto GetTime>
-TCoroutine<> CommonTimeline(double From, double To, double Length,
-                            std::function<void(double)> Fn, bool bRunWhenPaused,
-                            FForceLatentCoroutine = {})
+TCoroutine<> CommonTimeline(const UObject* WorldContextObject,
+                            double From, double To, double Duration,
+                            std::function<void(double)> Update,
+                            bool bRunWhenPaused, FForceLatentCoroutine = {})
 {
 #if ENABLE_NAN_DIAGNOSTIC
-	if (FMath::IsNaN(From) || FMath::IsNaN(To) || FMath::IsNaN(Length))
+	if (FMath::IsNaN(From) || FMath::IsNaN(To) || FMath::IsNaN(Duration))
+	{
 		logOrEnsureNanError(TEXT("Latent timeline started with NaN parameter"));
+	}
 	// Not a NaN right now but it could lead to one after division
-	if (Length < SMALL_NUMBER)
+	if (Duration < SMALL_NUMBER)
+	{
 		logOrEnsureNanError(
-			TEXT("Latent timeline started with very short length"));
+			TEXT("Latent timeline started with very short duration"));
+	}
 #endif
 	// Clamp negative and small lengths to something that can be divided by
-	Length = FMath::Max(Length, SMALL_NUMBER); // UE_SMALL_NUMBER is not in 5.0
+	Duration = FMath::Max(Duration, UE_SMALL_NUMBER);
 
+	// These checks are mostly redundant, FLatentPromise checks similar things
 	checkf(IsInGameThread(),
 	       TEXT("Latent coroutines may only be started on the game thread"));
-	double Start = (GWorld->*GetTime)();
+	checkf(IsValid(WorldContextObject) && IsValid(WorldContextObject->GetWorld()),
+	       TEXT("Latent timeline started without valid world"));
+	auto* World = WorldContextObject->GetWorld();
+
+	double Start = (World->*GetTime)();
 	for (;;)
 	{
-		// Make sure the last call is exactly at Length
-		double Time = FMath::Min((GWorld->*GetTime)() - Start, Length);
+		// Make sure the last call is exactly at Duration
+		double Time = FMath::Min((World->*GetTime)() - Start, Duration);
 		// If the world is paused, only evaluate the function if asked.
-		if (bRunWhenPaused || !GWorld->IsPaused())
+		if (bRunWhenPaused || !World->IsPaused())
 		{
-			double Value = FMath::Lerp(From, To, Time / Length);
+			double Value = FMath::Lerp(From, To, Time / Duration);
 #if ENABLE_NAN_DIAGNOSTIC
 			// Incredibly high Time values could cause this to go wrong
-			if (UNLIKELY(!FMath::IsFinite(Value)))
+			if (!FMath::IsFinite(Value)) [[unlikely]]
+			{
 				logOrEnsureNanError(TEXT("Latent timeline derailed"));
+			}
 #endif
-			Fn(Value);
-			if (Time == Length) // This hard == will work due to Min()
+			Update(Value);
+			if (Time == Duration) // This hard equality will work due to Min()
 				co_return;
 		}
 		co_await NextTick();
+
+		checkf(WorldContextObject->GetWorld() == World,
+		       TEXT("Coroutine travel/rename between worlds is not supported"));
+		// How and why did this coroutine fail to self-cancel in this case?
+		checkf(IsValid(WorldContextObject) && IsValid(World),
+		       TEXT("Internal error: timeline still running on invalid world"));
 	}
 }
 }
 
-TCoroutine<> Latent::Timeline(double From, double To, double Length,
-                              std::function<void(double)> Fn,
+TCoroutine<> Latent::Timeline(const UObject* WorldContextObject,
+                              double From, double To, double Duration,
+                              std::function<void(double)> Update,
                               bool bRunWhenPaused)
 {
 	return CommonTimeline<&UWorld::GetTimeSeconds>(
-		From, To, Length, std::move(Fn), bRunWhenPaused);
+		WorldContextObject, From, To, Duration, std::move(Update),
+		bRunWhenPaused);
 }
 
-TCoroutine<> Latent::UnpausedTimeline(double From, double To, double Length,
-                                      std::function<void(double)> Fn,
+TCoroutine<> Latent::UnpausedTimeline(const UObject* WorldContextObject,
+                                      double From, double To, double Duration,
+                                      std::function<void(double)> Update,
                                       bool bRunWhenPaused)
 {
 	return CommonTimeline<&UWorld::GetUnpausedTimeSeconds>(
-		From, To, Length, std::move(Fn), bRunWhenPaused);
+		WorldContextObject, From, To, Duration, std::move(Update),
+		bRunWhenPaused);
 }
 
-TCoroutine<> Latent::RealTimeline(double From, double To, double Length,
-                                  std::function<void(double)> Fn,
+TCoroutine<> Latent::RealTimeline(const UObject* WorldContextObject,
+                                  double From, double To, double Duration,
+                                  std::function<void(double)> Update,
                                   bool bRunWhenPaused)
 {
 	return CommonTimeline<&UWorld::GetRealTimeSeconds>(
-		From, To, Length, std::move(Fn), bRunWhenPaused);
+		WorldContextObject, From, To, Duration, std::move(Update),
+		bRunWhenPaused);
 }
 
-TCoroutine<> Latent::AudioTimeline(double From, double To, double Length,
-                                   std::function<void(double)> Fn,
+TCoroutine<> Latent::AudioTimeline(const UObject* WorldContextObject,
+                                   double From, double To, double Duration,
+                                   std::function<void(double)> Update,
                                    bool bRunWhenPaused)
 {
 	return CommonTimeline<&UWorld::GetAudioTimeSeconds>(
-		From, To, Length, std::move(Fn), bRunWhenPaused);
+		WorldContextObject, From, To, Duration, std::move(Update),
+		bRunWhenPaused);
 }

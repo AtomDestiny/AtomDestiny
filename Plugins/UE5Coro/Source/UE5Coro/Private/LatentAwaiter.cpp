@@ -29,61 +29,82 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "UE5Coro/LatentAwaiter.h"
 #include "LatentActions.h"
-#include "UE5Coro/AsyncCoroutine.h"
-#include "UE5Coro/LatentAwaiters.h"
+#include "UE5Coro/Promise.h"
 #include "UE5Coro/UE5CoroSubsystem.h"
 
 using namespace UE5Coro::Private;
 
-namespace
+namespace UE5Coro::Private
 {
-struct [[nodiscard]] FPendingAsyncCoroutine final : FPendingLatentAction
+class [[nodiscard]] FPendingAsyncCoroutine final : public FPendingLatentAction
 {
 	FAsyncPromise* Promise;
-	FLatentAwaiter* Awaiter;
+	FLatentAwaiter Awaiter;
 
-	FPendingAsyncCoroutine(FAsyncPromise& Promise, FLatentAwaiter* Awaiter)
-		: Promise(&Promise), Awaiter(Awaiter) { }
+public:
+	FPendingAsyncCoroutine(FAsyncPromise& Promise,
+	                       const FLatentAwaiter& InAwaiter)
+		: Promise(&Promise), Awaiter(nullptr, nullptr)
+	{
+		std::memcpy(&Awaiter, &InAwaiter, sizeof(FLatentAwaiter));
+	}
+
 	UE_NONCOPYABLE(FPendingAsyncCoroutine);
 
 	virtual ~FPendingAsyncCoroutine() override
 	{
-		if (Promise)
-		{
-			// This class doesn't own the coroutine (its Latent counterpart does)
-			Promise->Cancel();
-			Promise->Resume(false); // No need to bypass cancellation holds
-		}
+		Awaiter.Clear(); // This is a non-owning copy, disarm its destructor
+		if (!Promise)
+			return;
+		// This class doesn't own the coroutine (its Latent counterpart does),
+		// no need for special forced cancellation to propagate destruction
+		Promise->Cancel();
+		Promise->Resume(); // The latent action ended, which is a kind of result
 	}
 
 	virtual void UpdateOperation(FLatentResponse& Response) override
 	{
-		if (!Awaiter->ShouldResume())
-			return;
+		checkf(Promise, TEXT("Internal error: update on null promise"));
 
-		Response.DoneIf(true);
+		// React to cancellations and the awaiter completing
+		if (Promise->ShouldCancel(false) || Awaiter.ShouldResume())
+		{
+			Response.DoneIf(true);
 
-		// Ownership moves back to the coroutine itself
-		checkf(Promise, TEXT("Internal error: resuming null coroutine"));
-		std::exchange(Promise, nullptr)->Resume();
+			// Ownership moves back to the coroutine itself
+			std::exchange(Promise, nullptr)->Resume();
+		}
 	}
 };
 }
 
-FLatentAwaiter::FLatentAwaiter(FLatentAwaiter&& Other) noexcept
-	: State(Other.State), Resume(Other.Resume)
+FLatentAwaiter::FLatentAwaiter(void* State, bool (*Resume)(void*, bool)) noexcept
+	: State(State), Resume(Resume)
 {
-	Other.State = nullptr;
-	Other.Resume = nullptr;
+	checkf(IsInGameThread(),
+	       TEXT("Latent awaiters may only be created on the game thread"));
+}
+
+FLatentAwaiter::FLatentAwaiter(FLatentAwaiter&& Other) noexcept
+	: State(std::exchange(Other.State, nullptr))
+	, Resume(std::exchange(Other.Resume, nullptr))
+{
+	checkf(IsInGameThread(),
+	       TEXT("Latent awaiters may only be moved on the game thread"));
 }
 
 FLatentAwaiter::~FLatentAwaiter()
 {
-	if (LIKELY(Resume))
+	checkf(IsInGameThread(),
+	       TEXT("Latent awaiters may only be destroyed on the game thread"));
+	if (Resume) [[likely]]
 		(*Resume)(State, true);
-	State = nullptr;
-	Resume = nullptr;
+#if UE5CORO_DEBUG
+	State = reinterpret_cast<void*>(0xEEEEEEEEEEEEEEEE);
+	Resume = reinterpret_cast<bool (*)(void*, bool)>(0xEEEEEEEEEEEEEEEE);
+#endif
 }
 
 bool FLatentAwaiter::ShouldResume()
@@ -98,10 +119,12 @@ void FLatentAwaiter::Suspend(FAsyncPromise& Promise)
 {
 	checkf(IsInGameThread(),
 	       TEXT("Latent awaiters may only be used on the game thread"));
+	checkf(::IsValid(GWorld),
+	       TEXT("Awaiting this can only be done in the context of a valid world"));
 
 	// Prepare a latent action on the subsystem and transfer ownership to that
 	auto* Sys = GWorld->GetSubsystem<UUE5CoroSubsystem>();
-	auto* Latent = new FPendingAsyncCoroutine(Promise, this);
+	auto* Latent = new FPendingAsyncCoroutine(Promise, *this);
 	auto LatentInfo = Sys->MakeLatentInfo();
 	GWorld->GetLatentActionManager().AddNewAction(LatentInfo.CallbackTarget,
 	                                              LatentInfo.UUID, Latent);
@@ -109,5 +132,7 @@ void FLatentAwaiter::Suspend(FAsyncPromise& Promise)
 
 void FLatentAwaiter::Suspend(FLatentPromise& Promise)
 {
-	Promise.SetCurrentAwaiter(this);
+	checkf(IsInGameThread(),
+	       TEXT("Latent awaiters may only be used on the game thread"));
+	Promise.SetCurrentAwaiter(*this);
 }

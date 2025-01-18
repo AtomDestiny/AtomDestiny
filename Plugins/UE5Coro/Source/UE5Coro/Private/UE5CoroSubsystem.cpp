@@ -50,7 +50,7 @@ bool FTwoLives::Release()
 bool FTwoLives::ShouldResume(void* State, bool bCleanup)
 {
 	auto* This = static_cast<FTwoLives*>(State);
-	if (UNLIKELY(bCleanup))
+	if (bCleanup) [[unlikely]]
 	{
 		This->Release();
 		return false;
@@ -72,7 +72,7 @@ FLatentActionInfo UUE5CoroSubsystem::MakeLatentInfo(FTwoLives* State)
 
 	// Lazy delegate binding in order to not affect
 	// projects that never use Chain/ChainEx.
-	if (UNLIKELY(!LatentActionsChangedHandle.IsValid()))
+	if (!LatentActionsChangedHandle.IsValid()) [[unlikely]]
 		LatentActionsChangedHandle =
 			FLatentActionManager::OnLatentActionsChanged().AddUObject(
 				this, &ThisClass::LatentActionsChanged);

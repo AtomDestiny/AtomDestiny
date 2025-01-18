@@ -33,48 +33,50 @@
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintNodeSpawner.h"
 #include "EdGraphSchema_K2.h"
-#include "UE5Coro/AsyncCoroutine.h"
-#include "UObject/Class.h"
-#include "UObject/Field.h"
-#include "UObject/UnrealType.h"
-#include "UObject/UObjectIterator.h"
+#include "Misc/EngineVersionComparison.h"
+#include "UE5Coro.h"
 
-#define LOCTEXT_NAMESPACE "UE5Coro"
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
+using ObjectTools = UK2Node_CallFunction;
+#else
+#include "ObjectTools.h"
+#endif
 
 void UK2Node_UE5CoroCallCoroutine::CustomizeNode(UEdGraphNode* NewNode, bool,
                                                  UFunction* Function)
 {
-	auto* This = CastChecked<ThisClass>(NewNode);
-	This->SetFromFunction(Function);
+	CastChecked<ThisClass>(NewNode)->SetFromFunction(Function);
 }
 
 void UK2Node_UE5CoroCallCoroutine::GetMenuActions(
 	FBlueprintActionDatabaseRegistrar& BlueprintActionDatabaseRegistrar) const
 {
-	auto* Struct = FAsyncCoroutine::StaticStruct();
-	// Sign up for every BPCallable UFUNCTION that returns a FAsyncCoroutine
+	auto* Struct = FVoidCoroutine::StaticStruct();
+	// Sign up for every BPCallable UFUNCTION returning FVoidCoroutine
 	for (auto* Fn : TObjectRange<UFunction>())
 		if (auto* Return = CastField<FStructProperty>(Fn->GetReturnProperty());
-		    UNLIKELY(Return && Return->Struct == Struct))
+		    Return && Return->Struct == Struct) [[unlikely]]
 		{
 			if (!Fn->HasAllFunctionFlags(FUNC_BlueprintCallable))
 				continue;
 
-			// Patch the UFUNCTION to hide the regular function call
+			// Patch the UFunction object to hide the regular function call
 			Fn->SetMetaData(FBlueprintMetadata::MD_BlueprintInternalUseOnly,
 			                TEXT("true"));
 
 			// Sign up to create a coroutine call K2Node instead
 			auto* BNS = UBlueprintNodeSpawner::Create(GetClass());
-			BNS->CustomizeNodeDelegate.BindWeakLambda(
-				Fn, &ThisClass::CustomizeNode, Fn);
+			BNS->CustomizeNodeDelegate.BindWeakLambda(Fn, &CustomizeNode, Fn);
 
 			auto& Menu = BNS->DefaultMenuSignature;
 			Menu.MenuName = Fn->GetDisplayNameText();
 			Menu.Category = GetDefaultCategoryForFunction(Fn, FText::GetEmpty());
 			if (Menu.Category.IsEmpty())
-				Menu.Category = LOCTEXT("CallCoroutine", "Call Coroutine");
-			Menu.Tooltip = FText::FromString(GetDefaultTooltipForFunction(Fn));
+				Menu.Category = NSLOCTEXT("UE5Coro", "CallCoroutine",
+				                          "Call Coroutine");
+			// The engine does the same FString->FText conversion
+			Menu.Tooltip = FText::FromString(
+				ObjectTools::GetDefaultTooltipForFunction(Fn));
 			Menu.Keywords = GetKeywordsForFunction(Fn);
 			Menu.Icon = GetIconAndTint(Menu.IconTint);
 			Menu.DocLink = GetDocumentationLink();
@@ -90,8 +92,8 @@ void UK2Node_UE5CoroCallCoroutine::PostParameterPinCreated(UEdGraphPin* Pin)
 
 	UObject* Type = Pin->PinType.PinSubCategoryObject.Get();
 
-	// Is this an output FAsyncCoroutine pin?
-	if (Pin->Direction == EGPD_Output && Type == FAsyncCoroutine::StaticStruct())
+	// Is this an output FVoidCoroutine pin?
+	if (Pin->Direction == EGPD_Output && Type == FVoidCoroutine::StaticStruct())
 		Pin->SafeSetHidden(true);
 
 	// Is this an input FForceLatentCoroutine pin?
@@ -99,5 +101,3 @@ void UK2Node_UE5CoroCallCoroutine::PostParameterPinCreated(UEdGraphPin* Pin)
 	    Type == FForceLatentCoroutine::StaticStruct())
 		Pin->SafeSetHidden(true);
 }
-
-#undef LOCTEXT_NAMESPACE

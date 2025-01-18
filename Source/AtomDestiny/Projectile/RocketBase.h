@@ -24,7 +24,7 @@ protected:
     virtual void NotifyActorBeginOverlap(AActor* other) override;
     virtual void Tick(float deltaSeconds) override;
 
-    FAsyncCoroutine LockOn();
+    FVoidCoroutine LockOn();
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Rocket max speed"))
     double m_speed = 6.0;

@@ -32,12 +32,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UE5Coro/Definitions.h"
-#include "UE5Coro/AsyncAwaiters.h"
+#include "UE5Coro/Definition.h"
+#include "UE5Coro/AsyncAwaiter.h"
 #include "UE5CoroDelegateCallbackTarget.generated.h"
 
-UCLASS(Hidden)
-class UUE5CoroDelegateCallbackTarget : public UObject
+UCLASS(Hidden, MinimalAPI)
+class UUE5CoroDelegateCallbackTarget final : public UObject
 {
 	GENERATED_BODY()
 
@@ -46,7 +46,5 @@ class UUE5CoroDelegateCallbackTarget : public UObject
 public:
 	void Init(std::function<void(void*)>);
 	virtual void ProcessEvent(UFunction*, void*) override;
-
-	UFUNCTION()
-	void Core();
+	UFUNCTION() void Core();
 };

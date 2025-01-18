@@ -1,241 +1,227 @@
 # UE5Coro
 
-These plugins implement C\+\+
-[coroutines](https://en.cppreference.com/w/cpp/language/coroutines) for
-Unreal Engine 5 with a focus on gameplay logic and BP integration.
+UE5Coro implements C++20
+[coroutine](https://en.cppreference.com/w/cpp/language/coroutines) support for
+Unreal Engine 5 with a focus on gameplay logic, convenience, and providing
+seamless integration with the engine.
 
 > [!NOTE]
-> You're looking at the 1.x branch.<br>
-> 2.0 is currently affected by multiple compiler bugs across MSVC and Clang.
-> Previews will not be published until it's usable out of the box.<br>
-> The changes required to update from 1.10 to 2.0 will be roughly as simple as
-> updating Unreal Engine by one or two versions.
+> Support for C++17, older compilers, platforms, and engine versions is
+> available in the legacy UE5Coro 1.x series.
 
-## Installation
+There's built-in support for easy authoring of latent UFUNCTIONs.
+Change the return type of a latent UFUNCTION to make it a coroutine, and you get
+all the FPendingLatentAction boilerplate for free, with BP-safe multithreading
+support out of the box:
+```cpp
+UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = LatentInfo))
+FVoidCoroutine Example(FLatentActionInfo LatentInfo)
+{
+    UE_LOGFMT(LogTemp, Display, "Started");
+    co_await UE5Coro::Latent::Seconds(1); // Does not block the game thread!
+    UE_LOGFMT(LogTemp, Display, "Done");
+    co_await UE5Coro::Async::MoveToThread(ENamedThreads::AnyThread);
+    auto Value = HeavyComputation();
+    co_await UE5Coro::Async::MoveToGameThread();
+    UseComputedValue(Value);
+}
+```
 
-Download the release that you wish to use from the
-[Releases](https://github.com/landelare/ue5coro/releases) page, and copy the
-contents of its Plugins folder into your project's Plugins folder.
+This coroutine will automatically track its target UObject across threads, so
+even if its owning object is destroyed before it finishes, it won't crash due to
+a dangling `this` on the game thread.
+
+Even the coroutine return type is hidden from BP to not disturb designers:
+
+![Latent Blueprint node for the Example function above](Docs/latent_node.png)
+
+Not interested in latent UFUNCTIONs?
+Not a problem.
+Raw C++ coroutines are also supported, with the exact same feature set.
+The backing implementation is selected at compile time; latent actions are
+only created if you actually use them.
+
+Change your return type to one of the coroutine types provided by this plugin,
+and complex asynchronous tasks that would be cumbersome to implement yourself
+become trivial one-liners that Just Work™, eliminating the need for callbacks
+and other handlers.
+
+* Enjoying the convenience of LoadSynchronous, but not the drawbacks?<br>
+  `UObject* HardPtr = co_await AsyncLoadObject(SoftPtr);` lets you keep only the
+  benefits (and your FPS).
+* What about spreading a heavy computation across multiple ticks?<br>
+  Add a `co_await NextTick();` inside a loop, and you're already done.
+  There's a time budget class that lets you specify the desired processing time
+  directly, and let the coroutine dynamically schedule itself.
+* Speaking of dynamic scheduling, throttling can be as simple as this:<br>
+  `co_await Ticks(bCloseToCamera ? 1 : 2);`
+* Why time slice on the game thread when you have multiple CPU cores eager to
+  work?<br>
+  Add `co_await MoveToTask();` to your function, and everything after that line
+  will run within the UE\:\:Tasks system on a worker thread.<br>
+* Want to go back?
+  It's `co_await MoveToGameThread();`.<br>
+  You're free to arbitrarily move between threads, and latent UFUNCTION
+  coroutines automatically move back to the game thread when they're done to
+  resume BP.
+* Still not convinced? Here's how to run an entire timeline:<br>
+  `co_await Timeline(this, From, To, Duration, YourUpdateLambdaGoesHere);`
+* Hard to please?
+  Here's how you can asynchronously wait for a DYNAMIC delegate without writing
+  a UFUNCTION just for the AddDynamic/BindDynamic, or being in a UCLASS, or any
+  class at all:<br>
+  `co_await YourDynamicDelegate;` (that's the entire code)
+* Oh, you wanted parameters with that delegate?<br>
+  `auto [Your, Parameters] = co_await YourDynamicDelegate;`
+
+This should give a taste of the significant reduction in code and effort that's
+possible with this plugin.
+Less and simpler code to write generally translates to fewer bugs, and
+asynchronous code being easy to write means there's no friction when it comes to
+doing things the right way, right away.
+
+Say goodbye to that good-enough-for-now™ LoadSynchronous that's still in
+Shipping, two updates later.
+With the task at hand reduced from "write all the StreamableManager boilerplate
+and move a part of the calling function into a callback" to merely "stick
+co_await in front of it", you'll finish quicker than it would've taken to come
+up with a justification for why the synchronous blocking version is somehow
+acceptable.
+
+There are plenty of additional features in the plugin, such as generators that
+let you avoid allocating an entire TArray just to return a variable number of
+values.
+Easier for you to write, easier for the compiler to
+[optimize](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1365r0.pdf),
+you only need O(1) storage instead of O(N) for N items, what's not to like?
+
+# List of features
+
+The following links will get you to the relevant pages of the documentation.
+Bookmark this section if you prefer to read the latest documentation in your
+browser, or read it straight from your IDE.
+Every API function is documented in the C++ headers, and the releases contain
+the Markdown source of the documentation that you're reading right now.
+
+## Coroutine authoring
+
+These features focus on exposing coroutines to the rest of the engine.
+
+* [Coroutines](Docs/Coroutine.md) (obviously)
+  * [Cancellation](Docs/Cancellation.md) support has its own page.
+* [Generators](Docs/Generator.md)
+* [Gameplay Ability System](Docs/GAS.md) integration works slightly differently.
+<!-- There is an additional, unlisted documentation page: Private.md -->
+
+## Unreal integration
+
+These wrappers provide convenient ways to consume engine features from your
+coroutines.
+
+* [AI](Docs/AI.md) integration (MoveTo, pathfinding...)
+* [Animation awaiters](Docs/Animation.md) (montages, notifies...)
+* [Async awaiters](Docs/Async.md) (multithreading, synchronization...)
+* [HTTP](Docs/Http.md) (asynchronous HTTP requests)
+* [Implicit awaiters](Docs/Implicit.md) (certain engine types are directly
+  co_awaitable, without wrappers)
+* [Latent awaiters](Docs/Latent.md) (game thread interaction, Delay...)
+  * [Asset loading](Docs/LatentLoad.md) (async loading soft pointers, bundles...)
+  * [Async collision queries](Docs/LatentCollision.md) (line traces, overlap checks...)
+  * [Latent chain](Docs/LatentChain.md) (universal latent action wrapper)
+  * [Tick time budget](Docs/LatentTickTimeBudget.md) (run for x ms per frame)
+* [Latent callbacks](Docs/LatentCallback.md) (interaction with the latent
+  action manager)
+
+> [!NOTE]
+> Most of these functions return undocumented internal types from the
+> `UE5Coro::Private` namespace.
+> Client code should not refer to anything from this namespace directly, as
+> everything within is subject to change in future versions, **without** prior
+> deprecation.
+>
+> Most often, this is not an issue: for example, the unnamed temporary object in
+> `co_await Something()` does not appear in source code.
+> If a `Private` return value needs to be stored, use `auto` (or a constrained
+> `TAwaitable auto`) to avoid writing the type's name.
+>
+> Directly calling the public-by-necessity C++ awaitable functions
+> `await_ready`, `await_suspend`, and `await_resume` is not supported on any
+> awaiter.
+
+## Additional features
+
+* [Aggregate awaiters](Docs/Aggregate.md) (WhenAny, WhenAll, Race...)
+* [Latent timelines](Docs/LatentTimeline.md) (smooth interpolation on tick)
+* [Threading primitives](Docs/Threading.md) (semaphores, events...)
+
+# Installation
+
+Only numbered releases are supported.
+Do not use the Git branches directly.
+
+Download the release that you've chosen, and extract it into your project's
+Plugins folder.
+Rename the folder to just UE5Coro, without a version number.
 Done correctly, you should end up with
 `YourProject\Plugins\UE5Coro\UE5Coro.uplugin`.
 
-_Note that 1.8 and earlier versions had a different folder structure._
-_Refer to the README.md file from your chosen release for matching instructions._
+> [!NOTE]
+> Please refer to the release's own README if you're using 1.x.
+> It had a different method of installation involving multiple plugins.
 
 ## Project setup
 
-Depending on your targeted language/engine version, you might need additional
-setup to enable coroutines in your compiler:
+Your project might use some legacy settings that need to be removed to unlock
+C++20 support, which otherwise comes as standard in new projects made in
+Unreal Engine 5.3 or later.
 
-### C++17
+In your **Target.cs** files (all of them), make sure that you're using the
+latest settings and include order version:
 
-In your **Target.cs** files for projects where you wish to use coroutines,
-add this line:
 ```c#
-bEnableCppCoroutinesForEvaluation = true;
+DefaultBuildSettings = BuildSettingsVersion.Latest;
+IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
 ```
 
-_Potential UE5.1 bug:_ if you're building the engine from source and it seems to
-be rebuilding itself for no reason once you've done the Target.cs change above,
-edit TargetRules.cs in the engine instead so that this flag is true by default.
+If you're using the legacy `bEnableCppCoroutinesForEvaluation` flag, that's not
+needed anymore, and it should no longer be explicitly turned on; doing so may
+cause issues.
+It is recommended to remove all references to it from your build files.
 
-### C++20, BuildSettingsVersion.V3 or older
-
-In modules where you wish to use coroutines, add or change this line in the
-corresponding **Build.cs** file:
-```c#
-CppStandard = CppStandardVersion.Cpp20;
-```
-
-### C++20, BuildSettingsVersion.V4
-
-No additional setup is required.
+If you're setting `CppStandard` to `CppStandardVersion.Cpp17` in a Build.cs
+file... don't :)
 
 ## Usage
 
-The UE5Coro plugin containing core functionality is enabled by default.
 Reference the `"UE5Coro"` module from your Build.cs as you would any other
-module and `#include "UE5Coro.h"`.
+C++ module, and use `#include "UE5Coro.h"`.
+The plugin itself does not need to be enabled.
 
-Other plugins, such as UE5CoroAI, UE5CoroGAS need to be manually enabled and
-referenced normally: e.g., `"UE5CoroAI"` in Build.cs, `#include "UE5CoroAI.h"`
-in your code.
-All UE5Coro plugins follow this pattern of providing a single header.
+Some functionality is in optional modules that need to be referenced separately.
+For instance, Gameplay Ability System support needs `"UE5CoroGAS"` in Build.cs,
+and `#include "UE5CoroGAS.h"`.
+The core UE5Coro module only depends on engine modules that are enabled by
+default.
 
-Using these meta-headers is the recommended and supported approach.
-You may opt to IWYU the various smaller headers, but no guidance is given as to
-which feature requires which header.
-IDEs most commonly used with Unreal Engine are known to fail to suggest the
-correct header for some features.
+> [!IMPORTANT]
+> Do not directly #include any other header, only the one matching the module's
+> name.
+> Major IDEs used with Unreal Engine are known to get header suggestions wrong.
+> If you add UE5Coro.h to your PCH, you can make it available everywhere.
 
-## Feature overview
+# Updates
 
-Click these links for the detailed description of the main features provided
-by these plugins, or keep reading for a few highlights.
+To update, delete UE5Coro from your project's Plugins folder, and install the
+new version using the instructions above.
 
-### UE5Coro
+# Packaging
 
-* [Async coroutines](Docs/Async.md) control their own resumption by awaiting
-various awaiter objects. They can be used to implement BP latent actions such as
-Delay, or as a generic fork in code execution like AsyncTask, but not
-necessarily involving multithreading.
-  * [Cancellation](Docs/Cancellation.md) support has its own page.
-* [Generators](Docs/Generator.md) are caller-controlled and return a variable
-number of results without having to allocate and go through a temporary TArray.
-* [Overview of built-in awaiters](Docs/Awaiters.md) that you can use with async
-coroutines.
+Packaging UE5Coro separately (from the Plugins window) is not needed, and not
+supported.
 
-### UE5CoroAI
+# Removal
 
-* [AI module and navigation system](Docs/AI.md) integration.
-
-### UE5CoroGAS
-
-* [Gameplay Ability System](Docs/GAS.md) integration.
-
-## Async coroutine examples
-
-Return `UE5Coro::TCoroutine<>` from a function to make it coroutine enabled and
-support co_await inside.
-UFUNCTIONs need to use the `FAsyncCoroutine` wrapper.
-
-Having a `FLatentActionInfo` parameter makes the coroutine implement a BP latent
-action.
-You do not need to do anything with this parameter, just have it and UE5Coro
-will register it with the latent action manager.
-World context objects are also supported and automatically processed.
-It's recommended to have them as the first parameter.
-Don't forget the necessary UFUNCTION metadata to make this a latent node in BP!
-
-```cpp
-UFUNCTION(BlueprintCallable, Meta = (Latent, LatentInfo = "LatentInfo"))
-FAsyncCoroutine AExampleActor::Latent(FLatentActionInfo LatentInfo)
-{
-    // This will *not* block the game thread for a second!
-    co_await UE5Coro::Latent::Seconds(1.0);
-    OneSecondLater();
-}
-```
-
-The returned struct has no use in BP and is automatically hidden:
-![AExampleActor::Latent as a BP node](Docs/latent_node.png)
-
-You're not limited to BP latent actions, or UCLASS members:
-
-```cpp
-UE5Coro::TCoroutine<> MyGlobalHelperFunction()
-{
-    co_await UE5Coro::Latent::Seconds(1.0);
-    OneSecondLater();
-}
-```
-
-Or even regular functions:
-
-```cpp
-void Example(int Value)
-{
-    auto Lambda = [Value]() -> UE5Coro::TCoroutine<int>
-    {
-        co_await UE5Coro::Tasks::MoveToTask();
-        co_return PerformExpensiveTask(Value);
-    };
-    int ExpensiveResult = Lambda().GetResult();
-}
-```
-
-Both BP latent actions and free-running asynchronous coroutines have a unified
-feature set: you can seamlessly co_await the same things from both and if
-needed, your BP latent action becomes a threading placeholder or additional
-behind-the-scenes latent actions are started as needed.
-
-BP Latent actions are considered complete for BP when control leaves the scope
-of the coroutine body completely, either implicitly (running to the final `}`)
-or explicitly via `co_return;`.
-
-Asynchronous coroutines (in both modes) synchronously return to their callers at
-the first co_await or co_return that they encounter and the rest of the function
-body runs either independently (in async mode) or through the latent action
-manager (in latent mode).
-
-Everything co_awaitable works in every asynchronous coroutine, regardless of its
-BP integration:
-
-```cpp
-using namespace UE5Coro;
-
-UFUNCTION(BlueprintCallable, Meta = (Latent, LatentInfo = "LatentInfo"))
-FAsyncCoroutine UExampleFunctionLibrary::K2_Foo(FLatentActionInfo LatentInfo)
-{
-    // You can freely hop between threads even though this is BP:
-    co_await Async::MoveToThread(ENamedThreads::AnyBackgroundThreadNormalTask);
-    DoExpensiveThingOnBackgroundThread();
-
-    // However, awaiting latent actions has to be started from the game thread:
-    co_await Async::MoveToGameThread();
-    co_await Latent::Seconds(1.0f);
-}
-```
-
-There are various other engine features with coroutine support including some
-engine types that are made directly co_awaitable in `TCoroutine`s.
-Check out the [Awaiters](Docs/Awaiters.md) page for an overview.
-
-## Generator examples
-
-Generators can be used to return an arbitrary number of items from a function
-without having to pass them through temp arrays, etc.
-In C# they're known as iterators.
-
-Returning `UE5Coro::TGenerator<T>` makes a function coroutine enabled,
-supporting `co_yield`:
-
-```cpp
-using namespace UE5Coro;
-
-TGenerator<FString> MakeParkingSpaces(int Num)
-{
-    for (int i = 1; i <= Num; ++i)
-        co_yield FString::Printf(TEXT("🅿️ %d"), i);
-}
-
-// Elsewhere
-for (const FString& Str : MakeParkingSpaces(123))
-    Process(Str);
-```
-
-co_yield and co_await cannot be mixed.
-Asynchronous coroutines control their own execution and wait for certain events,
-while generators are caller-controlled and yield values on demand.
-
-In particular, it's not guaranteed that your generator function body will even
-run to completion if your caller decides to stop early.
-This enables scenarios where generators may co_yield an infinite number of
-elements and callers only taking a finite few:
-
-```cpp
-using namespace UE5Coro;
-
-TGenerator<int> NotTrulyInfinite()
-{
-    FString WillBeDestroyed = TEXT("Read on");
-    int* Dangerous = new int;
-    for (;;)
-        co_yield 1;
-    delete Dangerous;
-}
-
-// Elsewhere:
-TGenerator<int> Generator = NotTrulyInfinite();
-for (int i = 0; i < 5; ++i)
-    Generator.Resume();
-```
-
-In this case, your coroutine stack will be unwound when the TGenerator object
-is destroyed, and the destructors of locals within the coroutine run like usual,
-as if the last `co_yield` was a `throw` (but no exceptions are involved).
-
-In the example above, the FString will be freed but the `delete` line will never
-run.
-Use RAII or helpers such as `ON_SCOPE_EXIT` if you expect to not run to
-completion.
+To remove the plugin from your project, reimplement all your coroutines without
+its functionality, remove all references to the plugin and its modules, and add
+a core redirect from `/Script/UE5CoroK2.K2Node_UE5CoroCallCoroutine` to
+`/Script/BlueprintGraph.K2Node_CallFunction`.

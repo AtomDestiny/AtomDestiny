@@ -230,7 +230,7 @@ bool UWeaponBase::CheckRaycastToTarget(const FVector& from, const TWeakObjectPtr
     return false;
 }
 
-FAsyncCoroutine UWeaponBase::FiringDelay()
+FVoidCoroutine UWeaponBase::FiringDelay()
 {
     co_await Coroutines::Latent::Seconds(m_reloadTime);
     

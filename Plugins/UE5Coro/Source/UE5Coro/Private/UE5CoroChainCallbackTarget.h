@@ -32,7 +32,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UE5Coro/Definitions.h"
+#include "UE5Coro/Definition.h"
 #include "UE5CoroChainCallbackTarget.generated.h"
 
 namespace UE5Coro::Private
@@ -40,9 +40,9 @@ namespace UE5Coro::Private
 class FTwoLives;
 }
 
-UCLASS(Hidden, Within = UE5CoroSubsystem)
-class UE5CORO_API UUE5CoroChainCallbackTarget : public UObject,
-                                                public FTickableGameObject
+UCLASS(Hidden, MinimalAPI, Within = UE5CoroSubsystem)
+class UUE5CoroChainCallbackTarget final : public UObject,
+                                          public FTickableGameObject
 {
 	GENERATED_BODY()
 
@@ -55,8 +55,7 @@ public:
 	[[nodiscard]] int32 GetExpectedLink() const;
 
 	/** Signals the coroutine suspended with this linkage that it may resume. */
-	UFUNCTION()
-	void Core(int32 Link);
+	UFUNCTION() void Core(int32 Link);
 
 #pragma region FTickableGameObject overrides
 	virtual ETickableTickType GetTickableTickType() const override;

@@ -16,7 +16,7 @@ void AInvisibleProjectile::Launch()
     RunCoroutine(GenerateImpact());
 }
 
-FAsyncCoroutine AInvisibleProjectile::GenerateImpact()
+FVoidCoroutine AInvisibleProjectile::GenerateImpact()
 {
     co_await Coroutines::Latent::Seconds(m_damageDelay);
 

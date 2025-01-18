@@ -31,34 +31,35 @@
 
 #include "TestWorld.h"
 #include "Misc/AutomationTest.h"
-#include "UE5Coro/CoroutineAwaiters.h"
+#include "UE5Coro.h"
 
 using namespace UE5Coro;
+using namespace UE5Coro::Latent;
 using namespace UE5Coro::Private;
 using namespace UE5Coro::Private::Test;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLatentReturnTest, "UE5Coro.Return.Latent",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAsyncReturnTest, "UE5Coro.Return.Async",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
-#if defined(_MSC_VER) && _MSC_VER >= 1930
-// MSVC workaround - DoTest is not a coroutine but it won't compile without this
-template<>
-struct stdcoro::coroutine_traits<void, FAutomationTestBase&>
-{
-	using promise_type =
-	    UE5Coro::Private::TCoroutinePromise<void, FAsyncPromise>;
-};
-#endif
-
 namespace
 {
+struct FCopyCounter
+{
+	int C = 0;
+	FCopyCounter() = default;
+	FCopyCounter(const FCopyCounter& Other) : C(Other.C + 1) { }
+	FCopyCounter(FCopyCounter&& Other) : C(std::exchange(Other.C, -99)) { }
+	void operator=(const FCopyCounter& Other) { C = Other.C + 1; }
+	void operator=(FCopyCounter&& Other) { C = std::exchange(Other.C, -99); }
+};
+
 template<typename... T>
 void DoTest(FAutomationTestBase& Test)
 {
@@ -67,8 +68,8 @@ void DoTest(FAutomationTestBase& Test)
 	{
 		auto A = World.Run(CORO_R(int) { co_return 1; });
 		auto B = World.Run(CORO_R(int) { co_return 1.0; });
-		Test.TestEqual(TEXT("Return value passthrough"), A.MoveResult(), 1);
-		Test.TestEqual(TEXT("Implicit conversion"), B.MoveResult(), 1);
+		Test.TestEqual("Return value passthrough", A.MoveResult(), 1);
+		Test.TestEqual("Implicit conversion", B.MoveResult(), 1);
 	}
 
 	{
@@ -81,7 +82,7 @@ void DoTest(FAutomationTestBase& Test)
 				co_return true;
 			});
 		});
-		Test.TestTrue(TEXT("co_await result"), bSuccess);
+		Test.TestTrue("co_await result", bSuccess);
 	}
 
 	{
@@ -94,12 +95,11 @@ void DoTest(FAutomationTestBase& Test)
 				co_return true;
 			});
 		});
-		Test.TestTrue(TEXT("co_await result"), bSuccess);
+		Test.TestTrue("co_await result", bSuccess);
 	}
 
 	{
-		bool bSuccess = false;
-		bool bInnerReturned = false;
+		bool bSuccess = false, bInnerReturned = false;
 		World.Run(CORO
 		{
 			bSuccess = co_await World.Run(CORO_R(bool)
@@ -108,56 +108,66 @@ void DoTest(FAutomationTestBase& Test)
 				co_return true;
 			});
 		});
-		Test.TestTrue(TEXT("Inner returned"), bInnerReturned);
-		Test.TestTrue(TEXT("co_await result"), bSuccess);
+		Test.TestTrue("Inner returned", bInnerReturned);
+		Test.TestTrue("co_await result", bSuccess);
 	}
 
 	{
 		bool bInnerComplete = false;
 		auto Coro = World.Run(CORO_R(TArray<int>)
 		{
-			std::function<void()> func{ [&bInnerComplete] { bInnerComplete = true; } };
 			auto InnerCoro = World.Run(CORO_R(TArray<int>)
 			{
-				struct ScopeGuard
-				{
-					explicit ScopeGuard(std::function<void()> func): guard(std::move(func)) {}
-					~ScopeGuard() { guard(); }
-					
-					std::function<void()> guard;
-				};
-				
-				ScopeGuard guard { std::move(func) };
-				co_await Latent::NextTick();
+				ON_SCOPE_EXIT { bInnerComplete = true; };
+				co_await NextTick();
 				co_return {1, 2, 3};
 			});
 
 			for (int i = 0; i < 2; ++i) // Test double await
 			{
 				decltype(auto) Array = co_await InnerCoro; // lvalue
-				static_assert(std::is_same_v<decltype(Array), TArray<int>>);
-				Test.TestEqual(TEXT("Array Num"), Array.Num(), 3);
-				Test.TestEqual(TEXT("Array[0]"), Array[0], 1);
-				Test.TestEqual(TEXT("Array[1]"), Array[1], 2);
-				Test.TestEqual(TEXT("Array[2]"), Array[2], 3);
+				static_assert(std::same_as<decltype(Array), TArray<int>>);
+				Test.TestEqual("Array Num", Array.Num(), 3);
+				Test.TestEqual("Array[0]", Array[0], 1);
+				Test.TestEqual("Array[1]", Array[1], 2);
+				Test.TestEqual("Array[2]", Array[2], 3);
 			}
 
 			co_return {4};
 		});
 		World.EndTick();
-		Test.TestFalse(TEXT("Inner not complete yet"), bInnerComplete);
+		Test.TestFalse("Inner not complete yet", bInnerComplete);
 		World.Tick(); // NextTick
 		IF_CORO_LATENT
 		{
-			Test.TestFalse(TEXT("Outer not complete yet"), Coro.IsDone());
-			Test.TestTrue(TEXT("Inner complete"), bInnerComplete);
+			Test.TestFalse("Outer not complete yet", Coro.IsDone());
+			Test.TestTrue("Inner complete", bInnerComplete);
 			World.Tick(); // Outer completion
 		}
-		Test.TestTrue(TEXT("Outer complete"), Coro.IsDone());
-		Test.TestTrue(TEXT("Outer successful"), Coro.WasSuccessful());
+		Test.TestTrue("Outer complete", Coro.IsDone());
+		Test.TestTrue("Outer successful", Coro.WasSuccessful());
 		auto Array = Coro.MoveResult();
-		Test.TestEqual(TEXT("Outer array Num"), Array.Num(), 1);
-		Test.TestEqual(TEXT("Outer array[0]"), Array[0], 4);
+		Test.TestEqual("Outer array Num", Array.Num(), 1);
+		Test.TestEqual("Outer array[0]", Array[0], 4);
+	}
+
+	{
+		bool bDone = false;
+		World.Run(CORO
+		{
+			auto Coro1 = World.Run(CORO_R(FCopyCounter) { co_return {}; });
+			auto Coro2 = World.Run(CORO_R(FCopyCounter) { co_return {}; });
+			auto Copied = co_await Coro1;
+			auto Moved = co_await std::move(Coro2);
+			// These values are intentionally very strict and assume perfect RVO
+			Test.TestEqual("Copied", Copied.C, 1);
+			Test.TestEqual("Moved", Moved.C, 0);
+			bDone = true;
+		});
+		IF_CORO_LATENT
+			FTestHelper::PumpGameThread(World, [&] { return bDone; });
+		else
+			Test.TestTrue("Instant async completion", bDone);
 	}
 }
 }

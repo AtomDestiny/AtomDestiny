@@ -33,44 +33,54 @@
 #include "UE5CoroTestObject.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Misc/AutomationTest.h"
-#include "UE5Coro/AggregateAwaiters.h"
-#include "UE5Coro/LatentAwaiters.h"
+#include "UE5Coro.h"
 
 using namespace std::placeholders;
 using namespace UE5Coro;
+using namespace UE5Coro::Latent;
 using namespace UE5Coro::Private::Test;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAsyncChainTest, "UE5Coro.Chain.Async",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLatentChainTest, "UE5Coro.Chain.Latent",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
 namespace
 {
+TCoroutine<> ChainTest(FAutomationTestBase& Test, FLatentActionInfo, int Value1,
+                       int& Value2)
+{
+	Test.TestEqual("Value1", Value1, 1);
+	Test.TestEqual("Value2", Value2, 2);
+	co_await NextTick();
+	Value2 = 3;
+}
+
 template<typename... T>
 void DoTest(FAutomationTestBase& Test)
 {
 	FTestWorld World;
 	int State = 0;
 
-	// The order between Chain and the chained latent actions' Ticks is not
-	// fixed, so allow one extra tick if needed
+	// The order between Chain and the chained latent actions' Ticks is
+	// determined by the latent action manager, so allow one extra tick if
+	// they happen to be processed backwards
 	auto DoubleTick = [&](int ExpectedState, float DeltaSeconds)
 	{
 		World.Tick(DeltaSeconds);
 		if (State != ExpectedState)
 			World.Tick(0);
-		Test.TestEqual(TEXT("Latent state"), State, ExpectedState);
+		Test.TestEqual("Latent state", State, ExpectedState);
 	};
 
 	auto ExpectSuccess = [&](bool bValue)
 	{
-		Test.TestTrue(TEXT("Chain not aborted"), bValue);
+		Test.TestTrue("Chain not aborted", bValue);
 	};
 
 	{
@@ -78,19 +88,14 @@ void DoTest(FAutomationTestBase& Test)
 		World.Run(CORO
 		{
 			State = 1;
-#if UE5CORO_PRIVATE_LATENT_CHAIN_IS_OK
-			ExpectSuccess(co_await Latent::Chain(
+			ExpectSuccess(co_await Chain(
 				&UKismetSystemLibrary::DelayUntilNextTick));
-#else
-			ExpectSuccess(co_await Latent::ChainEx(
-				&UKismetSystemLibrary::DelayUntilNextTick, _1, _2));
-#endif
 			State = 2;
-			ExpectSuccess(co_await Latent::ChainEx(
+			ExpectSuccess(co_await ChainEx(
 				&UKismetSystemLibrary::DelayUntilNextTick, _1, _2));
 			State = 3;
 		});
-		Test.TestEqual(TEXT("Initial state"), State, 1);
+		Test.TestEqual("Initial state", State, 1);
 		DoubleTick(2, 0);
 		DoubleTick(3, 0);
 	}
@@ -100,21 +105,15 @@ void DoTest(FAutomationTestBase& Test)
 		World.Run(CORO
 		{
 			State = 1;
-			ExpectSuccess(co_await Latent::ChainEx(
+			ExpectSuccess(co_await ChainEx(
 				&UKismetSystemLibrary::Delay, _1, 1, _2));
 			State = 2;
-#if UE5CORO_PRIVATE_LATENT_CHAIN_IS_OK
-			ExpectSuccess(co_await Latent::Chain(&UKismetSystemLibrary::Delay,
-				1));
-#else
-			ExpectSuccess(co_await Latent::ChainEx(&UKismetSystemLibrary::Delay,
-				_1, 1, _2));
-#endif
+			ExpectSuccess(co_await Chain(&UKismetSystemLibrary::Delay, 1));
 			State = 3;
 		});
-		Test.TestEqual(TEXT("Initial state"), State, 1);
+		Test.TestEqual("Initial state", State, 1);
 		World.Tick(0.5);
-		Test.TestEqual(TEXT("Half state"), State, 1);
+		Test.TestEqual("Half state", State, 1);
 		DoubleTick(2, 1);
 		DoubleTick(3, 1.01);
 	}
@@ -124,21 +123,14 @@ void DoTest(FAutomationTestBase& Test)
 		World.Run(CORO
 		{
 			State = 1;
-			auto* Obj = NewObject<UUE5CoroTestObject>();
+			auto* Obj = NewObject<UUE5CoroTestObject>(World);
 			TStrongObjectPtr<UObject> KeepAlive(Obj);
-#if UE5CORO_PRIVATE_LATENT_CHAIN_IS_OK
-			ExpectSuccess(co_await Latent::Chain(&UUE5CoroTestObject::Latent,
-				Obj));
-#else
-			ExpectSuccess(co_await Latent::ChainEx(&UUE5CoroTestObject::Latent,
-				Obj, _2));
-#endif
+			ExpectSuccess(co_await Chain(Obj, &UUE5CoroTestObject::Latent));
 			State = 2;
-			ExpectSuccess(co_await Latent::ChainEx(&UUE5CoroTestObject::Latent,
-				Obj, _2));
+			ExpectSuccess(co_await ChainEx(&UUE5CoroTestObject::Latent, Obj, _2));
 			State = 3;
 		});
-		Test.TestEqual(TEXT("Initial state"), State, 1);
+		Test.TestEqual("Initial state", State, 1);
 		DoubleTick(2, 0);
 		DoubleTick(3, 0);
 	}
@@ -147,25 +139,51 @@ void DoTest(FAutomationTestBase& Test)
 		State = -1;
 		World.Run(CORO
 		{
-#if UE5CORO_PRIVATE_LATENT_CHAIN_IS_OK
-			// The next line passes 0 instead of 1 on older versions of MSVC
-			auto Chain1 = Latent::Chain(&UKismetSystemLibrary::Delay, 1);
-			auto Chain2 =
-				Latent::Chain(&UKismetSystemLibrary::DelayUntilNextTick);
-#else
-			auto Chain1 =
-				Latent::ChainEx(&UKismetSystemLibrary::Delay, _1, 1, _2);
-			auto Chain2 = Latent::ChainEx(
-				&UKismetSystemLibrary::DelayUntilNextTick, _1, _2);
-#endif
+			auto Chain1 = Chain(&UKismetSystemLibrary::Delay, 1);
+			auto Chain2 = Chain(&UKismetSystemLibrary::DelayUntilNextTick);
 			State = 0;
 			State = co_await WhenAny(std::move(Chain1), std::move(Chain2));
 		});
 		World.EndTick();
-		Test.TestEqual(TEXT("Initial state"), State, 0);
+		Test.TestEqual("Initial state", State, 0);
 		DoubleTick(1, 0);
 		World.Tick(2);
 		World.Tick(2);
+	}
+
+	{
+		State = -1;
+		World.Run(CORO
+		{
+			int Value = 2;
+			auto Awaiter = Chain(&ChainTest, Test, 1, Value);
+			Test.TestEqual("No lvalue write yet", Value, 2);
+			State = 0;
+			ExpectSuccess(co_await Awaiter);
+			Test.TestEqual("Lvalue changed", Value, 3);
+			State = 1;
+		});
+		World.EndTick();
+		Test.TestEqual("Initial state", State, 0);
+		DoubleTick(1, 0);
+	}
+
+	{
+		State = -1;
+		World.Run(CORO
+		{
+			int Value = 2;
+			auto Awaiter = ChainEx(&ChainTest, std::ref(Test), _2, 1,
+			                       std::ref(Value));
+			Test.TestEqual("No lvalue write yet", Value, 2);
+			State = 0;
+			ExpectSuccess(co_await Awaiter);
+			Test.TestEqual("Lvalue changed", Value, 3);
+			State = 1;
+		});
+		World.EndTick();
+		Test.TestEqual("Initial state", State, 0);
+		DoubleTick(1, 0);
 	}
 }
 }

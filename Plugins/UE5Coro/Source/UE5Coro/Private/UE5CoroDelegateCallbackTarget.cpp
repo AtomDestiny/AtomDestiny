@@ -39,12 +39,12 @@ void UUE5CoroDelegateCallbackTarget::Init(std::function<void(void*)> InFn)
 void UUE5CoroDelegateCallbackTarget::ProcessEvent(UFunction*, void* Parms)
 {
 	// This might also be caused by a multithreaded race condition
-	checkf(Fn, TEXT("Internal error: Unexpected early or double callback"));
+	checkf(Fn, TEXT("Internal error: unexpected early or double callback"));
 	std::exchange(Fn, nullptr)(Parms);
 	MarkAsGarbage(); // Prevent further calls from dynamic delegates
 }
 
 void UUE5CoroDelegateCallbackTarget::Core()
 {
-	check(!"Internal error: This function should never run");
+	check(!"Internal error: this function should never run");
 }

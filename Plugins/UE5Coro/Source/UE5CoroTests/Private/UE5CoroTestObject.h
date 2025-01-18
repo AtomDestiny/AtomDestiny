@@ -32,9 +32,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UE5Coro/Definitions.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "UE5Coro/LatentAwaiters.h"
+#include "UE5Coro.h"
 #include "UE5CoroTestObject.generated.h"
 
 class UUE5CoroTestObject;
@@ -45,7 +44,7 @@ DECLARE_DYNAMIC_MULTICAST_SPARSE_DELEGATE_TwoParams(
 	FUE5CoroTestSparseParamsDelegate, UUE5CoroTestObject, SparseParamsDelegate,
 	int, A, int&, B);
 
-UCLASS(MinimalAPI, Hidden)
+UCLASS(Hidden, MinimalAPI, Within = World)
 class UUE5CoroTestObject : public UObject
 {
 	GENERATED_BODY()
@@ -53,24 +52,20 @@ class UUE5CoroTestObject : public UObject
 public:
 	UPROPERTY(BlueprintAssignable)
 	FUE5CoroTestSparseDelegate SparseDelegate;
+
 	UPROPERTY(BlueprintAssignable)
 	FUE5CoroTestSparseParamsDelegate SparseParamsDelegate;
 
 	std::function<void()> Callback;
 
-	UFUNCTION()
-	void Core()
-	{
-		if (Callback)
-			Callback();
-	}
+	UFUNCTION() void Core() { if (Callback) Callback(); }
 
-	virtual UWorld* GetWorld() const override { return GWorld; }
+	virtual UWorld* GetWorld() const override { return GetTypedOuter<UWorld>(); }
 
 	void Latent(FLatentActionInfo LatentInfo)
 	{
 		UKismetSystemLibrary::DelayUntilNextTick(this, LatentInfo);
 	}
 
-	FAsyncCoroutine ObjectDestroyedTest(int&, bool&, bool&, FLatentActionInfo);
+	FVoidCoroutine ObjectDestroyedTest(int&, bool&, bool&, FLatentActionInfo);
 };

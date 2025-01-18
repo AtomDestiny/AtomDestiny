@@ -32,21 +32,21 @@
 #include "HttpModule.h"
 #include "TestWorld.h"
 #include "Misc/AutomationTest.h"
-#include "UE5Coro/AsyncAwaiters.h"
-#include "UE5Coro/HttpAwaiters.h"
-#include "UE5Coro/LatentAwaiters.h"
-#include "UE5Coro/TaskAwaiters.h"
+#include "Misc/EngineVersionComparison.h"
+#include "UE5Coro.h"
 
 using namespace UE5Coro;
+using namespace UE5Coro::Async;
+using namespace UE5Coro::Http;
 using namespace UE5Coro::Private::Test;
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHttpAsyncTest, "UE5Coro.Http.Async",
-                                 EAutomationTestFlags::ApplicationContextMask |
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHttpAsyncTest, "UE5Coro.HTTP.Async",
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHttpLatentTest, "UE5Coro.Http.Latent",
-                                 EAutomationTestFlags::ApplicationContextMask |
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHttpLatentTest, "UE5Coro.HTTP.Latent",
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
@@ -57,9 +57,6 @@ void DoTest(FAutomationTestBase& Test)
 {
 	FTestWorld World;
 
-	// Unsuccessful requests up to 5.2 have responses, 5.3 changed it to nullptr
-	constexpr bool bExpectResponse = ENGINE_MINOR_VERSION <= 2;
-
 	std::atomic<bool> bDone = false;
 	World.Run(CORO
 	{
@@ -67,15 +64,15 @@ void DoTest(FAutomationTestBase& Test)
 		// We're not testing HTTP, just the awaiter
 		Request->SetURL(TEXT(".invalid"));
 		Request->SetTimeout(0.01);
-		auto Awaiter = Http::ProcessAsync(Request);
+		auto Awaiter = ProcessAsync(Request);
 		auto AwaiterCopy = Awaiter;
 		auto [Response, bSuccess] = co_await AwaiterCopy;
-		Test.TestFalse(TEXT("Success"), bSuccess);
-		Test.TestEqual(TEXT("Response"), !!Response, bExpectResponse);
+		Test.TestFalse("Failed copy", bSuccess);
+		Test.TestFalse("No response from copy", static_cast<bool>(Response));
 		bSuccess = true;
 		Tie(Response, bSuccess) = co_await Awaiter;
-		Test.TestFalse(TEXT("Success"), bSuccess);
-		Test.TestEqual(TEXT("Response"), !!Response, bExpectResponse);
+		Test.TestFalse("Failed original", bSuccess);
+		Test.TestFalse("No response from original", static_cast<bool>(Response));
 		bDone = true;
 	});
 	FTestHelper::PumpGameThread(World, [&] { return bDone.load(); });
@@ -83,17 +80,17 @@ void DoTest(FAutomationTestBase& Test)
 	bDone = false;
 	World.Run(CORO
 	{
-		co_await Tasks::MoveToTask();
+		co_await MoveToTask();
 		FPlatformMisc::MemoryBarrier();
-		Test.TestFalse(TEXT("Not in game thread 1"), IsInGameThread());
+		Test.TestFalse("Not in game thread 1", IsInGameThread());
 		auto Request = FHttpModule::Get().CreateRequest();
 		// We're not testing HTTP, just the awaiter
 		Request->SetURL(TEXT(".invalid"));
 		Request->SetTimeout(0.01);
-		auto [Response, bSuccess] = co_await Http::ProcessAsync(Request);
-		Test.TestFalse(TEXT("Not in game thread 2"), IsInGameThread());
-		Test.TestFalse(TEXT("Success"), bSuccess);
-		Test.TestEqual(TEXT("Response"), !!Response, bExpectResponse);
+		auto [Response, bSuccess] = co_await ProcessAsync(Request);
+		Test.TestFalse("Not in game thread 2", IsInGameThread());
+		Test.TestFalse("Success", bSuccess);
+		Test.TestFalse("Response", static_cast<bool>(Response));
 		FPlatformMisc::MemoryBarrier();
 		bDone = true;
 	});
@@ -106,10 +103,29 @@ void DoTest(FAutomationTestBase& Test)
 		// We're not testing HTTP, just the awaiter
 		Request->SetURL(TEXT(".invalid"));
 		Request->SetTimeout(0.01);
-		[[maybe_unused]] auto Unused = Http::ProcessAsync(Request);
-		co_await Latent::NextTick(); // Run() requires some co_await
+		[[maybe_unused]] auto Unused = ProcessAsync(Request);
+		co_return;
 	});
 	World.Tick(); // Nothing to test here besides not crashing
+
+	// To patch the bug in 5.3, make sure the HTTP thread is ticked
+#if UE_VERSION_NEWER_THAN(5, 3, 2)
+	bDone = false;
+	World.Run(CORO
+	{
+		auto Request = FHttpModule::Get().CreateRequest();
+		Request->SetDelegateThreadPolicy(
+			EHttpRequestDelegateThreadPolicy::CompleteOnHttpThread);
+		Request->SetURL(TEXT(".invalid"));
+		Request->SetTimeout(0.01);
+		co_await Http::ProcessAsync(Request);
+		FPlatformMisc::MemoryBarrier();
+		Test.TestFalse("Not GT", IsInGameThread());
+		FPlatformMisc::MemoryBarrier();
+		bDone = true;
+	});
+	FTestHelper::PumpGameThread(World, [&bDone] { return bDone.load(); });
+#endif
 }
 }
 
