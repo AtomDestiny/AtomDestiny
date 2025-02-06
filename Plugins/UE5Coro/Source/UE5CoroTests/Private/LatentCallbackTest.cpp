@@ -32,98 +32,182 @@
 #include "TestWorld.h"
 #include "UE5CoroTestObject.h"
 #include "Misc/AutomationTest.h"
-#include "UE5Coro/Cancellation.h"
-#include "UE5Coro/LatentAwaiters.h"
-#include "UE5Coro/LatentCallbacks.h"
+#include "UE5Coro.h"
 
 using namespace UE5Coro;
+using namespace UE5Coro::Async;
+using namespace UE5Coro::Latent;
 using namespace UE5Coro::Private::Test;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLatentCallbackTest, "UE5Coro.Latent.Callbacks",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
+                                 EAutomationTestFlags::HighPriority |
+                                 EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLatentCompletionTest, "UE5Coro.Latent.Completion",
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
-FAsyncCoroutine UUE5CoroTestObject::ObjectDestroyedTest(
+
+FVoidCoroutine UUE5CoroTestObject::ObjectDestroyedTest(
 	int& State, bool& bAbnormal, bool& bCanceled, FLatentActionInfo)
 {
 	State = 1;
-	Latent::FOnActionAborted A([&] { State = 2; });
-	Latent::FOnObjectDestroyed B([&] { State = 3; });
-	Latent::FOnAbnormalExit C([&] { bAbnormal = true; });
+	FOnActionAborted A([&] { State = 2; });
+	FOnObjectDestroyed B([&] { State = 3; });
+	FOnAbnormalExit C([&] { bAbnormal = true; });
 	FOnCoroutineCanceled D([&] { bCanceled = true; });
-	co_await Latent::Ticks(10);
+	co_await Ticks(10);
 	State = 10;
 }
 
 bool FLatentCallbackTest::RunTest(const FString& Parameters)
 {
-	int State = 0;
-	bool bCanceled = false;
-	{
-		FTestWorld World;
-		World.Run([&](FLatentActionInfo) -> TCoroutine<>
-		{
-			FOnCoroutineCanceled _([&] { bCanceled = true; });
-			ON_SCOPE_EXIT { State = 2; };
-			State = 1;
-			co_await Latent::NextTick();
-		});
-		TestEqual(TEXT("Initial state"), State, 1);
-	}
-	TestEqual(TEXT("On scope exit"), State, 2);
-	TestTrue(TEXT("Canceled"), bCanceled);
+	FTestWorld World;
 
 	{
-		FTestWorld World;
-		bool bAbnormal = false;
-		bCanceled = false;
-		auto* Object = NewObject<UUE5CoroTestObject>();
+		int State = 0;
+		bool bCanceled = false;
+		{
+			FTestWorld World2;
+			World2.Run([&](FLatentActionInfo) -> TCoroutine<>
+			{
+				FOnCoroutineCanceled _([&] { bCanceled = true; });
+				ON_SCOPE_EXIT { State = 2; };
+				State = 1;
+				co_await NextTick();
+			});
+			TestEqual("Initial state", State, 1);
+		} // Destroy the world, force canceling the coroutine in it
+		TestEqual("On scope exit", State, 2);
+		TestTrue("Canceled", bCanceled);
+	}
+
+	{
+		int State = 0;
+		bool bAbnormal = false, bCanceled = false;
+		TStrongObjectPtr Object(NewObject<UUE5CoroTestObject>(World));
 		Object->ObjectDestroyedTest(State, bAbnormal, bCanceled,
-		                            {0, 0, TEXT("Core"), Object});
+		                            {0, 0, TEXT("Core"), Object.Get()});
 		World.EndTick();
-		TestEqual(TEXT("Initial state"), State, 1);
+		TestEqual("Initial state", State, 1);
 		for (int i = 0; i < 10; ++i)
 		{
-			TestEqual(TEXT("No early resume"), State, 1);
+			TestEqual("No early resume", State, 1);
 			World.Tick();
 		}
-		TestEqual(TEXT("Resumed state"), State, 10);
+		TestEqual("Resumed state", State, 10);
 		World.Tick();
-		TestFalse(TEXT("Normal exit"), bAbnormal);
-		TestFalse(TEXT("Not canceled"), bCanceled);
+		TestFalse("Normal exit", bAbnormal);
+		TestFalse("Not canceled", bCanceled);
 	}
 
 	{
-		FTestWorld World;
-		bool bAbnormal = false;
-		bCanceled = false;
-		auto* Object = NewObject<UUE5CoroTestObject>();
+		int State = 0;
+		bool bAbnormal = false, bCanceled = false;
+		TStrongObjectPtr Object(NewObject<UUE5CoroTestObject>(World));
 		Object->ObjectDestroyedTest(State, bAbnormal, bCanceled,
-		                            {0, 0, TEXT("Core"), Object});
-		TestEqual(TEXT("Initial state"), State, 1);
+		                            {0, 0, TEXT("Core"), Object.Get()});
+		TestEqual("Initial state", State, 1);
 		auto& LAM = World->GetLatentActionManager();
-		LAM.RemoveActionsForObject(Object);
+		LAM.RemoveActionsForObject(Object.Get());
 		World.Tick();
-		TestEqual(TEXT("On action aborted"), State, 2);
-		TestTrue(TEXT("Abnormal exit"), bAbnormal);
-		TestTrue(TEXT("Implicitly canceled"), bCanceled);
+		TestEqual("On action aborted", State, 2);
+		TestTrue("Abnormal exit", bAbnormal);
+		TestTrue("Implicitly canceled", bCanceled);
 	}
 
 	{
-		FTestWorld World;
-		bool bAbnormal = false;
-		bCanceled = false;
-		auto* Object = NewObject<UUE5CoroTestObject>();
-		Object->ObjectDestroyedTest(State, bAbnormal, bCanceled,
-		                            {0, 0, TEXT("Core"), Object});
-		TestEqual(TEXT("Initial state"), State, 1);
-		Object->MarkAsGarbage();
-		CollectGarbage(RF_NoFlags);
+		int State = 0;
+		bool bAbnormal = false, bCanceled = false;
+		{
+			TStrongObjectPtr Object(NewObject<UUE5CoroTestObject>(World));
+			Object->ObjectDestroyedTest(State, bAbnormal, bCanceled,
+			                            {0, 0, TEXT("Core"), Object.Get()});
+			TestEqual("Initial state", State, 1);
+			Object->MarkAsGarbage();
+		}
+		CollectGarbage(RF_NoFlags, true);
 		World.Tick();
-		TestEqual(TEXT("On object destroyed"), State, 3);
-		TestTrue(TEXT("Abnormal exit"), bAbnormal);
-		TestTrue(TEXT("Implicitly canceled"), bCanceled);
+		TestEqual("On object destroyed", State, 3);
+		TestTrue("Abnormal exit", bAbnormal);
+		TestTrue("Implicitly canceled", bCanceled);
 	}
+	return true;
+}
+
+bool FLatentCompletionTest::RunTest(const FString& Parameters)
+{
+	FTestWorld World;
+
+	{
+		std::atomic<bool> bDone = false;
+		auto Coro = World.Run([&](FLatentActionInfo) -> TCoroutine<>
+		{
+			ON_SCOPE_EXIT
+			{
+				TestFalse("Cleanup off the game thread", IsInGameThread());
+				bDone = true;
+			};
+			co_await MoveToNewThread();
+			TestFalse("Moved to another thread", IsInGameThread());
+		});
+		FTestHelper::PumpGameThread(World, [&] { return bDone.load(); });
+	}
+
+	{
+		FAwaitableEvent TestToCoro;
+		FEventRef CoroToTest;
+		bool bDone = false;
+		auto Coro = World.Run([&](FLatentActionInfo) -> TCoroutine<>
+		{
+			ON_SCOPE_EXIT
+			{
+				TestTrue("Cleanup on game thread", IsInGameThread());
+				bDone = true;
+			};
+			co_await MoveToNewThread();
+			TestFalse("Moved to another thread", IsInGameThread());
+			CoroToTest->Trigger();
+			// There's an extremely rare, but valid order of events, where
+			// TestToCoro.Trigger() arrives before await_ready, making this
+			// event take the fast path and not suspend the coroutine.
+			// Make sure that the cancellation is explicitly processed,
+			// otherwise the ON_SCOPE_EXIT will run on the wrong thread.
+			co_await TestToCoro;
+			co_await FinishNowIfCanceled();
+		});
+		CoroToTest->Wait();
+		Coro.Cancel();
+		TestToCoro.Trigger();
+		FTestHelper::PumpGameThread(World,
+		                            [&] { return bDone && Coro.IsDone(); });
+		TestFalse("Canceled", Coro.WasSuccessful());
+	}
+
+	{
+		FEventRef TestToCoro, CoroToTest;
+		bool bDone = false;
+		auto Coro = World.Run([&](FLatentActionInfo) -> TCoroutine<>
+		{
+			co_await MoveToNewThread();
+			CoroToTest->Trigger();
+			TestToCoro->Wait(); // Blocking wait
+			// final_suspend
+		});
+		Coro.ContinueWith([&]
+		{
+			TestTrue(TEXT("Continuing on the game thread"), IsInGameThread());
+			bDone = true;
+		});
+		CoroToTest->Wait();
+		Coro.Cancel();
+		TestToCoro->Trigger();
+		// ContinueWith is expected to run on the game thread
+		FTestHelper::PumpGameThread(World, [&] { return bDone; });
+		// The cancellation is not processed before final_suspend is reached
+		TestTrue(TEXT("Successful completion"), Coro.WasSuccessful());
+	}
+
 	return true;
 }

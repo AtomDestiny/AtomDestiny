@@ -48,7 +48,7 @@ protected:
     virtual void ZeroizeParameter(EObjectParameters parameter) override;
     
     void RegenerateShield();
-    FAsyncCoroutine StartShieldCoolDown();
+    FVoidCoroutine StartShieldCoolDown();
     
     // Calculates damage with shield additional balance parameters
     double GetDamageAfterShieldParameters(EWeaponType type, double damage) const;

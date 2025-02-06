@@ -32,19 +32,21 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UE5Coro/Definitions.h"
+#include "UE5Coro/Definition.h"
+#include <coroutine>
+#include "UE5Coro/Private.h"
 
 namespace UE5Coro
 {
 template<typename> class TGeneratorIterator;
-namespace Private { template<typename> class TGeneratorPromise; }
 
-/**
- * Generator coroutine. Make a function return Generator<T> instead of T and
- * it will be able to co_yield multiple values throughout its execution.
- * Callers can either manually fetch values or use the provided iterator
- * wrappers to treat the returned values as a virtual container.
- */
+/** Generator coroutine handle.
+ *  Make a function return TGenerator<T> instead of T, and it will be able to
+ *  co_yield multiple values throughout its execution.
+ *  Callers can either manually fetch values or use the provided iterator
+ *  wrappers to treat the returned values as a virtual container.
+ *  This object represents ownership of the coroutine, its destruction will
+ *  cancel the coroutine. */
 template<typename T>
 struct [[nodiscard]] TGenerator
 {
@@ -53,24 +55,26 @@ struct [[nodiscard]] TGenerator
 	friend promise_type;
 
 private:
-	Private::stdcoro::coroutine_handle<promise_type> Handle;
+	std::coroutine_handle<promise_type> Handle;
 
-	explicit TGenerator(
-		Private::stdcoro::coroutine_handle<promise_type> Handle) noexcept
+	explicit TGenerator(std::coroutine_handle<promise_type> Handle) noexcept
 		: Handle(Handle) { }
 
 public:
-	TGenerator(TGenerator&& Other) noexcept { std::swap(Handle, Other.Handle); }
+	TGenerator(const TGenerator&) = delete;
+	TGenerator(TGenerator&& Other) noexcept
+		: Handle(std::exchange(Other.Handle, nullptr)) { }
+	~TGenerator() { if (Handle) Handle.destroy(); }
 
-	~TGenerator()
+	/** Replaces the underlying coroutine of this object with another.
+	 *  The coroutine that this object used to own is canceled. */
+	TGenerator& operator=(TGenerator&& Other) noexcept
 	{
 		if (Handle)
 			Handle.destroy();
+		Handle = std::exchange(Other.Handle, nullptr);
+		return *this;
 	}
-
-	TGenerator(const TGenerator&) = delete;
-	TGenerator& operator=(const TGenerator&) = delete;
-	TGenerator& operator=(TGenerator&&) = delete;
 
 	/** Returns true if Current() is valid. */
 	explicit operator bool() const noexcept { return Handle && !Handle.done(); }
@@ -78,7 +82,7 @@ public:
 	/**	Resumes the generator. Returns true if Current() is valid. */
 	bool Resume()
 	{
-		if (LIKELY(*this))
+		if (operator bool()) [[likely]]
 			Handle.resume();
 		return operator bool();
 	}
@@ -122,17 +126,11 @@ public:
 		return Generator == Other.Generator;
 	}
 
-	/** Compares this iterator with another. Provided for STL compatibility. */
-	bool operator!=(const TGeneratorIterator& Other) const noexcept
-	{
-		return Generator != Other.Generator;
-	}
-
 	/** Advances the generator. */
 	TGeneratorIterator& operator++()
 	{
 		checkf(Generator, TEXT("Attempted to move iterator past end()"));
-		if (UNLIKELY(!Generator->Resume())) // Did the coroutine finish?
+		if (!Generator->Resume()) [[unlikely]] // Did the coroutine finish?
 			Generator = nullptr; // Become end() if it did
 		return *this;
 	}
@@ -154,33 +152,34 @@ public:
 };
 }
 
+#pragma region Private
 namespace UE5Coro::Private
 {
 class [[nodiscard]] UE5CORO_API FGeneratorPromise
 {
 protected:
-	/** Points to the current co_yield expression if valid. */
+	/** Points to the current co_yield value, if valid. */
 	void* Current = nullptr;
 
 public:
 	FGeneratorPromise() = default;
 	UE_NONCOPYABLE(FGeneratorPromise);
+	~FGeneratorPromise() = default;
 
-	stdcoro::suspend_never initial_suspend() noexcept { return {}; }
-	stdcoro::suspend_always final_suspend() noexcept { return {}; }
+	std::suspend_never initial_suspend() noexcept { return {}; }
+	std::suspend_always final_suspend() noexcept { return {}; }
 	void return_void() noexcept { Current = nullptr; }
 	void unhandled_exception();
 
 	// co_await is not allowed in generators
-	template<typename T>
-	stdcoro::suspend_never await_transform(T&&) = delete;
+	std::suspend_never await_transform(auto&&) = delete;
 };
 
 template<typename T>
 class [[nodiscard]] TGeneratorPromise : public FGeneratorPromise
 {
 	friend TGenerator<T>;
-	using handle_type = stdcoro::coroutine_handle<TGeneratorPromise>;
+	using handle_type = std::coroutine_handle<TGeneratorPromise>;
 
 public:
 	TGenerator<T> get_return_object() noexcept
@@ -188,16 +187,17 @@ public:
 		return TGenerator<T>(handle_type::from_promise(*this));
 	}
 
-	auto yield_value(std::remove_reference_t<T>& Value) noexcept
+	std::suspend_always yield_value(std::remove_reference_t<T>& Value) noexcept
 	{
 		Current = std::addressof(Value);
-		return stdcoro::suspend_always();
+		return {};
 	}
 
-	auto yield_value(std::remove_reference_t<T>&& Value) noexcept
+	std::suspend_always yield_value(std::remove_reference_t<T>&& Value) noexcept
 	{
 		Current = std::addressof(Value);
-		return stdcoro::suspend_always();
+		return {};
 	}
 };
 }
+#pragma endregion

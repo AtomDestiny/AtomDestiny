@@ -31,7 +31,7 @@ protected:
     
 private:
     // Generates impact damage and particle
-    FAsyncCoroutine GenerateImpact();
+    FVoidCoroutine GenerateImpact();
     
     // Time after spawn to add damage
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Add damage delay", AllowPrivateAccess = "true"))

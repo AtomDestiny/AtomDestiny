@@ -30,7 +30,7 @@
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "UE5CoroAnimCallbackTarget.h"
-#include "UE5Coro/AnimationAwaiters.h"
+#include "UE5Coro/AnimationAwaiter.h"
 
 using namespace UE5Coro::Private;
 
@@ -102,14 +102,13 @@ void UUE5CoroAnimCallbackTarget::ListenForNotify(UAnimInstance* Instance,
 }
 
 void UUE5CoroAnimCallbackTarget::ListenForPlayMontageNotify(
-	UAnimInstance* Instance, UAnimMontage* Montage,
-	std::optional<FName> NotifyName, bool bEnd)
+	UAnimInstance* Instance, UAnimMontage* Montage, FName NotifyName, bool bEnd)
 {
 	checkf(IsInGameThread(),
 	       TEXT("Internal error: play montage event received outside GT"));
 	checkf(Instance,
 	       TEXT("Internal error: play montage event without anim instance"));
-	checkf(MontageIDFilter == INDEX_NONE && !NotifyFilter.has_value(),
+	checkf(MontageIDFilter == INDEX_NONE && NotifyFilter == NAME_None,
 	       TEXT("Internal error: montage filter already set up"));
 	WeakInstance = Instance;
 
@@ -167,14 +166,15 @@ void UUE5CoroAnimCallbackTarget::NameProperty(
 	if (MontageIDFilter != INDEX_NONE &&
 	    Payload.MontageInstanceID != MontageIDFilter)
 		return;
-	if (NotifyFilter.has_value() && *NotifyFilter != NotifyName)
+	if (NotifyFilter != NAME_None && NotifyFilter != NotifyName)
 		return;
 
 	// This callback passed all filters. Store the result, then resume.
-	if (NotifyFilter.has_value())
+	if (NotifyFilter != NAME_None)
 		Result = &Payload;
 	else
-		Result = FPayloadTuple(NotifyName, &Payload);
+		Result = TTuple<FName, const FBranchingPointNotifyPayload*>(NotifyName,
+		                                                            &Payload);
 	TryResume();
 }
 
@@ -186,7 +186,7 @@ ETickableTickType UUE5CoroAnimCallbackTarget::GetTickableTickType() const
 void UUE5CoroAnimCallbackTarget::Tick(float DeltaTime)
 {
 	// Keep trying to resume on tick, because it's possible that an animation
-	// awaiter exists but it will only get co_awaited in the future.
+	// awaiter exists, but it will only get co_awaited in the future.
 	// A successful resume will explicitly null WeakInstance.
 	// TAnimAwaiter is dealing with unexpected/early resumptions from this
 	// code path, mainly by checking if Result is still std::monostate.

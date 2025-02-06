@@ -30,7 +30,7 @@
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "UE5Coro/Cancellation.h"
-#include "UE5Coro/AsyncCoroutine.h"
+#include "UE5Coro/Promise.h"
 
 using namespace UE5Coro;
 using namespace UE5Coro::Private;
@@ -43,6 +43,25 @@ void CleanupIfCanceled(std::function<void()>& Fn)
 	if (GDestroyedEarly)
 		Fn();
 }
+}
+
+void FSelfCancellation::Cancel(FAsyncPromise& Promise)
+{
+	Promise.Cancel();
+	checkf(Promise.ShouldCancel(false),
+	       TEXT("Coroutines may only be canceled from within if no "
+	            "FCancellationGuards are active"));
+	Promise.Resume();
+}
+
+void FSelfCancellation::Cancel(FLatentPromise& Promise)
+{
+	Promise.CancelFromWithin();
+}
+
+void FSelfCancellation::await_resume()
+{
+	check(!"Internal error: the coroutine should have canceled");
 }
 
 FCancellationGuard::FCancellationGuard()
@@ -62,11 +81,11 @@ FCancellationGuard::~FCancellationGuard()
 }
 
 FOnCoroutineCanceled::FOnCoroutineCanceled(std::function<void()> Fn)
-	: TScopeGuard(std::bind(&CleanupIfCanceled, std::move(Fn)))
+	: TScopeGuard(std::bind_front(&CleanupIfCanceled, std::move(Fn)))
 {
 }
 
-FCancellationAwaiter UE5Coro::FinishNowIfCanceled()
+FCancellationAwaiter UE5Coro::FinishNowIfCanceled() noexcept
 {
 	return {};
 }

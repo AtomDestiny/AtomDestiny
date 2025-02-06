@@ -8,7 +8,7 @@
 #include <AtomDestiny/Private/Tests/World/TestWorld.h>
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FActorComponentUtilsTests, "AtomDestiny.Core.ActorComponentUtilsTests",
-    EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+    EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 // tests only correct addition component to actor
 static void AddNewComponentToActorTest(AtomDestiny::FTestWorld& world, FAutomationTestBase& test)

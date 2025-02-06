@@ -32,18 +32,19 @@
 #include "TestWorld.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/AutomationTest.h"
-#include "UE5Coro/LatentAwaiters.h"
+#include "UE5Coro.h"
 
 using namespace UE5Coro;
+using namespace UE5Coro::Latent;
 using namespace UE5Coro::Private::Test;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLatentAwaiterTest, "UE5Coro.Latent.TrueLatent",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLatentInAsyncTest, "UE5Coro.Latent.Async",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
@@ -56,21 +57,17 @@ void DoTest(FAutomationTestBase& Test)
 
 	IF_CORO_LATENT
 	{
-		bool bStarted = false;
-		bool bDone = false;
+		bool bStarted = false, bDone = false;
 		auto Fn = CORO
 		{
-			ON_SCOPE_EXIT
-			{
-				bDone = true;
-			};
+			ON_SCOPE_EXIT { bDone = true; };
 			bStarted = true;
 			co_return;
 		};
 		World.Run(Fn);
 
-		Test.TestTrue(TEXT("Null latent coroutine started"), bStarted);
-		Test.TestTrue(TEXT("Null latent coroutine finished"), bDone);
+		Test.TestTrue("Trivial latent coroutine started", bStarted);
+		Test.TestTrue("Trivial latent coroutine finished", bDone);
 	}
 
 	{
@@ -78,13 +75,13 @@ void DoTest(FAutomationTestBase& Test)
 		World.Run(CORO
 		{
 			State = 1;
-			co_await Latent::NextTick();
+			co_await NextTick();
 			State = 2;
 		});
 		World.EndTick();
-		Test.TestEqual(TEXT("NextTick 1"), State, 1);
+		Test.TestEqual("NextTick 1", State, 1);
 		World.Tick();
-		Test.TestEqual(TEXT("NextTick 2"), State, 2);
+		Test.TestEqual("NextTick 2", State, 2);
 	}
 
 	{
@@ -92,51 +89,79 @@ void DoTest(FAutomationTestBase& Test)
 		World.Run(CORO
 		{
 			State = 1;
-			co_await Latent::Ticks(2);
+			co_await Ticks(2);
 			State = 2;
 		});
 		World.EndTick();
-		Test.TestEqual(TEXT("Ticks 1-1"), State, 1);
+		Test.TestEqual("Ticks 1-1", State, 1);
 		World.Tick();
-		Test.TestEqual(TEXT("Ticks 1-2"), State, 1);
+		Test.TestEqual("Ticks 1-2", State, 1);
 		World.Tick();
-		Test.TestEqual(TEXT("Ticks 2"), State, 2);
+		Test.TestEqual("Ticks 2", State, 2);
 	}
 
 	{
-		// Having this here works around a compiler issue (MSVC 19.33.31629)
-		// causing the lambdas to "mis-capture" State and RealState
-		volatile int msvc_workaround = 0;
-
-		int State = 0;
-		int RealState = 0;
+		int State = 0, RealState = 0;
 		World.Run(CORO
 		{
 			State = 1;
-			co_await Latent::Seconds(1);
+			co_await Seconds(1);
 			State = 2;
 		});
 		World.Run(CORO
 		{
 			RealState = 1;
-			co_await Latent::RealSeconds(1);
+			co_await RealSeconds(1);
 			RealState = 2;
 		});
 		World.EndTick();
-		UGameplayStatics::SetGlobalTimeDilation(GWorld, 0.1);
-		Test.TestEqual(TEXT("Seconds 1-1"), State, 1);
-		Test.TestEqual(TEXT("RealSeconds 1-1"), RealState, 1);
+		UGameplayStatics::SetGlobalTimeDilation(World, 0.1);
+		Test.TestEqual("Seconds 1-1", State, 1);
+		Test.TestEqual("RealSeconds 1-1", RealState, 1);
 		World.Tick(0.95);
-		Test.TestEqual(TEXT("Seconds 1-2"), State, 1);
-		Test.TestEqual(TEXT("RealSeconds 1-2"), RealState, 1);
+		Test.TestEqual("Seconds 1-2", State, 1);
+		Test.TestEqual("RealSeconds 1-2", RealState, 1);
 		World.Tick(0.1); // Crossing 1.0s here
-		GWorld->bDebugPauseExecution = false;
-		Test.TestEqual(TEXT("Seconds 1-3"), State, 1);
-		Test.TestEqual(TEXT("RealSeconds 2"), RealState, 2);
-		UGameplayStatics::SetGlobalTimeDilation(GWorld, 1);
+		World->bDebugPauseExecution = false;
+		Test.TestEqual("Seconds 1-3", State, 1);
+		Test.TestEqual("RealSeconds 2", RealState, 2);
+		UGameplayStatics::SetGlobalTimeDilation(World, 1);
 		// The dilated coroutine only had around 0.1 seconds, let it complete
 		World.Tick(1);
-		Test.TestEqual(TEXT("Seconds 2"), State, 2);
+		Test.TestEqual("Seconds 2", State, 2);
+	}
+
+	{
+		int State = 0, RealState = 0;
+		World.Run(CORO
+		{
+			State = 1;
+			auto Time = World->GetTimeSeconds();
+			co_await UntilTime(Time + 1);
+			State = 2;
+		});
+		World.Run(CORO
+		{
+			RealState = 1;
+			auto Time = World->GetRealTimeSeconds();
+			co_await UntilRealTime(Time + 1);
+			RealState = 2;
+		});
+		World.EndTick();
+		UGameplayStatics::SetGlobalTimeDilation(World, 0.1);
+		Test.TestEqual("UntilTime 1-1", State, 1);
+		Test.TestEqual("UntilRealTime 1-1", RealState, 1);
+		World.Tick(0.95);
+		Test.TestEqual("UntilTime 1-2", State, 1);
+		Test.TestEqual("UntilRealTime 1-2", RealState, 1);
+		World.Tick(0.1); // Crossing 1.0s here
+		World->bDebugPauseExecution = false;
+		Test.TestEqual("UntilTime 1-3", State, 1);
+		Test.TestEqual("UntilRealTime 2", RealState, 2);
+		UGameplayStatics::SetGlobalTimeDilation(World, 1);
+		// The dilated coroutine only had around 0.1 seconds, let it complete
+		World.Tick(1);
+		Test.TestEqual("UntilTime 2", State, 2);
 	}
 }
 }

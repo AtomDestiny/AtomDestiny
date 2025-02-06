@@ -40,6 +40,8 @@ public class UE5Coro : UE5CoroModuleRules
 		{
 			"HTTP",
 		});
+
+		PrivateDefinitions.Add("UE5CORO_PRIVATE_ALLOW_DIRECT_INCLUDE");
 	}
 }
 
@@ -48,12 +50,6 @@ public abstract class UE5CoroModuleRules : ModuleRules
 	protected UE5CoroModuleRules(ReadOnlyTargetRules Target)
 		: base(Target)
 	{
-		if (!Target.bEnableCppCoroutinesForEvaluation)
-		{
-			CppStandard = CppStandardVersion.Cpp20;
-			PublicDefinitions.Add("UE5CORO_CPP20=1");
-		}
-
 		bUseUnity = false;
 
 		PublicDependencyModuleNames.AddRange(new[]

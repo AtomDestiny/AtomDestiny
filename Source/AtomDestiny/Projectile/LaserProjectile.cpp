@@ -26,7 +26,7 @@ void ALaserProjectile::Launch()
     AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(this), m_lifeTime);
 }
 
-FAsyncCoroutine ALaserProjectile::GenerateImpact()
+FVoidCoroutine ALaserProjectile::GenerateImpact()
 {
     co_await Coroutines::Latent::Seconds(m_damageDelay);
 

@@ -32,46 +32,42 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UE5Coro/Definitions.h"
+#include "UE5Coro/Definition.h"
 #include <optional>
 #include <variant>
-#include "UE5Coro/AsyncCoroutine.h"
+#include "UE5Coro/Promise.h"
 #include "UE5CoroAnimCallbackTarget.generated.h"
 
-UCLASS(Hidden)
-class UE5CORO_API UUE5CoroAnimCallbackTarget : public UObject,
-                                               public FTickableGameObject
+UCLASS(Hidden, MinimalAPI)
+class UUE5CoroAnimCallbackTarget final : public UObject,
+                                         public FTickableGameObject
 {
 	GENERATED_BODY()
 
 	TWeakObjectPtr<UAnimInstance> WeakInstance;
 	UE5Coro::Private::FPromise* Promise = nullptr;
+	FName NotifyFilter;
 	// UPlayMontageCallbackProxy uses this value as the default
 	int32 MontageIDFilter = INDEX_NONE;
-	std::optional<FName> NotifyFilter; // "None" is a valid name for a notify
 
 	void TryResume();
 
 public:
-	// Void's result is indicated by this holding a bool, not monostate
+	// A successful void result is indicated by this holding a bool
 	std::variant<std::monostate, bool, const FBranchingPointNotifyPayload*,
 	             TTuple<FName, const FBranchingPointNotifyPayload*>> Result;
 
 	void ListenForMontageEvent(UAnimInstance*, UAnimMontage*, bool);
 	void ListenForNotify(UAnimInstance*, UAnimMontage*, FName);
-	void ListenForPlayMontageNotify(UAnimInstance*, UAnimMontage*,
-	                                std::optional<FName>, bool);
+	void ListenForPlayMontageNotify(UAnimInstance*, UAnimMontage*, FName, bool);
 	void RequestResume(UE5Coro::Private::FPromise&);
 	void CancelResume();
 
 #pragma region Callbacks
-	// These function names are chosen to match predefined FNames
-	UFUNCTION()
-	void Core(); // void
-	UFUNCTION()
-	void BoolProperty(UAnimMontage* Montage, bool bInterrupted);
-	UFUNCTION()
-	void NameProperty(FName NotifyName, const FBranchingPointNotifyPayload& Payload);
+	UFUNCTION() void Core(); // void
+	UFUNCTION() void BoolProperty(UAnimMontage* Montage, bool bInterrupted);
+	UFUNCTION() void NameProperty(FName NotifyName,
+	                              const FBranchingPointNotifyPayload& Payload);
 #pragma endregion
 
 #pragma region FTickableGameObject overrides

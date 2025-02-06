@@ -32,20 +32,21 @@
 #include "TestWorld.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Misc/AutomationTest.h"
-#include "UE5Coro/LatentAwaiters.h"
+#include "UE5Coro.h"
 
 using namespace std::placeholders;
 using namespace UE5Coro;
+using namespace UE5Coro::Latent;
 using namespace UE5Coro::Private;
 using namespace UE5Coro::Private::Test;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAsyncChainCancelTest, "UE5Coro.Chain.Cancel.Async",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLatentChainCancelTest, "UE5Coro.Chain.Cancel.Latent",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
@@ -69,12 +70,12 @@ void DoTest(FAutomationTestBase& Test)
 		World.Tick(DeltaSeconds);
 		if (State != ExpectedState)
 			World.Tick(0);
-		Test.TestEqual(TEXT("Latent state"), State, ExpectedState);
+		Test.TestEqual("Latent state", State, ExpectedState);
 	};
 
 	auto ExpectFail = [&](bool bValue)
 	{
-		Test.TestFalse(TEXT("Chain aborted"), bValue);
+		Test.TestFalse("Chain aborted", bValue);
 	};
 
 	{
@@ -86,15 +87,10 @@ void DoTest(FAutomationTestBase& Test)
 		World.Run(CORO
 		{
 			State = 1;
-#if UE5CORO_PRIVATE_LATENT_CHAIN_IS_OK
-			ExpectFail(co_await Latent::Chain(&UKismetSystemLibrary::Delay, 1));
-#else
-			ExpectFail(co_await Latent::ChainEx(&UKismetSystemLibrary::Delay,
-				_1, 1, _2));
-#endif
+			ExpectFail(co_await Chain(&UKismetSystemLibrary::Delay, 1));
 			State = 2;
 		});
-		Test.TestEqual(TEXT("Started"), State, 1);
+		Test.TestEqual("Started", State, 1);
 		UObject* NewTarget = nullptr;
 		for (auto* Target : TObjectRange<UObject>())
 			if (Target->IsA(ChainCallbackTarget_StaticClass()) &&
@@ -103,7 +99,7 @@ void DoTest(FAutomationTestBase& Test)
 				NewTarget = Target;
 				break;
 			}
-		Test.TestNotNull(TEXT("Callback target found"), NewTarget);
+		Test.TestNotNull("Callback target found", NewTarget);
 		World->GetLatentActionManager().RemoveActionsForObject(NewTarget);
 		DoubleTick(2, 0); // Removals are only processed on the next tick
 	}

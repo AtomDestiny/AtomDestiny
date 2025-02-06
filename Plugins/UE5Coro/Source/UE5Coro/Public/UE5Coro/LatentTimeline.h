@@ -32,32 +32,36 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UE5Coro/Definitions.h"
+#include "UE5Coro/Definition.h"
 #include <functional>
 #include "UE5Coro/Coroutine.h"
 
 namespace UE5Coro::Latent
 {
 /** Repeatedly calls the provided function with linearly-interpolated values. */
-UE5CORO_API TCoroutine<> Timeline(double From, double To, double Length,
-                                  std::function<void(double)> Fn,
+UE5CORO_API TCoroutine<> Timeline(const UObject* WorldContextObject,
+                                  double From, double To, double Duration,
+                                  std::function<void(double)> Update,
                                   bool bRunWhenPaused = false);
 
-/** Repeatedly calls the provided function with linearly-interpolated values.<br>
+/** Repeatedly calls the provided function with linearly-interpolated values.
  *  This is affected by time dilation only, NOT pause. */
-UE5CORO_API TCoroutine<> UnpausedTimeline(double From, double To, double Length,
-                                          std::function<void(double)> Fn,
+UE5CORO_API TCoroutine<> UnpausedTimeline(const UObject* WorldContextObject,
+                                          double From, double To, double Duration,
+                                          std::function<void(double)> Update,
                                           bool bRunWhenPaused = true);
 
-/** Repeatedly calls the provided function with linearly-interpolated values.<br>
+/** Repeatedly calls the provided function with linearly-interpolated values.
  *  This is not affected by pause or time dilation. */
-UE5CORO_API TCoroutine<> RealTimeline(double From, double To, double Length,
-                                      std::function<void(double)> Fn,
+UE5CORO_API TCoroutine<> RealTimeline(const UObject* WorldContextObject,
+                                      double From, double To, double Duration,
+                                      std::function<void(double)> Update,
                                       bool bRunWhenPaused = true);
 
-/** Repeatedly calls the provided function with linearly-interpolated values.<br>
+/** Repeatedly calls the provided function with linearly-interpolated values.
  *  This is affected by pause only, NOT time dilation. */
-UE5CORO_API TCoroutine<> AudioTimeline(double From, double To, double Length,
-                                       std::function<void(double)> Fn,
+UE5CORO_API TCoroutine<> AudioTimeline(const UObject* WorldContextObject,
+                                       double From, double To, double Duration,
+                                       std::function<void(double)> Update,
                                        bool bRunWhenPaused = false);
 }

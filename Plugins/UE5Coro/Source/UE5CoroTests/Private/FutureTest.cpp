@@ -31,31 +31,21 @@
 
 #include "Misc/AutomationTest.h"
 #include "TestWorld.h"
-#include "UE5Coro/AggregateAwaiters.h"
-#include "UE5Coro/AsyncAwaiters.h"
+#include "UE5Coro.h"
 
 using namespace UE5Coro;
 using namespace UE5Coro::Private;
 using namespace UE5Coro::Private::Test;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFutureAsync, "UE5Coro.Future.Async",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFutureLatent, "UE5Coro.Future.Latent",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
-
-#ifdef _MSC_VER
-// MSVC workaround - DoTest is not a coroutine but it won't compile without this
-template<>
-struct stdcoro::coroutine_traits<void, FAutomationTestBase&>
-{
-	using promise_type = UE5Coro::Private::TCoroutinePromise<void, FAsyncPromise>;
-};
-#endif
 
 namespace
 {
@@ -71,9 +61,9 @@ void DoTest(FAutomationTestBase& Test)
 		{
 			co_return co_await Promise.GetFuture();
 		});
-		Test.TestTrue(TEXT("Already done"), Coro.IsDone());
-		Test.TestTrue(TEXT("Successful"), Coro.WasSuccessful());
-		Test.TestEqual(TEXT("Value"), Coro.GetResult(), 1);
+		Test.TestTrue("Already done", Coro.IsDone());
+		Test.TestTrue("Successful", Coro.WasSuccessful());
+		Test.TestEqual("Value", Coro.GetResult(), 1);
 	}
 
 	{
@@ -85,9 +75,9 @@ void DoTest(FAutomationTestBase& Test)
 			co_await Promise.GetFuture();
 			State = 2;
 		});
-		Test.TestEqual(TEXT("Before"), State, 1);
+		Test.TestEqual("Before", State, 1);
 		Promise.SetValue();
-		Test.TestEqual(TEXT("After"), State, 2);
+		Test.TestEqual("After", State, 2);
 	}
 
 	{
@@ -97,12 +87,12 @@ void DoTest(FAutomationTestBase& Test)
 		{
 			State = 1;
 			decltype(auto) Value = co_await Promise.GetFuture();
-			static_assert(std::is_same_v<decltype(Value), int>);
+			static_assert(std::same_as<decltype(Value), int>);
 			State = Value;
 		});
-		Test.TestEqual(TEXT("Before"), State, 1);
+		Test.TestEqual("Before", State, 1);
 		Promise.SetValue(2);
-		Test.TestEqual(TEXT("After"), State, 2);
+		Test.TestEqual("After", State, 2);
 	}
 
 	{
@@ -112,31 +102,31 @@ void DoTest(FAutomationTestBase& Test)
 		{
 			State = 1;
 			decltype(auto) Value = co_await Promise.GetFuture();
-			static_assert(std::is_same_v<decltype(Value), int&>);
+			static_assert(std::same_as<decltype(Value), int&>);
 			State = Value;
 		});
-		Test.TestEqual(TEXT("Before"), State, 1);
+		Test.TestEqual("Before", State, 1);
 		int Two = 2;
 		Promise.SetValue(Two);
-		Test.TestEqual(TEXT("After"), State, 2);
+		Test.TestEqual("After", State, 2);
 	}
 
 	{
 		int State = 0;
-		TPromise<int> Promise1;
-		TPromise<int> Promise2;
-		World.Run(CORO
+		TPromise<int> Promise1, Promise2;
+		auto Coro = World.Run(CORO
 		{
 			State = co_await WhenAny(Promise1.GetFuture(), Promise2.GetFuture());
 		});
-		Test.TestEqual(TEXT("Before"), State, 0);
-		int One = 1;
-		Promise2.SetValue(One);
-		Test.TestEqual(TEXT("After"), State, 1);
-		Promise1.SetValue(One);
+		Test.TestEqual("Before", State, 0);
+		Test.TestFalse("Not done yet", Coro.IsDone());
+		Promise2.SetValue(2);
+		Test.TestEqual("After", State, 1);
+		Test.TestTrue("Done", Coro.IsDone());
+		Promise1.SetValue(2);
 	}
 }
-} // namespace
+}
 
 bool FFutureAsync::RunTest(const FString& Parameters)
 {

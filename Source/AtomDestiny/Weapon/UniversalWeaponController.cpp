@@ -90,7 +90,7 @@ void UUniversalWeaponController::TickComponent(float deltaTime, ELevelTick tickT
     RotateToRoot(deltaTime);
 }
 
-FAsyncCoroutine UUniversalWeaponController::MakeShot()
+FVoidCoroutine UUniversalWeaponController::MakeShot()
 {
     m_firing = true;
     const TWeakObjectPtr<AActor> currentEnemy = m_target; // we need to store copy because of coroutines

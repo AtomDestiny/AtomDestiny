@@ -34,14 +34,14 @@
 using namespace UE5Coro;
 using namespace UE5Coro::Private;
 
-const TCoroutine<> TCoroutine<>::CompletedCoroutine = []() -> TCoroutine<>
+const TCoroutine<> TCoroutine<>::CompletedCoroutine = []() -> TCoroutine
 {
 	co_return;
 }();
 
-void TCoroutine<void>::Cancel()
+void TCoroutine<>::Cancel()
 {
-	UE::TScopeLock _(Extras->Lock);
+	std::scoped_lock _(Extras->Lock);
 	// Holding the lock guarantees that Promise is active in the union
 	if (Extras->Promise)
 		Extras->Promise->Cancel();
@@ -58,7 +58,7 @@ bool TCoroutine<>::IsDone() const
 	return Wait(0, true);
 }
 
-bool TCoroutine<>::WasSuccessful() const
+bool TCoroutine<>::WasSuccessful() const noexcept
 {
 	return Extras->bWasSuccessful;
 }
@@ -72,30 +72,18 @@ void TCoroutine<>::SetDebugName(const TCHAR* Name)
 #endif
 }
 
-bool TCoroutine<>::operator==(const TCoroutine<>& Other) const noexcept
+bool TCoroutine<>::operator==(const TCoroutine& Other) const noexcept
 {
 	return Extras == Other.Extras;
 }
 
-#if UE5CORO_CPP20
-auto TCoroutine<>::operator<=>(const TCoroutine<>& Other) const noexcept
+auto TCoroutine<>::operator<=>(const TCoroutine& Other) const noexcept
 	-> std::strong_ordering
 {
 	return Extras <=> Other.Extras;
 }
-#else
-bool TCoroutine<>::operator!=(const TCoroutine<>& Other) const noexcept
-{
-	return !(*this == Other);
-}
 
-bool TCoroutine<>::operator<(const TCoroutine<>& Other) const noexcept
-{
-	return Extras < Other.Extras;
-}
-#endif
-
-uint32 UE5Coro::GetTypeHash(const TCoroutine<>& Handle) noexcept
+uint32 GetTypeHash(const TCoroutine<>& Handle) noexcept
 {
 	return static_cast<uint32>(std::hash<TCoroutine<>>()(Handle));
 }

@@ -35,12 +35,12 @@
 using namespace UE5Coro::Private::Test;
 
 FTestWorld::FTestWorld()
-	: World(UWorld::CreateWorld(EWorldType::Game, false))
+	: World(UWorld::CreateWorld(EWorldType::Game, false, "UE5CoroTestWorld"))
 {
 	check(IsInGameThread());
 	auto& WorldContext = GEngine->CreateNewWorldContext(EWorldType::Game);
 	WorldContext.SetCurrentWorld(World);
-	PrevWorld = GWorld;
+	PrevWorld = &*GWorld;
 	OldFrameCounter = GFrameCounter;
 	GWorld = World;
 	World->InitializeActorsForPlay(FURL());
@@ -56,7 +56,7 @@ FTestWorld::~FTestWorld()
 	World->DestroyWorld(true);
 	GWorld = PrevWorld;
 	GFrameCounter = OldFrameCounter;
-	CollectGarbage(RF_NoFlags);
+	CollectGarbage(RF_NoFlags, true);
 }
 
 void FTestWorld::Tick(float DeltaSeconds)
@@ -86,4 +86,15 @@ void FTestHelper::PumpGameThread(FTestWorld& World,
 {
 	while (!ExitCondition())
 		World.Tick();
+}
+
+void FTestHelper::CheckWorld(FAutomationTestBase& Test, UWorld* World)
+{
+	auto& Promise = static_cast<FLatentPromise&>(FPromise::Current());
+	// The check is only using the FPromise base class
+	checkf(!FPlatformString::Strcmp(Promise.Extras->DebugPromiseType,
+	                                TEXT("Latent")),
+	       TEXT("Internal error: only latent coroutines have a world context"));
+	// Now that it's known to be latent, check the world
+	Test.TestEqual("World check", Promise.World.Get(), World);
 }

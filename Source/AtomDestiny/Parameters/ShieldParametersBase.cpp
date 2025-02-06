@@ -150,7 +150,7 @@ void UShieldParametersBase::RegenerateShield()
         m_currentShieldValue += m_shieldRegenerateValue;
 }
 
-FAsyncCoroutine UShieldParametersBase::StartShieldCoolDown()
+FVoidCoroutine UShieldParametersBase::StartShieldCoolDown()
 {
     co_await Coroutines::Latent::Seconds(m_shieldRegenerateTime);
     m_regenerationAccess = true;

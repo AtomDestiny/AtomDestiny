@@ -31,30 +31,29 @@
 
 #include "Misc/AutomationTest.h"
 #include "TestWorld.h"
-#include "UE5Coro/AggregateAwaiters.h"
-#include "UE5Coro/AsyncAwaiters.h"
-#include "UE5Coro/TaskAwaiters.h"
+#include "UE5Coro.h"
 
 using namespace UE5Coro;
+using namespace UE5Coro::Async;
 using namespace UE5Coro::Private::Test;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTaskCreateAsync, "UE5Coro.Tasks.CreateAsync",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTaskCreateLatent, "UE5Coro.Tasks.CreateLatent",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTaskConsumeAsync, "UE5Coro.Tasks.ConsumeAsync",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTaskConsumeLatent, "UE5Coro.Tasks.ConsumeLatent",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
@@ -66,56 +65,49 @@ void DoCreateTest(FAutomationTestBase& Test)
 	FTestWorld World;
 
 	{
-		FEventRef TestToCoro(EEventMode::AutoReset);
-		FEventRef CoroToTest(EEventMode::AutoReset);
+		FEventRef TestToCoro, CoroToTest;
 		int State = 0;
-
 		World.Run(CORO
 		{
-			co_await Tasks::MoveToTask(UE_SOURCE_LOCATION);
+			co_await MoveToTask(UE_SOURCE_LOCATION);
 			TestToCoro->Wait();
 			State = 1;
 			CoroToTest->Trigger();
 		});
-
-		Test.TestEqual(TEXT("Initial state"), State, 0);
+		Test.TestEqual("Initial state", State, 0);
 		TestToCoro->Trigger();
 		CoroToTest->Wait();
-		Test.TestEqual(TEXT("Final state"), State, 1);
+		Test.TestEqual("Final state", State, 1);
 	}
 
 	{
-		FEventRef TestToCoro(EEventMode::AutoReset);
-		FEventRef CoroToTest(EEventMode::AutoReset);
+		FEventRef TestToCoro, CoroToTest;
 		int State = 0;
-
 		World.Run(CORO
 		{
-			co_await Tasks::MoveToTask();
+			co_await MoveToTask();
 			TestToCoro->Wait();
 			State = 1;
 			CoroToTest->Trigger();
 		});
-
-		Test.TestEqual(TEXT("Initial state"), State, 0);
+		Test.TestEqual("Initial state", State, 0);
 		TestToCoro->Trigger();
 		CoroToTest->Wait();
-		Test.TestEqual(TEXT("Final state"), State, 1);
+		Test.TestEqual("Final state", State, 1);
 	}
 
 	{
-		FEventRef TestToCoro;
-		FEventRef CoroToTest;
+		FEventRef TestToCoro, CoroToTest;
 		World.Run(CORO
 		{
-			co_await Tasks::MoveToTask();
+			co_await MoveToTask();
 			TestToCoro->Wait(); // Required initial suspension and wait for Run
-			co_await WhenAll(Tasks::MoveToTask(TEXT("Test1")),
-			                 Tasks::MoveToTask(TEXT("Test2")));
+			co_await WhenAll(MoveToTask(TEXT("Test1")),
+			                 MoveToTask(TEXT("Test2")));
 			CoroToTest->Trigger();
 		});
 		TestToCoro->Trigger();
-		Test.TestTrue(TEXT("Triggered"), CoroToTest->Wait());
+		Test.TestTrue("Triggered", CoroToTest->Wait());
 	}
 }
 
@@ -125,8 +117,7 @@ void DoConsumeTest(FAutomationTestBase& Test)
 	FTestWorld World;
 
 	{
-		FEventRef TestToCoro(EEventMode::AutoReset);
-		FEventRef CoroToTest(EEventMode::AutoReset);
+		FEventRef TestToCoro, CoroToTest;
 		std::atomic<int> State = 0;
 		World.Run(CORO
 		{
@@ -140,29 +131,37 @@ void DoConsumeTest(FAutomationTestBase& Test)
 		});
 		TestToCoro->Trigger();
 		CoroToTest->Wait();
-		Test.TestEqual(TEXT("Final state"), State, 2);
+		Test.TestEqual("Final state", State, 2);
 	}
 
 	{
-		FEventRef TestToCoro(EEventMode::AutoReset);
-		FEventRef CoroToTest(EEventMode::AutoReset);
-		int State = 0;
-		int Retval = 0;
+		FEventRef TestToCoro, CoroToTest;
+		int State = 0, Retval = 0;
 		World.Run(CORO
 		{
-			Retval = co_await UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]
+			auto Task = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]
 			{
 				TestToCoro->Wait();
 				++State;
 				return 3;
 			});
+			Test.TestTrue("Still in game thread", IsInGameThread());
+			decltype(auto) Value1 = co_await Task;
+			Test.TestFalse("Moved out of game thread 1", IsInGameThread());
+			decltype(auto) Value2 = co_await std::move(Task);
+			Test.TestFalse("Moved out of game thread 2", IsInGameThread());
+			// TTask<T>::GetResult() returns T&
+			static_assert(std::is_lvalue_reference_v<decltype(Value1)>);
+			static_assert(std::is_lvalue_reference_v<decltype(Value2)>);
+			Test.TestEqual("Values", Value1, Value2);
+			Retval = Value1;
 			++State;
 			CoroToTest->Trigger();
 		});
 		TestToCoro->Trigger();
 		CoroToTest->Wait();
-		Test.TestEqual(TEXT("Final state"), State, 2);
-		Test.TestEqual(TEXT("Return value"), Retval, 3);
+		Test.TestEqual("Final state", State, 2);
+		Test.TestEqual("Return value", Retval, 3);
 	}
 }
 }

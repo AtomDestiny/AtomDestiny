@@ -32,26 +32,43 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UE5Coro/Definitions.h"
-#include "UE5Coro/AsyncCoroutine.h"
+#include "UE5Coro/Definition.h"
+#include "UE5Coro/Private.h"
+#include "UE5Coro/Promise.h"
 
 namespace UE5Coro
 {
-namespace Private
+/** co_awaiting any object of this type will cause the coroutine to self-cancel
+ *  and complete *un*successfully.
+ *
+ *  Latent coroutines that have been canceled will NOT resume their calling BP
+ *  on their latent exec pin.
+ *
+ *  See also TCoroutine<>::Cancel() to cancel a coroutine externally. */
+class [[nodiscard]] UE5CORO_API FSelfCancellation final
 {
-class FPromise;
-class FCancellationAwaiter;
-}
+	void Cancel(Private::FAsyncPromise&);
+	void Cancel(Private::FLatentPromise&);
 
-/**
- * Guards against user-requested cancellation. For advanced use.<br>
- * This does NOT affect a latent coroutine destroyed by the latent action
- * manager.<br><br>
- * If any number of these objects is in scope within a coroutine returning
- * TCoroutine, it will delay cancellations and not process them in co_awaits.<br>
- * The first co_await after the last one of these has gone out of scope will
- * process the cancellation that was deferred.<br>
- */
+public:
+	[[nodiscard]] bool await_ready() noexcept { return false; }
+
+	template<std::derived_from<Private::FPromise> P>
+	void await_suspend(std::coroutine_handle<P> Handle)
+	{
+		Cancel(Handle.promise());
+	}
+
+	void await_resume();
+};
+
+/** Guards against user-requested cancellation. For advanced use.
+ *  This does NOT affect a latent coroutine destroyed by the latent action
+ *  manager.
+ *  If any number of these objects is in scope within a coroutine returning
+ *  TCoroutine, it will delay cancellations and not process them in co_awaits.
+ *  The first co_await after the last one of these has gone out of scope will
+ *  process the cancellation that was deferred. */
 class [[nodiscard]] UE5CORO_API FCancellationGuard
 {
 #if UE5CORO_DEBUG
@@ -68,15 +85,11 @@ public:
 	void* operator new[](std::size_t) = delete;
 };
 
-/**
- * Provided for advanced scenarios, prefer ON_SCOPE_EXIT or RAII for
- * unconditional cleanup.<br><br>
- * This will ONLY call the provided callback if this object is in scope within
- * a coroutine that's being cleaned up early: due to manual cancellation, the
- * latent action manager deleting its corresponding latent action, etc.<br>
- * <br>Example usage:<br>
- * FOnCoroutineCanceled Guard([this]{cleanup code});
- */
+/** Provided for advanced scenarios, prefer ON_SCOPE_EXIT or RAII for
+ *  unconditional cleanup.
+ *  This will ONLY call the provided callback if this object is in scope within
+ *  a coroutine that's being cleaned up early: due to manual cancellation, the
+ *  latent action manager deleting its corresponding latent action, etc. */
 struct [[nodiscard]] UE5CORO_API FOnCoroutineCanceled
 	: ScopeExitSupport::TScopeGuard<std::function<void()>>
 {
@@ -87,24 +100,26 @@ struct [[nodiscard]] UE5CORO_API FOnCoroutineCanceled
  *  coroutine is not currently canceled.
  *  If it is canceled, the cancellation will be processed immediately.
  *  FCancellationGuards are respected. */
-UE5CORO_API Private::FCancellationAwaiter FinishNowIfCanceled();
+UE5CORO_API auto FinishNowIfCanceled() noexcept -> Private::FCancellationAwaiter;
 
 /** Checks if the current coroutine is canceled, without processing the
- *  cancellation.<br>
- *  Prefer co_await to invoke normal cancellation processing instead.<br>
+ *  cancellation.
+ *  Prefer co_await to invoke normal cancellation processing instead.
  *  Only valid to call from within a coroutine returning TCoroutine.
- *  @return True if the current coroutine is canceled.<br>
+ *  @return True if the current coroutine is canceled.
  *  FCancellationGuards do not affect the return value of this function. */
 [[nodiscard]] UE5CORO_API bool IsCurrentCoroutineCanceled();
 }
 
+#pragma region Private
 namespace UE5Coro::Private
 {
 class [[nodiscard]] UE5CORO_API FCancellationAwaiter
 	: public TAwaiter<FCancellationAwaiter>
 {
 public:
-	bool await_ready();
+	[[nodiscard]] bool await_ready();
 	void Suspend(FPromise&);
 };
 }
+#pragma endregion

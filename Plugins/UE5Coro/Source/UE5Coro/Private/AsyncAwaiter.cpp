@@ -29,13 +29,14 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/AsyncAwaiters.h"
+#include "UE5Coro/AsyncAwaiter.h"
+#include "TimerThread.h"
 
 using namespace UE5Coro::Private;
 
 namespace
 {
-class FResumeTask
+class FResumeTask final
 {
 	ENamedThreads::Type Thread;
 	FPromise& Promise;
@@ -63,11 +64,6 @@ public:
 
 bool FAsyncAwaiter::await_ready()
 {
-	// This needs to be scheduled after the coroutine's completion regardless of
-	// the target thread
-	if (ResumeAfter.has_value() && !ResumeAfter->IsDone())
-		return false;
-
 	// Don't move threads if we're already on the target thread
 	auto ThisThread = FTaskGraphInterface::Get().GetCurrentThreadIfKnown();
 	return (ThisThread & ThreadTypeMask) == (Thread & ThreadTypeMask);
@@ -75,15 +71,41 @@ bool FAsyncAwaiter::await_ready()
 
 void FAsyncAwaiter::Suspend(FPromise& Promise)
 {
-	auto* Task = TGraphTask<FResumeTask>::CreateTask()
-	                                     .ConstructAndHold(Thread, Promise);
+	TGraphTask<FResumeTask>::CreateTask().ConstructAndDispatchWhenReady(Thread,
+	                                                                    Promise);
+}
 
-	// await_ready returning false and the coroutine having finished since is OK,
-	// ContinueWith will run this synchronously
-	if (ResumeAfter.has_value())
-		ResumeAfter->ContinueWith([Task] { Task->Unlock(); });
+FAsyncTimeAwaiter::FAsyncTimeAwaiter(const FAsyncTimeAwaiter& Other)
+	: TargetTime(Other.TargetTime), Thread(Other.Thread) // bAnyThread included
+{
+}
+
+FAsyncTimeAwaiter::~FAsyncTimeAwaiter()
+{
+	if (Promise) [[unlikely]]
+		FTimerThread::Get().TryUnregister(this);
+}
+
+bool FAsyncTimeAwaiter::await_ready() noexcept
+{
+	return FPlatformTime::Seconds() >= TargetTime;
+}
+
+void FAsyncTimeAwaiter::Suspend(FPromise& InPromise)
+{
+	checkf(!Promise, TEXT("Internal error: double resume"));
+	if (bAnyThread)
+		Thread = ENamedThreads::AnyThread;
 	else
-		Task->Unlock();
+		Thread = FTaskGraphInterface::Get().GetCurrentThreadIfKnown();
+	Promise = &InPromise;
+	FTimerThread::Get().Register(this);
+}
+
+void FAsyncTimeAwaiter::Resume()
+{
+	checkf(Promise, TEXT("Internal error: spurious resume without suspension"));
+	AsyncTask(Thread, [this] { Promise.exchange(nullptr)->Resume(); });
 }
 
 void FAsyncYieldAwaiter::Suspend(FPromise& Promise)
