@@ -81,20 +81,24 @@ namespace AtomDestiny::Utils
         return script;
     }
     
-    template<typename Interface, typename UEInterface>
+    template<typename Interface>
     [[nodiscard]] TScriptInterface<Interface> GetInterface(AActor* actor)
     {
         if (actor == nullptr)
         {
             return nullptr;
         }
-        
-        static_assert(std::is_base_of_v<UInterface, UEInterface>, "Component parameter is not an UInterface");
-        
-        if (const auto interface = actor->FindComponentByInterface<UEInterface>(); interface != nullptr)
-            return CreateInterface<Interface>(interface);
+
+        if (const auto interface = actor->FindComponentByInterface<Interface>(); interface != nullptr)
+            return TScriptInterface<Interface>{ actor };
         
         return nullptr;
+    }
+
+    template<typename Interface>
+    [[nodiscard]] TScriptInterface<Interface> GetInterface(const TWeakObjectPtr<AActor>& actor)
+    {
+        return GetInterface<Interface>(actor.Get());
     }
 
     template<typename Interface, typename UEInterface>
@@ -121,8 +125,5 @@ namespace AtomDestiny::Utils
 } // namespace AtomDestiny::Utils
 
 // use name without I and U prefix
-#define GET_INTERFACE(name) AtomDestiny::Utils::GetInterface<I##name, U##name>(GetOwner())
 #define GET_INTERFACES(name) AtomDestiny::Utils::GetInterfaces<I##name, U##name>(GetOwner())
-
-#define GET_ACTOR_INTERFACE(name, actor) AtomDestiny::Utils::GetInterface<I##name, U##name>(actor)
 #define GET_ACTOR_INTERFACES(name, actor) AtomDestiny::Utils::GetInterfaces<I##name, U##name>(actor)

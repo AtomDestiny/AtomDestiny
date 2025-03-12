@@ -59,7 +59,7 @@ void UUnitParameters::CheckHealthState()
     // check current health on death
     if (m_currentHealth <= 0 && !m_isDead)
     {
-        const TScriptInterface<IDestroyable> destroyable = GET_INTERFACE(Destroyable);
+        const TScriptInterface<IDestroyable> destroyable = AtomDestiny::Utils::GetInterface<IDestroyable>(GetOwner());
 
         if (destroyable == nullptr)
         {

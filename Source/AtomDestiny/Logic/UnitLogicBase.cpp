@@ -86,7 +86,7 @@ void UUnitLogicBase::BeginPlay()
     m_currentSpeed = m_speed;
     m_navigation->SetStopDistance(m_defaultStopDistance);
     
-    m_animation = GET_INTERFACE(Animation);
+    m_animation = AtomDestiny::Utils::GetInterface<IAnimation>(GetOwner());
     m_scanDelay += FMath::RandRange(AtomDestiny::Unit::MinRandomScan, AtomDestiny::Unit::MaxRandomScan);
 
     // new layer

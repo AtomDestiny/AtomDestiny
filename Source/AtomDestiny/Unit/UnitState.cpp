@@ -282,10 +282,10 @@ void UUnitState::BeginPlay()
 {
     Super::BeginPlay();
 
-    m_logic = GET_INTERFACE(Logic);
-    m_objectState = GET_INTERFACE(Parameters);
-    m_shield = GET_INTERFACE(Shield);
-    m_animation = GET_INTERFACE(Animation);
+    m_logic = AtomDestiny::Utils::GetInterface<ILogic>(GetOwner());
+    m_objectState = AtomDestiny::Utils::GetInterface<IParameters>(GetOwner());
+    m_shield = AtomDestiny::Utils::GetInterface<IShield>(GetOwner());
+    m_animation = AtomDestiny::Utils::GetInterface<IAnimation>(GetOwner());
     
     ENSURE(m_groundPoint != nullptr, TEXT("Ground point is invalid"));
     ENSURE(m_objectState != nullptr, TEXT("Unit object state is invalid"));

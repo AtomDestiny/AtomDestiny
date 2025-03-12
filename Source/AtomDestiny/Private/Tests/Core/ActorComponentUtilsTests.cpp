@@ -42,7 +42,7 @@ static void GetActorInterfacesTests(AtomDestiny::FTestWorld& world, FAutomationT
     AtomDestiny::Utils::AddNewComponentToActor<UUnitScrapDestroy>(actor);
     AtomDestiny::Utils::AddNewComponentToActor<UUnitScrapDestroy>(actor);
 
-    const auto destroyInterface = GET_ACTOR_INTERFACE(Destroyable, actor.Get());
+    const auto destroyInterface = AtomDestiny::Utils::GetInterface<IDestroyable>(actor);
 
     test.TestTrue(TEXT("Destroyable interface is valid"), destroyInterface != nullptr);
 

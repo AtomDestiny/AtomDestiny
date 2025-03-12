@@ -45,7 +45,7 @@ void UWeaponBase::BeginPlay()
 {
     Super::BeginPlay();
     
-    m_weaponAnimation = GET_INTERFACE(WeaponAnimation);
+    m_weaponAnimation = AtomDestiny::Utils::GetInterface<IWeaponAnimation>(GetOwner());
 
     if (m_useRaycast && !m_useFriendlyFire)
     {
@@ -274,7 +274,7 @@ void UWeaponBase::RecalculateParameter(EObjectParameters parameter)
 
     case EObjectParameters::Range:
         {
-            if (const TScriptInterface<ILogic> logic = GET_INTERFACE(Logic); logic != nullptr)
+            if (const TScriptInterface<ILogic> logic = AtomDestiny::Utils::GetInterface<ILogic>(GetOwner()); logic != nullptr)
             {
                 m_currentAttackRange = CalculateParametersFromAll(m_attackRange, parameter);
                 logic->UpdateParameters();
@@ -314,7 +314,7 @@ void UWeaponBase::ZeroizeParameter(EObjectParameters parameter)
 
     case EObjectParameters::Range:
         {
-            if (const TScriptInterface<ILogic> logic = GET_INTERFACE(Logic); logic != nullptr)
+            if (const TScriptInterface<ILogic> logic = AtomDestiny::Utils::GetInterface<ILogic>(GetOwner()); logic != nullptr)
             {
                 m_currentAttackRange = 0;
                 logic->UpdateParameters();

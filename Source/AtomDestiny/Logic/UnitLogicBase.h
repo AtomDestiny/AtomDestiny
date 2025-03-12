@@ -93,10 +93,10 @@ protected:
     TArray<TScriptInterface<IWeapon>> m_weapons;
     
     // Scan distance (calculated from max attack range + attack delta range)
-    double m_scanDistance;
+    double m_scanDistance = 0;
     
     // Minimal scan distance (choose from min attack range from all weapons)
-    double m_minScanDistance;
+    double m_minScanDistance = 0;
     
     // Started unit speed
     double m_speed = 0;
@@ -130,11 +130,11 @@ protected:
     
     // Game unit type
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit type"))
-    EADUnitType m_unitType;
+    EADUnitType m_unitType = EADUnitType::None;
     
     // Game unit size
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit size"))
-    EUnitSize m_unitSize;
+    EUnitSize m_unitSize = EUnitSize::None;
     
     // Unit mineral cost
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit cost"))
