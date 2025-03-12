@@ -69,18 +69,23 @@ namespace AtomDestiny::Utils
 
         return components;
     }
-        
+
+    template<typename Interface>
+    TScriptInterface<Interface> CreateInterface(UObject* object, Interface* interface)
+    {
+        TScriptInterface<Interface> script;
+        script.SetObject(object);
+        script.SetInterface(interface);
+
+        return script;
+    }
 
     template<typename Interface, typename UEInterface>
     TScriptInterface<Interface> CreateInterface(UEInterface* object)
     {
-        TScriptInterface<Interface> script;
-        script.SetObject(object);
-        script.SetInterface(Cast<Interface>(object));
-
-        return script;
+        return CreateInterface(object, Cast<Interface>(object));
     }
-    
+
     template<typename Interface>
     [[nodiscard]] TScriptInterface<Interface> GetInterface(AActor* actor)
     {
@@ -90,7 +95,7 @@ namespace AtomDestiny::Utils
         }
 
         if (const auto interface = actor->FindComponentByInterface<Interface>(); interface != nullptr)
-            return TScriptInterface<Interface>{ actor };
+            return CreateInterface<Interface>(actor, interface);
         
         return nullptr;
     }
@@ -101,29 +106,31 @@ namespace AtomDestiny::Utils
         return GetInterface<Interface>(actor.Get());
     }
 
-    template<typename Interface, typename UEInterface>
+    template<typename Interface>
     [[nodiscard]] TArray<TScriptInterface<Interface>> GetInterfaces(AActor* actor)
     {
         if (actor == nullptr)
         {
             return {};
         }
-        
+
         TArray<TScriptInterface<Interface>> interfaces;
 
         for (UActorComponent* component : actor->GetComponents())
         {
-            if (component && component->GetClass()->ImplementsInterface(UEInterface::StaticClass()))
+            if (component && Cast<Interface>(component) != nullptr)
             {
                 interfaces.Add(CreateInterface<Interface>(component));
             }
         }
-        
+
         return interfaces;
     }
-    
-} // namespace AtomDestiny::Utils
 
-// use name without I and U prefix
-#define GET_INTERFACES(name) AtomDestiny::Utils::GetInterfaces<I##name, U##name>(GetOwner())
-#define GET_ACTOR_INTERFACES(name, actor) AtomDestiny::Utils::GetInterfaces<I##name, U##name>(actor)
+    template<typename Interface>
+    [[nodiscard]] TArray<TScriptInterface<Interface>> GetInterfaces(const TWeakObjectPtr<AActor>& actor)
+    {
+        return GetInterfaces<Interface>(actor.Get());
+    }
+
+} // namespace AtomDestiny::Utils

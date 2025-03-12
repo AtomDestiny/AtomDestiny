@@ -46,7 +46,7 @@ static void GetActorInterfacesTests(AtomDestiny::FTestWorld& world, FAutomationT
 
     test.TestTrue(TEXT("Destroyable interface is valid"), destroyInterface != nullptr);
 
-    const auto interfaces = GET_ACTOR_INTERFACES(Destroyable, actor.Get());
+    const auto interfaces = AtomDestiny::Utils::GetInterfaces<IDestroyable>(actor);
 
     test.TestEqual(TEXT("Get interfaces size is two"), interfaces.Num(), 2);
 

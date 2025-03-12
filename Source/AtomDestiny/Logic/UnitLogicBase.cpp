@@ -50,7 +50,7 @@ void UUnitLogicBase::InitializeComponent()
 {
     Super::InitializeComponent();
     
-    m_weapons = GET_INTERFACES(Weapon);
+    m_weapons = AtomDestiny::Utils::GetInterfaces<IWeapon>(GetOwner());
     
     CalculateDistances();
 
