@@ -7,11 +7,11 @@
 #include <Components/ActorComponent.h>
 
 #include <AtomDestiny/Core/Macros.h>
-#include <AtomDestiny/Core/ADObject/Parameterizable.h>
+#include <AtomDestiny/Core/ADComponent/Parameterizable.h>
 
 #include <AtomDestiny/Coroutines/CoroutineComponent.h>
 
-#include "ADObject.generated.h"
+#include "ADComponent.generated.h"
 
 ///
 /// Represents Parameterizable Atom Destiny object.
@@ -19,7 +19,7 @@
 /// (Units, Buildings, Abilities, Weapons and so on).
 ///
 UCLASS(Abstract)
-class ATOMDESTINY_API UADObject : public UCoroutineComponent, public IParameterizable
+class ATOMDESTINY_API UADComponent : public UCoroutineComponent, public IParameterizable
 {
     GENERATED_BODY()
 
@@ -32,7 +32,7 @@ class ATOMDESTINY_API UADObject : public UCoroutineComponent, public IParameteri
     using ObjectEnhancementParameters = std::unordered_map<EObjectParameters, GameObjectPairParameterList>;
 
 public:
-    explicit UADObject(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+    explicit UADComponent(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     UFUNCTION(Meta = (AllowOverride = true))
     void AddParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement) override;

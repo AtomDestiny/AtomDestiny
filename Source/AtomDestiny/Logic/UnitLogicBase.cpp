@@ -7,7 +7,7 @@
 #include <AtomDestiny/Core/Logger.h>
 
 UUnitLogicBase::UUnitLogicBase(const FObjectInitializer& objectInitializer):
-    UADObject(objectInitializer)
+    UADComponent(objectInitializer)
 {
 }
 

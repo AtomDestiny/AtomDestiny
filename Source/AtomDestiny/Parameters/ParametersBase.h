@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <AtomDestiny/Core/ADObject/ADObject.h>
+#include <AtomDestiny/Core/ADComponent/ADComponent.h>
 #include <AtomDestiny/Parameters/Parameters.h>
 
 #include <UI/HealthBar.h>
@@ -11,7 +11,7 @@
 /// to have a parameters in Atom Destiny world.
 ///
 UCLASS(Abstract)
-class UParametersBase : public UADObject, public IParameters
+class UParametersBase : public UADComponent, public IParameters
 {
     GENERATED_BODY()
     

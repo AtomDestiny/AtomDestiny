@@ -3,7 +3,7 @@
 #include <Runtime/Core/Public/Delegates/Delegate.h>
 
 #include <AtomDestiny/Logic/Logic.h>
-#include <AtomDestiny/Core/ADObject/ADObject.h>
+#include <AtomDestiny/Core/ADComponent/ADComponent.h>
 #include <AtomDestiny/Unit/Animation.h>
 #include <AtomDestiny/Navigation/Navigator.h>
 
@@ -14,7 +14,7 @@
 /// Should be derived by concrete logic.
 ///
 UCLASS(Abstract)
-class ATOMDESTINY_API UUnitLogicBase : public UADObject, public ILogic
+class ATOMDESTINY_API UUnitLogicBase : public UADComponent, public ILogic
 {
     GENERATED_BODY()
     

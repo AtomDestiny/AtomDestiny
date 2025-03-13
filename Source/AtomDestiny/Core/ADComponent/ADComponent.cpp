@@ -1,10 +1,10 @@
-﻿#include "ADObject.h"
+﻿#include "ADComponent.h"
 
 #include <stdexcept>
 
 #include <AtomDestiny/Core/Logger.h>
 
-UADObject::UADObject(const FObjectInitializer& objectInitializer):
+UADComponent::UADComponent(const FObjectInitializer& objectInitializer):
     UCoroutineComponent(objectInitializer)
 {
     bWantsInitializeComponent = true;
@@ -12,19 +12,19 @@ UADObject::UADObject(const FObjectInitializer& objectInitializer):
 
 // IParameterizable
 
-void UADObject::AddParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement)
+void UADComponent::AddParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement)
 {
     if (enhancement.enhancementObject.IsValid() && enhancement.value >= 0)
         AddToParameter(parameter, enhancement);
 }
 
-void UADObject::RemoveParameter(EObjectParameters parameter, AActor* enhancementObject)
+void UADComponent::RemoveParameter(EObjectParameters parameter, AActor* enhancementObject)
 {
     if (const TWeakObjectPtr<AActor> ptr { enhancementObject }; ptr.IsValid())
         RemoveFromParameter(parameter, ptr);
 }
 
-void UADObject::ZeroParameter(EObjectParameters parameter, const FParameterZeroPack& pack)
+void UADComponent::ZeroParameter(EObjectParameters parameter, const FParameterZeroPack& pack)
 {
     if (!pack.zeroObject.IsValid())
     {
@@ -53,7 +53,7 @@ void UADObject::ZeroParameter(EObjectParameters parameter, const FParameterZeroP
     Recalculate(parameter);
 }
 
-double UADObject::InterpretParameterModifier(double baseValue, const FParameterEnhancement& enhancement)
+double UADComponent::InterpretParameterModifier(double baseValue, const FParameterEnhancement& enhancement)
 {
     auto result = 0.0f;
     const auto value = std::abs(enhancement.value);
@@ -83,7 +83,7 @@ double UADObject::InterpretParameterModifier(double baseValue, const FParameterE
     return result;
 }
 
-std::vector<EObjectParameters> UADObject::GetParameterTypes() const
+std::vector<EObjectParameters> UADComponent::GetParameterTypes() const
 {
     std::vector<EObjectParameters> objectParameters;
     objectParameters.reserve(m_enhancementParameters.size());
@@ -94,7 +94,7 @@ std::vector<EObjectParameters> UADObject::GetParameterTypes() const
     return objectParameters;
 }
 
-std::vector<FParameterEnhancement>& UADObject::GetParameterEnhancementList(EObjectParameters parameter)
+std::vector<FParameterEnhancement>& UADComponent::GetParameterEnhancementList(EObjectParameters parameter)
 {
     const auto iter = m_enhancementParameters.find(parameter);
 
@@ -107,7 +107,7 @@ std::vector<FParameterEnhancement>& UADObject::GetParameterEnhancementList(EObje
     return iter->second.second;
 }
 
-bool UADObject::GetParameterAvailable(EObjectParameters parameter)
+bool UADComponent::GetParameterAvailable(EObjectParameters parameter)
 {
     if (const auto iter = m_enhancementParameters.find(parameter); iter != m_enhancementParameters.end())
     {
@@ -123,7 +123,7 @@ bool UADObject::GetParameterAvailable(EObjectParameters parameter)
     return false;
 }
 
-std::vector<TWeakObjectPtr<AActor>>& UADObject::GetParameterZeroList(EObjectParameters parameter)
+std::vector<TWeakObjectPtr<AActor>>& UADComponent::GetParameterZeroList(EObjectParameters parameter)
 {
     const auto iter = m_enhancementParameters.find(parameter);
 
@@ -136,19 +136,19 @@ std::vector<TWeakObjectPtr<AActor>>& UADObject::GetParameterZeroList(EObjectPara
     return iter->second.first;
 }
 
-void UADObject::AddNewParameter(EObjectParameters parameter)
+void UADComponent::AddNewParameter(EObjectParameters parameter)
 {
     if (!m_enhancementParameters.contains(parameter))
         m_enhancementParameters.emplace(parameter, GameObjectPairParameterList{});
 }
 
-void UADObject::AddNewParameters(const std::vector<EObjectParameters>& parameters)
+void UADComponent::AddNewParameters(const std::vector<EObjectParameters>& parameters)
 {
     for (const auto parameter : parameters)
         AddNewParameter(parameter);
 }
 
-void UADObject::AddToParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement)
+void UADComponent::AddToParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement)
 {
     if (!m_enhancementParameters.contains(parameter))
     {
@@ -168,7 +168,7 @@ void UADObject::AddToParameter(EObjectParameters parameter, const FParameterEnha
         Recalculate(parameter);
 }
 
-void UADObject::RemoveFromParameter(EObjectParameters parameter, const TWeakObjectPtr<AActor>& enhanceObject)
+void UADComponent::RemoveFromParameter(EObjectParameters parameter, const TWeakObjectPtr<AActor>& enhanceObject)
 {
     if (!m_enhancementParameters.contains(parameter))
     {
@@ -190,9 +190,9 @@ void UADObject::RemoveFromParameter(EObjectParameters parameter, const TWeakObje
     }
 }
 
-double UADObject::CalculateParametersFromAll(const double startValue, EObjectParameters parameter) const
+double UADComponent::CalculateParametersFromAll(const double startValue, EObjectParameters parameter) const
 {
-    const std::vector<FParameterEnhancement>& parameters = const_cast<UADObject*>(this)->GetParameterEnhancementList(parameter);
+    const std::vector<FParameterEnhancement>& parameters = const_cast<UADComponent*>(this)->GetParameterEnhancementList(parameter);
     const auto calculator = [&parameters, startValue]() {
         auto currentValue = startValue;
 
@@ -205,7 +205,7 @@ double UADObject::CalculateParametersFromAll(const double startValue, EObjectPar
     return calculator();
 }
 
-void UADObject::SetTickEnabled(bool enable)
+void UADComponent::SetTickEnabled(bool enable)
 {
     UActorComponent::PrimaryComponentTick.bCanEverTick = enable;
     UActorComponent::PrimaryComponentTick.bStartWithTickEnabled = enable;
@@ -213,7 +213,7 @@ void UADObject::SetTickEnabled(bool enable)
     Super::SetComponentTickEnabled(enable);
 }
 
-void UADObject::RemoveNullParameters(EObjectParameters parameter)
+void UADComponent::RemoveNullParameters(EObjectParameters parameter)
 {
     if (const auto iter = m_enhancementParameters.find(parameter); iter != m_enhancementParameters.cend())
     {
@@ -226,7 +226,7 @@ void UADObject::RemoveNullParameters(EObjectParameters parameter)
     }
 }
 
-void UADObject::Recalculate(EObjectParameters parameter)
+void UADComponent::Recalculate(EObjectParameters parameter)
 {
     RemoveNullParameters(parameter);
 

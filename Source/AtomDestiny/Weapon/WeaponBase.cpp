@@ -10,7 +10,7 @@
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
 
 UWeaponBase::UWeaponBase(const FObjectInitializer& objectInitializer):
-    UADObject(objectInitializer)
+    UADComponent(objectInitializer)
 {
 }
 
