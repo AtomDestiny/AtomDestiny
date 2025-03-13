@@ -10,6 +10,8 @@
 
 #include <AtomDestiny/Logic/UnitLogic.h>
 
+#include <AtomDestiny/Core/ActorUtils.h>
+
 ADefaultUnit::ADefaultUnit(const FObjectInitializer& objectInitializer):
     APawn(objectInitializer)
 {
@@ -39,8 +41,13 @@ ADefaultUnit::ADefaultUnit(const FObjectInitializer& objectInitializer):
 void ADefaultUnit::BeginPlay()
 {
     Super::BeginPlay();
+
+    if (IsHidden())
+    {
+        AtomDestiny::Utils::SetActorEditorActive(this, false);
+    }
     
-    // Setup Health bar here because HealthBarComponent creates it after BeginPlay 
+    // Setup Health bar here because HealthBarComponent creates it after BeginPlay
     const auto healthBar = Cast<UHealthBar>(m_healthBar->GetUserWidgetObject());
     healthBar->SetEnergyVisible(false);
     

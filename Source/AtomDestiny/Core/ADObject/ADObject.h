@@ -35,13 +35,13 @@ public:
     explicit UADObject(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual void AddParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement) override;
+    void AddParameter(EObjectParameters parameter, const FParameterEnhancement& enhancement) override;
     
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual void RemoveParameter(EObjectParameters parameter, AActor* enhancementObject) override;
+    void RemoveParameter(EObjectParameters parameter, AActor* enhancementObject) override;
     
     UFUNCTION(Meta = (AllowOverride = true))
-    virtual void ZeroParameter(EObjectParameters parameter, const FParameterZeroPack& pack) override;
+    void ZeroParameter(EObjectParameters parameter, const FParameterZeroPack& pack) override;
 
     ///
     /// Interprets ParameterEnhancement values and returns resulting value
