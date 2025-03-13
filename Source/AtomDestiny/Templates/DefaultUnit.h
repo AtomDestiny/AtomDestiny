@@ -26,8 +26,8 @@ class ADefaultUnit : public APawn
 public:
     explicit ADefaultUnit(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
-    virtual void BeginPlay() override;
-    
+    void BeginPlay() override;
+
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Box collider"))
     TObjectPtr<USceneComponent> m_boxComponent;

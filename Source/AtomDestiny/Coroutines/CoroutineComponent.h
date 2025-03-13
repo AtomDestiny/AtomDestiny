@@ -24,7 +24,7 @@ public:
     void StopAllCoroutines();
 
 protected:
-    virtual void Deactivate() override;
+    void Deactivate() override;
     
 private:
     AtomDestiny::CoroutinesRunner m_runner;
