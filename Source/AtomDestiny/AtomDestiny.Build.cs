@@ -7,6 +7,7 @@ public class AtomDestiny : ModuleRules
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         CppStandard = CppStandardVersion.Latest;
         bEnableExceptions = true;
+        OptimizeCode = CodeOptimization.Never;
 
         PublicDependencyModuleNames.AddRange(new string[] {
             "Core", 
