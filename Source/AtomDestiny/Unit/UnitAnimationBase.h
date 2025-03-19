@@ -24,6 +24,5 @@ protected:
     void Attack() ABSTRACT_METHOD;
 
     // Skeletal mesh that contains an animator
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Skeletal mesh with animation"))
     TWeakObjectPtr<USkeletalMeshComponent> m_skeletalMeshComponent;
 };
