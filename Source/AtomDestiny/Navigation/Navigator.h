@@ -21,10 +21,10 @@ class ATOMDESTINY_API ANavigator : public AAIController
 public:
     explicit ANavigator(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
-    // Sets movement component to control speed and other values
+    // Sets the movement component to control speed and other values
     void SetMovementComponent(UFloatingPawnMovement* component);
 
-    // move pawn to actor
+    // move pawn to an actor
     void Move(AActor* target);
     void Move(const FVector& point);
     void Stop();
@@ -50,7 +50,7 @@ private:
     template <AtomDestiny::Concepts::NavigatorMovable T>
     void SetTarget(const T& target);
 
-    // Updates target navigation on every move request
+    // Updates navigation on every move request
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Every call update target", AllowPrivateAccess = "true"))
     bool m_updateNavigationOnEveryCall = false;
     
@@ -59,5 +59,5 @@ private:
     TWeakObjectPtr<AActor> m_target;
     TWeakObjectPtr<UFloatingPawnMovement> m_pawnMovement;
 
-    FVector m_targetPoint;
+    FVector m_targetPoint{};
 };

@@ -6,19 +6,622 @@
 		},
 		{
 			"name": "UE5",
-			"path": "/Users/Shared/Epic Games/UE_5.1"
+			"path": "D:\\Programs\\Epic Games\\UE_5.5"
 		}
 	],
 	"settings": {
-		"typescript.tsc.autoDetect": "off"
+		"typescript.tsc.autoDetect": "off",
+		"npm.autoDetect": "off",
+		"terminal.integrated.env.windows": {
+			"PATH": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Binaries\\ThirdParty\\DotNet\\8.0.300\\win-x64;${env:PATH}",
+			"DOTNET_ROOT": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Binaries\\ThirdParty\\DotNet\\8.0.300\\win-x64",
+			"DOTNET_HOST_PATH": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Binaries\\ThirdParty\\DotNet\\8.0.300\\win-x64\\dotnet.exe",
+			"DOTNET_MULTILEVEL_LOOKUP": "0",
+			"DOTNET_ROLL_FORWARD": "LatestMajor"
+		}
 	},
 	"extensions": {
 		"recommendations": [
 			"ms-vscode.cpptools",
-			"ms-dotnettools.csharp",
-			"vadimcn.vscode-lldb",
-			"ms-vscode.mono-debug",
-			"dfarley1.file-picker"
+			"ms-dotnettools.csharp"
+		]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "AtomDestiny Win64 Debug Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"Debug",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex -FromMSBuild"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 Debug Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"Debug",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"AtomDestiny Win64 Debug Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 Debug Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"Debug",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 DebugGame Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"DebugGame",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 DebugGame Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"DebugGame",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"AtomDestiny Win64 DebugGame Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 DebugGame Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"DebugGame",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 Development Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"Development",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 Development Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"Development",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"AtomDestiny Win64 Development Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 Development Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"Development",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 Test Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"Test",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 Test Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"Test",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"AtomDestiny Win64 Test Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 Test Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"Test",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 Shipping Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"Shipping",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 Shipping Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"Shipping",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"AtomDestiny Win64 Shipping Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestiny Win64 Shipping Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"AtomDestiny",
+					"Win64",
+					"Shipping",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestinyEditor Win64 Debug Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestinyEditor",
+					"Win64",
+					"Debug",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex -FromMSBuild"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestinyEditor Win64 Debug Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestinyEditor",
+					"Win64",
+					"Debug",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"AtomDestinyEditor Win64 Debug Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestinyEditor Win64 Debug Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"AtomDestinyEditor",
+					"Win64",
+					"Debug",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestinyEditor Win64 DebugGame Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestinyEditor",
+					"Win64",
+					"DebugGame",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex -FromMSBuild"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestinyEditor Win64 DebugGame Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestinyEditor",
+					"Win64",
+					"DebugGame",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"AtomDestinyEditor Win64 DebugGame Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestinyEditor Win64 DebugGame Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"AtomDestinyEditor",
+					"Win64",
+					"DebugGame",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestinyEditor Win64 Development Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestinyEditor",
+					"Win64",
+					"Development",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestinyEditor Win64 Development Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"AtomDestinyEditor",
+					"Win64",
+					"Development",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"AtomDestinyEditor Win64 Development Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"label": "AtomDestinyEditor Win64 Development Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"AtomDestinyEditor",
+					"Win64",
+					"Development",
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			}
+		]
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Launch AtomDestiny (Debug)",
+				"request": "launch",
+				"program": "D:\\Programs\\UnrealEngine\\AtomDestiny\\Binaries\\Win64\\UnrealGame-Win64-Debug.exe",
+				"preLaunchTask": "AtomDestiny Win64 Debug Build",
+				"args": [
+				],
+				"cwd": "D:\\Programs\\Epic Games\\UE_5.5",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"name": "Launch AtomDestiny (DebugGame)",
+				"request": "launch",
+				"program": "D:\\Programs\\UnrealEngine\\AtomDestiny\\Binaries\\Win64\\UnrealGame-Win64-DebugGame.exe",
+				"preLaunchTask": "AtomDestiny Win64 DebugGame Build",
+				"args": [
+				],
+				"cwd": "D:\\Programs\\Epic Games\\UE_5.5",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"name": "Launch AtomDestiny (Development)",
+				"request": "launch",
+				"program": "D:\\Programs\\UnrealEngine\\AtomDestiny\\Binaries\\Win64\\UnrealGame.exe",
+				"preLaunchTask": "AtomDestiny Win64 Development Build",
+				"args": [
+				],
+				"cwd": "D:\\Programs\\Epic Games\\UE_5.5",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"name": "Launch AtomDestiny (Test)",
+				"request": "launch",
+				"program": "D:\\Programs\\UnrealEngine\\AtomDestiny\\Binaries\\Win64\\UnrealGame-Win64-Test.exe",
+				"preLaunchTask": "AtomDestiny Win64 Test Build",
+				"args": [
+				],
+				"cwd": "D:\\Programs\\Epic Games\\UE_5.5",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"name": "Launch AtomDestiny (Shipping)",
+				"request": "launch",
+				"program": "D:\\Programs\\UnrealEngine\\AtomDestiny\\Binaries\\Win64\\UnrealGame-Win64-Shipping.exe",
+				"preLaunchTask": "AtomDestiny Win64 Shipping Build",
+				"args": [
+				],
+				"cwd": "D:\\Programs\\Epic Games\\UE_5.5",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"name": "Launch AtomDestinyEditor (Debug)",
+				"request": "launch",
+				"program": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Binaries\\Win64\\UnrealEditor-Win64-Debug.exe",
+				"preLaunchTask": "AtomDestinyEditor Win64 Debug Build",
+				"args": [
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject"
+				],
+				"cwd": "D:\\Programs\\Epic Games\\UE_5.5",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"name": "Launch AtomDestinyEditor (DebugGame)",
+				"request": "launch",
+				"program": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Binaries\\Win64\\UnrealEditor-Win64-DebugGame.exe",
+				"preLaunchTask": "AtomDestinyEditor Win64 DebugGame Build",
+				"args": [
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject"
+				],
+				"cwd": "D:\\Programs\\Epic Games\\UE_5.5",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"name": "Launch AtomDestinyEditor (Development)",
+				"request": "launch",
+				"program": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Binaries\\Win64\\UnrealEditor.exe",
+				"preLaunchTask": "AtomDestinyEditor Win64 Development Build",
+				"args": [
+					"D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject"
+				],
+				"cwd": "D:\\Programs\\Epic Games\\UE_5.5",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "D:\\Programs\\Epic Games\\UE_5.5"
+				}
+			},
+			{
+				"name": "Generate Project Files",
+				"type": "coreclr",
+				"request": "launch",
+				"preLaunchTask": "UnrealBuildTool Win64 Development Build",
+				"program": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Build\\BatchFiles\\RunUBT.bat",
+				"args": [
+					"-projectfiles",
+					"-vscode",
+					"-project=D:\\Programs\\UnrealEngine\\AtomDestiny\\AtomDestiny.uproject",
+					"-game",
+					"-engine",
+					"-dotnet"
+				],
+				"env": {
+					"PATH": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Binaries\\ThirdParty\\DotNet\\8.0.300\\win-x64;${env:PATH}",
+					"DOTNET_ROOT": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Binaries\\ThirdParty\\DotNet\\8.0.300\\win-x64",
+					"DOTNET_HOST_PATH": "D:\\Programs\\Epic Games\\UE_5.5\\Engine\\Binaries\\ThirdParty\\DotNet\\8.0.300\\win-x64\\dotnet.exe",
+					"DOTNET_MULTILEVEL_LOOKUP": "0",
+					"DOTNET_ROLL_FORWARD": "LatestMajor"
+				},
+				"console": "integratedTerminal",
+				"stopAtEntry": false,
+				"cwd": "D:\\Programs\\Epic Games\\UE_5.5"
+			}
 		]
 	}
 }
