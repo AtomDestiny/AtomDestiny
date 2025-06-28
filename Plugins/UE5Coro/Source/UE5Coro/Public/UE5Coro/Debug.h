@@ -29,66 +29,48 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/Coroutine.h"
+#pragma once
 
-using namespace UE5Coro;
-using namespace UE5Coro::Private;
+#include "CoreMinimal.h"
+#include "UE5Coro/Definition.h"
 
-const TCoroutine<> TCoroutine<>::CompletedCoroutine = []() -> TCoroutine
-{
-	co_return;
-}();
+#define UE5CORO_PRIVATE_USE_DEBUG_ALLOCATOR 0
 
-void TCoroutine<>::Cancel()
-{
-	UE::TUniqueLock Lock(Extras->Lock);
-	// Holding the lock guarantees that Promise is active in the union
-	if (Extras->Promise)
-		Extras->Promise->Cancel(false);
-}
-
-bool TCoroutine<>::Wait(uint32 WaitTimeMilliseconds,
-                        bool bIgnoreThreadIdleStats) const
-{
-	return Extras->Completed->Wait(WaitTimeMilliseconds, bIgnoreThreadIdleStats);
-}
-
-bool TCoroutine<>::IsDone() const
-{
-	return Wait(0, true);
-}
-
-bool TCoroutine<>::WasSuccessful() const noexcept
-{
-	return Extras->bWasSuccessful;
-}
-
-void TCoroutine<>::SetDebugName(const TCHAR* Name)
-{
 #if UE5CORO_DEBUG
-	if (ensureMsgf(GCurrentPromise,
-	               TEXT("Attempting to set a debug name outside a coroutine")))
-		GCurrentPromise->Extras->DebugName = Name;
+/** The utilities in this namespace are sometimes used to debug UE5Coro itself. */
+namespace UE5Coro::Private::Debug
+{
+constexpr int GMaxEvents = 100;
+constexpr bool bLogThread = false;
+
+struct FThreadedEventLogEntry
+{
+	const char* Message;
+	uint32 Thread;
+	FThreadedEventLogEntry(const char* Message = nullptr)
+		: Message(Message), Thread(FPlatformTLS::GetCurrentThreadId()) { }
+};
+using FEventLogEntry = std::conditional_t<bLogThread,
+                                          FThreadedEventLogEntry, const char*>;
+extern UE5CORO_API FEventLogEntry GEventLog[GMaxEvents];
+extern UE5CORO_API std::atomic<int> GNextEvent;
+
+extern UE5CORO_API std::atomic<int> GLastDebugID;
+extern UE5CORO_API std::atomic<int> GActiveCoroutines;
+
+inline void ClearEvents()
+{
+	std::ranges::fill(GEventLog, FEventLogEntry());
+	GNextEvent = 0;
+}
+
+void Use(auto&&)
+{
+}
+
+#define UE5CORO_PRIVATE_DEBUG_EVENT(...) do { \
+	namespace D = ::UE5Coro::Private::Debug; \
+	D::GEventLog[D::GNextEvent++] = #__VA_ARGS__; \
+	FPlatformMisc::MemoryBarrier(); } while (false)
+}
 #endif
-}
-
-bool TCoroutine<>::operator==(const TCoroutine& Other) const noexcept
-{
-	return Extras == Other.Extras;
-}
-
-auto TCoroutine<>::operator<=>(const TCoroutine& Other) const noexcept
-	-> std::strong_ordering
-{
-	return Extras <=> Other.Extras;
-}
-
-uint32 GetTypeHash(const TCoroutine<>& Handle) noexcept
-{
-	return static_cast<uint32>(std::hash<TCoroutine<>>()(Handle));
-}
-
-size_t std::hash<TCoroutine<>>::operator()(const TCoroutine<>& Handle) const noexcept
-{
-	return std::hash<void*>()(Handle.Extras.get());
-}
