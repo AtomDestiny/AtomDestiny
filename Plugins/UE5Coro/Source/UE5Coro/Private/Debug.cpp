@@ -29,66 +29,15 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/Coroutine.h"
+#include "UE5Coro/Debug.h"
 
-using namespace UE5Coro;
-using namespace UE5Coro::Private;
-
-const TCoroutine<> TCoroutine<>::CompletedCoroutine = []() -> TCoroutine
-{
-	co_return;
-}();
-
-void TCoroutine<>::Cancel()
-{
-	UE::TUniqueLock Lock(Extras->Lock);
-	// Holding the lock guarantees that Promise is active in the union
-	if (Extras->Promise)
-		Extras->Promise->Cancel(false);
-}
-
-bool TCoroutine<>::Wait(uint32 WaitTimeMilliseconds,
-                        bool bIgnoreThreadIdleStats) const
-{
-	return Extras->Completed->Wait(WaitTimeMilliseconds, bIgnoreThreadIdleStats);
-}
-
-bool TCoroutine<>::IsDone() const
-{
-	return Wait(0, true);
-}
-
-bool TCoroutine<>::WasSuccessful() const noexcept
-{
-	return Extras->bWasSuccessful;
-}
-
-void TCoroutine<>::SetDebugName(const TCHAR* Name)
-{
 #if UE5CORO_DEBUG
-	if (ensureMsgf(GCurrentPromise,
-	               TEXT("Attempting to set a debug name outside a coroutine")))
-		GCurrentPromise->Extras->DebugName = Name;
+using namespace UE5Coro::Private;
+using namespace UE5Coro::Private::Debug;
+
+FEventLogEntry Debug::GEventLog[GMaxEvents];
+std::atomic<int> Debug::GNextEvent = 0;
+
+std::atomic<int> Debug::GLastDebugID = -1; // -1 = no coroutines yet
+std::atomic<int> Debug::GActiveCoroutines = 0;
 #endif
-}
-
-bool TCoroutine<>::operator==(const TCoroutine& Other) const noexcept
-{
-	return Extras == Other.Extras;
-}
-
-auto TCoroutine<>::operator<=>(const TCoroutine& Other) const noexcept
-	-> std::strong_ordering
-{
-	return Extras <=> Other.Extras;
-}
-
-uint32 GetTypeHash(const TCoroutine<>& Handle) noexcept
-{
-	return static_cast<uint32>(std::hash<TCoroutine<>>()(Handle));
-}
-
-size_t std::hash<TCoroutine<>>::operator()(const TCoroutine<>& Handle) const noexcept
-{
-	return std::hash<void*>()(Handle.Extras.get());
-}
