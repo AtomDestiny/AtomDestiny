@@ -35,9 +35,8 @@ void UUnitScrapDestroy::Destroy()
     }
     
     const TWeakObjectPtr<AActor> scrap = AtomDestiny::ObjectPool::Instance().Spawn(m_scrapPrefab.GetDefaultObject(), actorLocation, actorRotation);
-    const TArray<UStaticMeshComponent*> components = AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(scrap.Get());
-    
-    for (const auto component : components)
+
+    for (const TArray<UStaticMeshComponent*> components = AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(scrap.Get()); const auto component : components)
     {
         const double power = FMath::FRandRange(m_minExplosionPower, m_maxExplosionPower);
 
