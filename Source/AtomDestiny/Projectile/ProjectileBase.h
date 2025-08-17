@@ -26,25 +26,25 @@ public:
 
     // Sets projectile points from weapon or another projectile
     UFUNCTION()
-    virtual void SetPoints(const FProjectilePoints& points) override final;
+    void SetPoints(const FProjectilePoints& points) override final;
     
     // Sets weapon parameters to projectile
     UFUNCTION()
-    virtual void SetParameters(const FWeaponParameters& parameters) override final;
+    void SetParameters(const FWeaponParameters& parameters) override final;
     
     // Returns projectile parameters
     UFUNCTION()
-    virtual const FWeaponParameters& GetParameters() const override final;
+    const FWeaponParameters& GetParameters() const override final;
     
     // Returns projectile points
     UFUNCTION()
-    virtual const FProjectilePoints& GetPoints() const override final;
+    const FProjectilePoints& GetPoints() const override final;
     
     // Initializes base data and launches a projectile
-    virtual void Launch() ABSTRACT_METHOD;
+    void Launch() ABSTRACT_METHOD;
 
 protected:
-    virtual void BeginPlay() override;
+    void BeginPlay() override;
     
     FWeaponParameters m_parameters;
     FProjectilePoints m_points;

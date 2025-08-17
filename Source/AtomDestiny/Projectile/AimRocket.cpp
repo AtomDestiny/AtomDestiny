@@ -32,7 +32,7 @@ void AAimRocket::Tick(float deltaSeconds)
 void AAimRocket::Launch()
 {
     check(m_parameters.target != nullptr);
-    check(m_trace != nullptr);
+    check(m_tracePrefab != nullptr);
     check(m_rocketEngine != nullptr);
     
     m_points.endPosition = m_parameters.target->FindComponentByClass<UUnitState>()->GetGroundPoint<FVector>();

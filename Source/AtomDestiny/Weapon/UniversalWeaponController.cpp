@@ -53,7 +53,8 @@ void UUniversalWeaponController::Fire(float deltaTime)
         return;
     }
 
-    const bool isValidShotDistance = (m_target->GetActorLocation() - m_weaponComponent->GetComponentLocation()).SquaredLength() > m_minShotSqrtDistance;
+    const double currentTargetSquaredLength = (m_target->GetActorLocation() - m_weaponComponent->GetComponentLocation()).SquaredLength();
+    const bool isValidShotDistance = currentTargetSquaredLength > m_minShotSqrtDistance;
     
     if (m_rotatedWeapon)
     {
