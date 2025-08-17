@@ -3,6 +3,7 @@
 #include <Components/BoxComponent.h>
 
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
+#include <AtomDestiny/Core/ActorUtils.h>
 
 #include <AtomDestiny/AtomDestinyGameStateBase.h>
 
@@ -27,6 +28,11 @@ void ARocketBase::BeginPlay()
     m_startLifeTime = m_lifeTime;
 
     AtomDestiny::ObjectPool::Instance().Preload(m_tracePrefab);
+
+    if (IsHidden())
+    {
+        AtomDestiny::Utils::SetActorEditorActive(this, false);
+    }
 }
 
 void ARocketBase::OnDisabled()
@@ -62,7 +68,7 @@ FVoidCoroutine ARocketBase::LockOn()
     }
 }
 
-void ARocketBase::NotifyActorBeginOverlap(AActor*)
+void ARocketBase::NotifyActorBeginOverlap(AActor* other)
 {
     if (!m_launched)
         return;

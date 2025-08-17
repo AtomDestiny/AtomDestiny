@@ -19,10 +19,10 @@ public:
     explicit ARocketBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
 protected:
-    virtual void BeginPlay() override;
-    virtual void OnDisabled() override;
-    virtual void NotifyActorBeginOverlap(AActor* other) override;
-    virtual void Tick(float deltaSeconds) override;
+    void BeginPlay() override;
+    void OnDisabled() override;
+    void NotifyActorBeginOverlap(AActor* other) override;
+    void Tick(float deltaSeconds) override;
 
     FVoidCoroutine LockOn();
     
