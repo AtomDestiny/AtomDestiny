@@ -18,6 +18,8 @@ ARocketBase::ARocketBase(const FObjectInitializer& objectInitializer):
         
         RootComponent = m_boxCollider;
     }
+
+    PrimaryActorTick.bCanEverTick = true;
 }
 
 void ARocketBase::BeginPlay()

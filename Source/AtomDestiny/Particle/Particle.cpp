@@ -28,8 +28,11 @@ void AParticle::SetActorHiddenInGame(bool hidden)
     {
         UpdateNiagaraTransform();
         m_niagaraComponent->ActivateSystem();
-        
-        AtomDestiny::ObjectPool::Instance().Despawn(this, m_despawnDelay);
+
+        if (m_isDespawnDelayEnabled)
+        {
+            AtomDestiny::ObjectPool::Instance().Despawn(this, m_despawnDelay);
+        }
     }
 }
 
@@ -41,6 +44,9 @@ void AParticle::Tick(float deltaTime)
 
 void AParticle::UpdateNiagaraTransform()
 {
-    m_niagaraComponent->SetWorldLocation(GetActorLocation());
-    m_niagaraComponent->SetWorldRotation(GetActorRotation());
+    if (m_isRootTransformUpdateEnabled)
+    {
+        m_niagaraComponent->SetWorldLocation(GetActorLocation());
+        m_niagaraComponent->SetWorldRotation(GetActorRotation());
+    }
 }
