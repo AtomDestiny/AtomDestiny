@@ -15,6 +15,7 @@ class ATOMDESTINY_API UDespawner final : public UActorComponent
 
 public:
     void Despawn(double time);
+    void Reset();
 
 private:
     FTimerHandle m_timerHandle;

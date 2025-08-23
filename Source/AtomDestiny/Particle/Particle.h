@@ -20,8 +20,8 @@ public:
     explicit AParticle(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     // plays particle on activation
-    virtual void SetActorHiddenInGame(bool hidden) override;
-    virtual void Tick(float deltaTime) override;
+    void SetActorHiddenInGame(bool hidden) override;
+    void Tick(float deltaTime) override;
     
 protected:
     void UpdateNiagaraTransform();
@@ -32,7 +32,13 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Niagara component"))
     TObjectPtr<UNiagaraComponent> m_niagaraComponent;
 
-    // delay to be despawn at seconds
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Enable despawn delay on activation"))
+    bool m_isDespawnDelayEnabled = true;
+    
+    // delay to be despawn at seconds, makes no sense if 'Enable despawn delay on activation' is disabled
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Despawn delay"))
     double m_despawnDelay = 1.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Enable root transform updation"))
+    bool m_isRootTransformUpdateEnabled = true;
 };

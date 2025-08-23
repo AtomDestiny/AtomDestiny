@@ -16,7 +16,7 @@ UUniversalWeaponController::UUniversalWeaponController(const FObjectInitializer&
 
 double UUniversalWeaponController::GetFireRate() const
 {
-    return m_shotCount * m_shootingPositions.Num() / (m_shotDelay * (m_shotCount * m_shootingPositions.Num() - 1) + m_reloadTime);
+    return m_ammunitionCount * m_shootingPositions.Num() / (m_shotDelay * (m_ammunitionCount * m_shootingPositions.Num() - 1) + m_reloadTime);
 }
 
 bool UUniversalWeaponController::IsSeeTarget() const
@@ -96,7 +96,7 @@ FVoidCoroutine UUniversalWeaponController::MakeShot()
     m_firing = true;
     const TWeakObjectPtr<AActor> currentEnemy = m_target; // we need to store copy because of coroutines
     
-    for (int32 i = 0; i < m_shotCount; ++i)
+    for (int32 i = 0; i < m_ammunitionCount; ++i)
     {
         for (int32 shootingIndex = 0; shootingIndex < m_shootingPositions.Num(); ++shootingIndex)
         {
@@ -154,7 +154,7 @@ FVoidCoroutine UUniversalWeaponController::MakeShot()
             }
         }
 
-        if (i < (m_shotCount - 1))
+        if (i < (m_ammunitionCount - 1))
         {
             co_await Coroutines::Latent::Seconds(m_shotDelay);
         }
