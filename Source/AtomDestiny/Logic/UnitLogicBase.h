@@ -26,34 +26,34 @@ public:
     explicit UUnitLogicBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Returns list of all unit weapons
-    virtual const TArray<TScriptInterface<IWeapon>>& GetAllWeapon() const override;
+    const TArray<TScriptInterface<IWeapon>>& GetAllWeapon() const override;
     
     // Returns unit size (for energy and death match mode)
-    virtual EUnitSize GetSize() const override;
+    EUnitSize GetSize() const override;
     
     // Returns unit side
-    virtual EGameSide GetSide() const override;
+    EGameSide GetSide() const override;
     
     // Returns unit cost
-    virtual int32 GetCost() const override;
+    int32 GetCost() const override;
     
     // Returns unit type
-    virtual EADUnitType GetUnitType() const override;
+    EADUnitType GetUnitType() const override;
     
     // Returns current velocity
-    virtual double GetVelocity() const override;
+    double GetVelocity() const override;
     
     // Sets side
-    virtual void SetSide(EGameSide side) override;
+    void SetSide(EGameSide side) override;
     
     // Updates unit needs
-    virtual void UpdateParameters() ABSTRACT_METHOD;
+    void UpdateParameters() ABSTRACT_METHOD;
     
     // Sets destination to transform
-    virtual void SetDestination(AActor* destination) ABSTRACT_METHOD;
+    void SetDestination(AActor* destination) ABSTRACT_METHOD;
     
     /// Sets destination to vector point
-    virtual void SetDestinationByPoint(const FVector& destination) ABSTRACT_METHOD;
+    void SetDestinationByPoint(const FVector& destination) ABSTRACT_METHOD;
 
     ///
     /// events
@@ -67,9 +67,9 @@ public:
 
 protected:
 
-    virtual void InitializeComponent() override;
-    virtual void BeginPlay() override;
-    virtual void EndPlay(const EEndPlayReason::Type endPlayReason) override;
+    void InitializeComponent() override;
+    void BeginPlay() override;
+    void EndPlay(const EEndPlayReason::Type endPlayReason) override;
     
     // Checks and rotates actor to target
     void RotateToTarget(float deltaTime);
@@ -81,10 +81,10 @@ protected:
     void CalculateDistances();
     
     // Recalculates speed parameter
-    virtual void RecalculateParameter(EObjectParameters parameter) override;
+    void RecalculateParameter(EObjectParameters parameter) override;
     
     // Sets parameter to zero value
-    virtual void ZeroizeParameter(EObjectParameters parameter) override;
+    void ZeroizeParameter(EObjectParameters parameter) override;
     
     void CreateEvent() const;
     void DestroyEvent() const;

@@ -18,18 +18,18 @@ public:
     explicit UUnitLogic(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Recalculates parameters params
-    virtual void UpdateParameters() override;
+    void UpdateParameters() override;
     
     // Sets destination to unit from actor
-    virtual void SetDestination(AActor* destination) override;
+    void SetDestination(AActor* destination) override;
     
     // Sets destination to unit from point
-    virtual void SetDestinationByPoint(const FVector& destination) override;
+    void SetDestinationByPoint(const FVector& destination) override;
 
 protected:
 
-    virtual void BeginPlay() override;
-    virtual void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func) override;
+    void BeginPlay() override;
+    void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func) override;
     
 private:
     void CheckTargetDistance();

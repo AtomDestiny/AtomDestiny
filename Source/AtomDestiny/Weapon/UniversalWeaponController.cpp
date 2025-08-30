@@ -114,31 +114,15 @@ FVoidCoroutine UUniversalWeaponController::MakeShot()
             {
                 TWeakObjectPtr<AActor> spawnedProjectile = AtomDestiny::ObjectPool::Instance().Spawn(m_projectilePrefab.GetDefaultObject(),
                     shotPosition->GetComponentLocation(), shotPosition->GetComponentQuat());
-                
-                const auto projectile = Cast<IProjectile>(spawnedProjectile.Get());
 
-                if (projectile == nullptr)
-                {
-                    LOG_WARNING(TEXT("Projectile prefab does not realize IProjectile interface"));
-
-                    co_await FiringDelay();
-                    co_return;
-                }
-
-                projectile->SetPoints(FProjectilePoints{
+                const FProjectilePoints projectilePoints{
                     .startPosition = shotPosition->GetComponentLocation(),
                     .endPosition = currentEnemy->GetActorLocation(),
                     .impactPosition = hitResult.Location,
                     .normal = -onTarget
-                });
-
-                projectile->SetParameters(GetParameters());
-                projectile->Launch();
-
-                if (m_useProjectileAsChild)
-                {
-                    spawnedProjectile->AttachToActor(GetOwner(), FAttachmentTransformRules::KeepRelativeTransform);
-                }
+                };
+                
+                LaunchProjectile(spawnedProjectile, projectilePoints);
                 
                 if (m_weaponAnimation != nullptr)
                 {
@@ -161,4 +145,20 @@ FVoidCoroutine UUniversalWeaponController::MakeShot()
     }
 
     co_await FiringDelay();
+}
+
+void UUniversalWeaponController::LaunchProjectile(const TWeakObjectPtr<AActor>& spawnedProjectile, const FProjectilePoints& projectilePoints)
+{
+    const auto projectile = Cast<IProjectile>(spawnedProjectile.Get());
+    check(projectile != nullptr);
+
+    projectile->SetPoints(projectilePoints);
+    projectile->SetParameters(GetParameters());
+
+    if (m_useProjectileAsChild)
+    {
+        spawnedProjectile->AttachToActor(GetOwner(), FAttachmentTransformRules::KeepRelativeTransform);
+    }
+
+    projectile->Launch();
 }

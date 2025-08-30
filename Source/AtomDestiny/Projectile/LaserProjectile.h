@@ -21,18 +21,18 @@ class ATOMDESTINY_API ALaserProjectile : public AProjectileBase
 
 public:
     explicit ALaserProjectile(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
-    
+
     // Base values initialization to projectile and generating impact prefab
-    virtual void Launch() override;
+    void Launch() override;
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Niagara component"))
     TObjectPtr<UNiagaraComponent> m_niagaraComponent;
-    
+
 private:
     // Generates impact damage and particle
     FVoidCoroutine GenerateImpact();
-    
+
     // Time after spawn to add damage
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Add damage delay", AllowPrivateAccess = "true"))
     double m_damageDelay = 0.1;

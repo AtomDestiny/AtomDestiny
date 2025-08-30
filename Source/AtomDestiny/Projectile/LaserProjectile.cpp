@@ -16,6 +16,8 @@ ALaserProjectile::ALaserProjectile(const FObjectInitializer& objectInitializer):
 
 void ALaserProjectile::Launch()
 {
+    Super::Launch();
+
     m_niagaraComponent->SetVariableVec3("BeamStartW", GetPoints().startPosition);
     m_niagaraComponent->SetVariableVec3("BeamEndW", GetPoints().impactPosition);
     m_niagaraComponent->SetVariableFloat("BeamLifeTime", m_lifeTime);

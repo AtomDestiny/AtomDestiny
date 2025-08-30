@@ -52,4 +52,7 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit destroy behaviour"))
     TObjectPtr<UUnitScrapDestroy> m_unitDestroy;
+
+private:
+    void SetupTags();
 };

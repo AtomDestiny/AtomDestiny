@@ -38,7 +38,4 @@ protected:
     // delay to be despawn at seconds, makes no sense if 'Enable despawn delay on activation' is disabled
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Despawn delay"))
     double m_despawnDelay = 1.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Enable root transform updation"))
-    bool m_isRootTransformUpdateEnabled = true;
 };

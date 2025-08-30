@@ -16,7 +16,7 @@
 
 ///
 /// Represents wrapper class that contains all base API for unit.
-/// Also it contains some helper methods.
+/// Also, it contains some helper methods.
 ///
 UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
 class ATOMDESTINY_API UUnitState : public UActorComponent
@@ -165,7 +165,7 @@ public:
 
 private:
     
-    virtual void BeginPlay() override;
+    void BeginPlay() override;
     
     // Activate/deactivate unit
     void SetEnabled(bool enabled);
