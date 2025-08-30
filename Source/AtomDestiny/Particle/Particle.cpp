@@ -44,9 +44,6 @@ void AParticle::Tick(float deltaTime)
 
 void AParticle::UpdateNiagaraTransform()
 {
-    if (m_isRootTransformUpdateEnabled)
-    {
-        m_niagaraComponent->SetWorldLocation(GetActorLocation());
-        m_niagaraComponent->SetWorldRotation(GetActorRotation());
-    }
+    m_niagaraComponent->SetWorldLocation(GetActorLocation());
+    m_niagaraComponent->SetWorldRotation(GetActorRotation());
 }

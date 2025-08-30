@@ -25,7 +25,7 @@ protected:
     void Tick(float deltaSeconds) override;
 
     FVoidCoroutine LockOn();
-    
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Rocket max speed"))
     double m_speed = 6.0;
 

@@ -8,11 +8,13 @@
 UENUM(BlueprintType)
 enum class EGameSide : uint8
 {
-    Rebels,
+    Rebels = 0,
     Federation,
     Neutral,
     None,
 };
+
+ENUM_RANGE_BY_COUNT(EGameSide, static_cast<uint8>(EGameSide::None))
 
 //
 // We should use vector instead of hash because units would mostly iterate through this list.
@@ -26,7 +28,10 @@ namespace AtomDestiny
 {
     struct GameSide
     {
+        // return all enum side names
+        static const TArray<FName>& GetNames();
         static FString ToString(EGameSide);
+        static FName ToName(EGameSide);
     };
 
 } // namespace AtomDestiny

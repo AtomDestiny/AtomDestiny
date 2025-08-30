@@ -36,6 +36,8 @@ ADefaultUnit::ADefaultUnit(const FObjectInitializer& objectInitializer):
     // setup ground point and default AI controller
     m_unitState->SetGroundPoint(MakeWeakObjectPtr(m_groundPoint.Get()));
     AIControllerClass = ANavigator::StaticClass();
+
+    SetupTags();
 }
 
 void ADefaultUnit::BeginPlay()
@@ -52,4 +54,10 @@ void ADefaultUnit::BeginPlay()
     healthBar->SetEnergyVisible(false);
     
     m_unitParameters->SetHealthBarWidget(healthBar);
+}
+
+void ADefaultUnit::SetupTags()
+{
+    FName sideTag = AtomDestiny::GameSide::ToName(m_unitLogic->GetSide());
+    Tags.Emplace(std::move(sideTag));
 }

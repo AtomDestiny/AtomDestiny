@@ -22,7 +22,7 @@ public:
     void StopAllCoroutines();
 
 protected:
-    virtual void SetActorHiddenInGame(const bool isHidden) override;
+    void SetActorHiddenInGame(const bool isHidden) override;
     virtual void OnEnabled() {}
     virtual void OnDisabled() {}
     

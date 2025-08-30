@@ -41,13 +41,13 @@ public:
     const FProjectilePoints& GetPoints() const override final;
     
     // Initializes base data and launches a projectile
-    void Launch() ABSTRACT_METHOD;
+    void Launch() override;
 
 protected:
     void BeginPlay() override;
     
-    FWeaponParameters m_parameters;
-    FProjectilePoints m_points;
+    FWeaponParameters m_parameters{};
+    FProjectilePoints m_points{};
     
     // Impact prefab spawns by projectile when explodes target
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Impact prefab"))
