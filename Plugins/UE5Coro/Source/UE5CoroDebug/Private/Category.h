@@ -31,30 +31,37 @@
 
 #pragma once
 
-#ifndef UE5CORO_DEBUG
-#define UE5CORO_DEBUG (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#if WITH_GAMEPLAY_DEBUGGER_MENU
+#include "GameplayDebuggerCategory.h"
+
+namespace UE5Coro::Private::Debug
+{
+class FUE5CoroCategory : public FGameplayDebuggerCategory
+{
+	using Super = FGameplayDebuggerCategory;
+
+	struct FDataPack
+	{
+		void Serialize(FArchive& Ar);
+
+		FText ExcludedActorHeader;
+		TArray<FText> RunningCoroutines;
+		TArray<FText> RunningCoroutinesOnTarget;
+		int HiddenCoroutines = 0;
+		int HiddenCoroutinesOnTarget = 0;
+	} DataPack;
+
+	static FTextFormat ExcludedActorFormat;
+	static FTextFormat CoroutineInfoFormatAsync;
+	static FTextFormat CoroutineInfoFormatLatent;
+	static FTextFormat HiddenCoroutinesFormat;
+
+public:
+	FUE5CoroCategory();
+	static void InitLocalization();
+	virtual void CollectData(APlayerController*, AActor*) override;
+	virtual void DrawData(APlayerController*,
+	                      FGameplayDebuggerCanvasContext&) override;
+};
+}
 #endif
-
-#ifndef UE5CORO_PRIVATE_ALLOW_DIRECT_INCLUDE
-#error Do not #include individual headers directly. Use "UE5Coro.h"
-#endif
-
-static_assert(sizeof(void*) == 8, "UE5Coro only supports 64-bit platforms");
-
-#if defined(_MSC_VER) && !defined(__clang__) && _MSC_VER < 1941
-#error UE5Coro requires MSVC v14.41 or newer
-#endif
-
-#include "UE5Coro/Debug.h"
-
-// INCLUDES TO FIX UE 5.7 compilation
-#include "Engine/Engine.h"
-#include "Engine/World.h"
-
-#include "UObject/Package.h"
-#include "UObject/UObjectIterator.h"
-
-#include "Animation/AnimInstance.h"
-#include "Animation/AnimMontage.h"
-
-#include "GameFramework/WorldSettings.h"

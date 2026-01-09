@@ -17,9 +17,9 @@ UWeaponBase::UWeaponBase(const FObjectInitializer& objectInitializer):
 void UWeaponBase::InitializeComponent()
 {
     Super::InitializeComponent();
-    
+
     LOG_CHECK_WARNING(m_weaponComponent != nullptr, TEXT("Weapon component is invalid, is it right?"));
-        
+
     m_currentDamage = m_damage;
     m_currentAttackRange = m_attackRange;
     m_currentExplosionRadius = m_explosionRadius;
@@ -28,7 +28,7 @@ void UWeaponBase::InitializeComponent()
     m_currentReloadTime = m_reloadTime;
 
     m_minShotSqrtDistance = m_minShotDistance * m_minShotDistance;
-    
+
     const std::vector params = {
         EObjectParameters::Reload,
         EObjectParameters::ExplosionRadius,
@@ -37,21 +37,21 @@ void UWeaponBase::InitializeComponent()
         EObjectParameters::CriticalChance,
         EObjectParameters::Range
     };
-    
+
     AddNewParameters(params);
 }
 
 void UWeaponBase::BeginPlay()
 {
     Super::BeginPlay();
-    
-    m_weaponAnimation = GET_INTERFACE(WeaponAnimation);
+
+    m_weaponAnimation = AtomDestiny::Utils::GetInterface<IWeaponAnimation>(GetOwner());
 
     if (m_useRaycast && !m_useFriendlyFire)
     {
         ExcludeSameLayer();
     }
-    
+
     AtomDestiny::ObjectPool::Instance().Preload(m_projectilePrefab, ProjectilePrefabPreloadCount);
 }
 
@@ -59,7 +59,7 @@ void UWeaponBase::EndPlay(const EEndPlayReason::Type type)
 {
     Super::EndPlay(type);
     m_firing = false;
-    
+
     // StopAllCoroutines();
 }
 
@@ -198,7 +198,7 @@ void UWeaponBase::RotateToTarget(float deltaTime)
     }
 
     const auto [angle, rotation] = AtomDestiny::LerpRotation(m_weaponComponent.Get(), m_target.Get(), deltaTime, m_rotateSpeed);
-    
+
     m_isRotatedOnTarget = (FMath::Abs(angle) < m_attackAngle);
     m_weaponComponent->SetWorldRotation(rotation);
 }
@@ -223,22 +223,22 @@ bool UWeaponBase::CheckRaycastToTarget(const FVector& from, const TWeakObjectPtr
     {
         if (hitResult != nullptr)
             *hitResult = hit;
-        
+
         return hit.GetActor() == target;
     }
-    
+
     return false;
 }
 
 FVoidCoroutine UWeaponBase::FiringDelay()
 {
     co_await Coroutines::Latent::Seconds(m_reloadTime);
-    
+
     if (m_weaponAnimation != nullptr)
     {
         m_weaponAnimation->SetDefaultState();
     }
-        
+
     m_firing = false;
 }
 
@@ -249,7 +249,7 @@ void UWeaponBase::RecalculateParameter(EObjectParameters parameter)
         LOG_WARNING(TEXT("U try to recalculate not available parameter"));
         return;
     }
-    
+
     switch (parameter)
     {
     case EObjectParameters::ExplosionRadius:
@@ -274,12 +274,12 @@ void UWeaponBase::RecalculateParameter(EObjectParameters parameter)
 
     case EObjectParameters::Range:
         {
-            if (const TScriptInterface<ILogic> logic = GET_INTERFACE(Logic); logic != nullptr)
+            if (const TScriptInterface<ILogic> logic = AtomDestiny::Utils::GetInterface<ILogic>(GetOwner()); logic != nullptr)
             {
                 m_currentAttackRange = CalculateParametersFromAll(m_attackRange, parameter);
                 logic->UpdateParameters();
             }
-            
+
             break;
         }
     default:
@@ -314,12 +314,12 @@ void UWeaponBase::ZeroizeParameter(EObjectParameters parameter)
 
     case EObjectParameters::Range:
         {
-            if (const TScriptInterface<ILogic> logic = GET_INTERFACE(Logic); logic != nullptr)
+            if (const TScriptInterface<ILogic> logic = AtomDestiny::Utils::GetInterface<ILogic>(GetOwner()); logic != nullptr)
             {
                 m_currentAttackRange = 0;
                 logic->UpdateParameters();
             }
-            
+
             break;
         }
 

@@ -1,5 +1,7 @@
 #include "Misc/AutomationTest.h"
 
+#include <string>
+
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
 #include <AtomDestiny/Unit/UnitParameters.h>
@@ -35,19 +37,28 @@ static void FindComponentByNameTest(AtomDestiny::FTestWorld& world, FAutomationT
     test.TestTrue(TEXT("Searched component is not nullptr"), expectedComponent != nullptr);
 }
 
-static void GetActorInterfacesTests(AtomDestiny::FTestWorld& world, FAutomationTestBase& test)
+static void GetActorInterfaceTests(AtomDestiny::FTestWorld& world, FAutomationTestBase& test)
 {
     const TWeakObjectPtr<AActor> actor = world.CreateNewActor(TEXT("TestActor3"));
-    
+    const auto destroyComponent = AtomDestiny::Utils::AddNewComponentToActor<UUnitScrapDestroy>(actor);
+
+    const TScriptInterface<IDestroyable> destroyInterface = AtomDestiny::Utils::GetInterface<IDestroyable>(actor.Get());
+
+    test.TestTrue(TEXT("Destroyable script interface is valid"), destroyInterface != nullptr);
+    test.TestTrue(TEXT("Destroyable IInterface is valid"), destroyInterface.GetInterface() == Cast<IDestroyable>(destroyComponent));
+}
+
+static void GetActorInterfacesTests(AtomDestiny::FTestWorld& world, FAutomationTestBase& test)
+{
+    const TWeakObjectPtr<AActor> actor = world.CreateNewActor(TEXT("TestActor4"));
+
     AtomDestiny::Utils::AddNewComponentToActor<UUnitScrapDestroy>(actor);
     AtomDestiny::Utils::AddNewComponentToActor<UUnitScrapDestroy>(actor);
 
-    const auto destroyInterface = GET_ACTOR_INTERFACE(Destroyable, actor.Get());
-
+    const auto destroyInterface = AtomDestiny::Utils::GetInterface<IDestroyable>(actor.Get());
     test.TestTrue(TEXT("Destroyable interface is valid"), destroyInterface != nullptr);
 
-    const auto interfaces = GET_ACTOR_INTERFACES(Destroyable, actor.Get());
-
+    const auto interfaces = AtomDestiny::Utils::GetInterfaces<IDestroyable, UDestroyable>(actor.Get());
     test.TestEqual(TEXT("Get interfaces size is two"), interfaces.Num(), 2);
 
     for (const auto& interface : interfaces)
@@ -59,10 +70,13 @@ static void GetActorInterfacesTests(AtomDestiny::FTestWorld& world, FAutomationT
 bool FActorComponentUtilsTests::RunTest(const FString& parameters)
 {
     AtomDestiny::FTestWorld world;
-    
+
     AddNewComponentToActorTest(world, *this);
+
     FindComponentByNameTest(world, *this);
+
+    GetActorInterfaceTests(world, *this);
     GetActorInterfacesTests(world, *this);
-    
+
     return true;
 }
