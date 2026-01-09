@@ -14,7 +14,7 @@ namespace
         const APawn* pawn = CastChecked<APawn>(owner);
         return MakeWeakObjectPtr(CastChecked<ANavigator>(pawn->Controller));
     }
-    
+
 } // namespace
 
 UUnitState::UUnitState(const FObjectInitializer& objectInitializer):
@@ -47,7 +47,7 @@ bool UUnitState::IsWeaponFiring() const
 double UUnitState::GetMaxDamage() const
 {
     double maxValue = 0;
-    
+
     for (const TScriptInterface<IWeapon>& w : m_logic->GetAllWeapon())
     {
         if (const double damage = w->GetDamage(); maxValue < damage)
@@ -65,7 +65,7 @@ double UUnitState::GetMinDamage() const
         return 0;
 
     double minValue = weapons[0]->GetDamage();
-    
+
     for (int32 i = 1; i < weapons.Num(); ++i)
     {
         if (const double damage = weapons[i]->GetDamage(); minValue > damage)
@@ -78,7 +78,7 @@ double UUnitState::GetMinDamage() const
 double UUnitState::GetMaxAttackRange() const
 {
     double maxValue = 0;
-    
+
     for (const TScriptInterface<IWeapon>& w : m_logic->GetAllWeapon())
     {
         if (const double damage = w->GetAttackRange(); maxValue < damage)
@@ -96,7 +96,7 @@ double UUnitState::GetMinAttackRange() const
         return 0;
 
     double minValue = weapons[0]->GetAttackRange();
-    
+
     for (int32 i = 1; i < weapons.Num(); ++i)
     {
         if (const double damage = weapons[i]->GetAttackRange(); minValue > damage)
@@ -172,10 +172,10 @@ void UUnitState::AddParameter(EObjectParameters parameter, const FParameterEnhan
             {
                 Cast<IParameterizable>(w.GetInterface())->AddParameter(parameter, enhancement);
             }
-            
+
             break;
         }
-        
+
     case EObjectParameters::Velocity:
         Cast<IParameterizable>(m_logic.GetInterface())->AddParameter(parameter, enhancement);
         break;
@@ -282,11 +282,11 @@ void UUnitState::BeginPlay()
 {
     Super::BeginPlay();
 
-    m_logic = GET_INTERFACE(Logic);
-    m_objectState = GET_INTERFACE(Parameters);
-    m_shield = GET_INTERFACE(Shield);
-    m_animation = GET_INTERFACE(Animation);
-    
+    m_logic = AtomDestiny::Utils::GetInterface<ILogic>(GetOwner());
+    m_objectState = AtomDestiny::Utils::GetInterface<IParameters>(GetOwner());
+    m_shield = AtomDestiny::Utils::GetInterface<IShield>(GetOwner());
+    m_animation = AtomDestiny::Utils::GetInterface<IAnimation>(GetOwner());
+
     ENSURE(m_groundPoint != nullptr, TEXT("Ground point is invalid"));
     ENSURE(m_objectState != nullptr, TEXT("Unit object state is invalid"));
     ENSURE(m_logic != nullptr, TEXT("Unit logic is invalid"));
@@ -296,7 +296,7 @@ void UUnitState::SetEnabled(bool enabled)
 {
     CastChecked<UActorComponent>(m_logic.GetInterface())->SetComponentTickEnabled(enabled);
     GetNavigation(GetOwner())->SetActorTickEnabled(enabled);
-    
+
     for (const TScriptInterface<IWeapon>& weapon : GetWeapons())
     {
         CastChecked<UActorComponent>(weapon.GetInterface())->SetComponentTickEnabled(enabled);

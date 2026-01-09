@@ -170,10 +170,6 @@ Rename the folder to just UE5Coro, without a version number.
 Done correctly, you should end up with
 `YourProject\Plugins\UE5Coro\UE5Coro.uplugin`.
 
-> [!NOTE]
-> Please refer to the release's own README if you're using 1.x.
-> It had a different method of installation involving multiple plugins.
-
 ## Project setup
 
 Your project might use some legacy settings that need to be removed to unlock

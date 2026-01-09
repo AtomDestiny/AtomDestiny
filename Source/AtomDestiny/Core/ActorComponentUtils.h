@@ -11,17 +11,17 @@ namespace AtomDestiny::Utils
 
     ///
     /// Adds new component to actor as new instance
-    /// 
+    ///
     template<typename Component>
     [[maybe_unused]] Component* AddNewComponentToActor(AActor* actor)
     {
         static_assert(IsActorComponent<Component>::value, "Component parameter is not an UActorComponent");
-        
+
         check(actor != nullptr);
 
         const auto newComponent = NewObject<Component>(actor);
         newComponent->RegisterComponent();
-        
+
         actor->AddInstanceComponent(newComponent);
 
         return newComponent;
@@ -51,13 +51,13 @@ namespace AtomDestiny::Utils
     TWeakObjectPtr<Component> GetComponentFromReference(const FComponentReference& componentReference, AActor* actor)
     {
         UActorComponent* component = componentReference.GetComponent(actor);
-        
+
         if (component == nullptr)
         {
             UE_LOG(LogTemp, Warning, TEXT("Can not get component from FComponentReference"));
             return {};
         }
-        
+
         return MakeWeakObjectPtr(CastChecked<Component>(component));
     }
 
@@ -69,31 +69,29 @@ namespace AtomDestiny::Utils
 
         return components;
     }
-        
 
-    template<typename Interface, typename UEInterface>
-    TScriptInterface<Interface> CreateInterface(UEInterface* object)
+
+    template<typename Interface>
+    TScriptInterface<Interface> CreateInterface(Interface* interface)
     {
         TScriptInterface<Interface> script;
-        script.SetObject(object);
-        script.SetInterface(Cast<Interface>(object));
+        script.SetInterface(interface);
+        script.SetObject(Cast<UObject>(interface));
 
         return script;
     }
-    
-    template<typename Interface, typename UEInterface>
+
+    template<typename Interface>
     [[nodiscard]] TScriptInterface<Interface> GetInterface(AActor* actor)
     {
         if (actor == nullptr)
         {
             return nullptr;
         }
-        
-        static_assert(std::is_base_of_v<UInterface, UEInterface>, "Component parameter is not an UInterface");
-        
-        if (const auto interface = actor->FindComponentByInterface<UEInterface>(); interface != nullptr)
+
+        if (const auto interface = actor->FindComponentByInterface<Interface>(); interface != nullptr)
             return CreateInterface<Interface>(interface);
-        
+
         return nullptr;
     }
 
@@ -104,25 +102,18 @@ namespace AtomDestiny::Utils
         {
             return {};
         }
-        
+
         TArray<TScriptInterface<Interface>> interfaces;
 
         for (UActorComponent* component : actor->GetComponents())
         {
-            if (component && component->GetClass()->ImplementsInterface(UEInterface::StaticClass()))
+            if (component && component->Implements<UEInterface>())
             {
-                interfaces.Add(CreateInterface<Interface>(component));
+                interfaces.Add(CreateInterface<Interface>(Cast<Interface>(component)));
             }
         }
-        
+
         return interfaces;
     }
-    
+
 } // namespace AtomDestiny::Utils
-
-// use name without I and U prefix
-#define GET_INTERFACE(name) AtomDestiny::Utils::GetInterface<I##name, U##name>(GetOwner())
-#define GET_INTERFACES(name) AtomDestiny::Utils::GetInterfaces<I##name, U##name>(GetOwner())
-
-#define GET_ACTOR_INTERFACE(name, actor) AtomDestiny::Utils::GetInterface<I##name, U##name>(actor)
-#define GET_ACTOR_INTERFACES(name, actor) AtomDestiny::Utils::GetInterfaces<I##name, U##name>(actor)

@@ -33,6 +33,8 @@
 #include "AbilitySystemComponent.h"
 #include "UE5CoroGASTestAvatar.h"
 
+#include "Engine/LocalPlayer.h"
+
 using namespace UE5Coro::Private::Test;
 
 bool FGASTestWorld::bTestWorldActive = false;
@@ -44,7 +46,9 @@ FGASTestWorld::FGASTestWorld()
 	bTestWorldActive = true;
 
 	Avatar = World->SpawnActor<AUE5CoroGASTestAvatar>();
+	Player = NewObject<ULocalPlayer>(GEngine);
 	Controller = World->SpawnActor<APlayerController>();
+	Controller->Player = Player;
 	Controller->Possess(Avatar);
 	Tick();
 }
@@ -52,6 +56,7 @@ FGASTestWorld::FGASTestWorld()
 FGASTestWorld::~FGASTestWorld()
 {
 	Avatar->Destroy();
+	Player->MarkAsGarbage();
 	Controller->Destroy();
 	bTestWorldActive = false;
 }
