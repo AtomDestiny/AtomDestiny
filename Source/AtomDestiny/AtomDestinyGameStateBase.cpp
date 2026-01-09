@@ -17,7 +17,7 @@ namespace
 {
     constexpr double MinimalCriticalRange = 0;
     constexpr double MaximumCriticalRange = 100;
-    
+
     FVector GetImpactPoint(const TScriptInterface<IProjectile>& projectile, EProjectileDamageOptions options)
     {
         switch (options)
@@ -30,7 +30,7 @@ namespace
 
         case EProjectileDamageOptions::TargetPoint:
             return projectile->GetParameters().target->GetActorLocation();
-            
+
         default:
             return FVector{};
         }
@@ -51,7 +51,7 @@ namespace
     {
         return parameters.owner != nullptr ? parameters.owner->GetWorld() : GEngine->GetCurrentPlayWorld();
     }
-    
+
 } // namespace
 
 AAtomDestinyGameStateBase::AAtomDestinyGameStateBase()
@@ -67,7 +67,7 @@ void AAtomDestinyGameStateBase::AddUnit(TWeakObjectPtr<AActor> actor, EGameSide 
         LOG_WARNING(TEXT("Trying to add invalid unit to game state"));
         return;
     }
-    
+
     const FSharedGameStateUnitList& unitListPtr = m_activeUnits[side];
     unitListPtr->AddUnique(actor);
 }
@@ -79,7 +79,7 @@ void AAtomDestinyGameStateBase::RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSi
         LOG_WARNING(TEXT("Trying to remove invalid unit from game state"));
         return;
     }
-    
+
     const FSharedGameStateUnitList& unitListPtr = m_activeUnits[side];
     unitListPtr->Remove(actor);
 }
@@ -126,7 +126,7 @@ void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& p
 
         FCollisionShape sphere;
         sphere.SetSphere(weaponParameters.explosionRadius);
-        
+
         if (TArray<FOverlapResult> collisionResult; world->OverlapMultiByObjectType(collisionResult, impactPoint, FQuat::Identity, FCollisionObjectQueryParams::DefaultObjectQueryParam, sphere))
         {
             std::unordered_set<AActor*> filteredActors;
@@ -158,14 +158,14 @@ void AAtomDestinyGameStateBase::AddDamageToState(const TScriptInterface<IParamet
 {
     if (objectState == nullptr)
         return;
-    
+
     double resultDamage = parameters.damage;
 
     if (parameters.criticalChance > 0 && parameters.criticalRate > 1)
     {
         resultDamage = CalculatePossibleCriticalDamage(parameters.criticalChance, parameters.criticalRate, resultDamage);
     }
-    
+
     objectState->AddDamage(resultDamage, parameters.weaponType, parameters.owner.Get());
 }
 
@@ -175,7 +175,7 @@ void AAtomDestinyGameStateBase::HandleBeginPlay()
     // Super::HandleBeginPlay will call BeginPlay for all actors
     UUnitLogicBase::unitCreated.AddDynamic(this, &AAtomDestinyGameStateBase::OnUnitCreated);
     UUnitLogicBase::unitDestroyed.AddDynamic(this, &AAtomDestinyGameStateBase::OnUnitDestroyed);
-    
+
     Super::HandleBeginPlay();
 }
 
@@ -221,7 +221,7 @@ void AAtomDestinyGameStateBase::InitializeEnemies()
     for (const auto& [side, list] : m_activeUnits)
     {
         m_enemies.Add(side, FEnemiesList{});
-        
+
         for (const auto& [s, l] : m_activeUnits)
         {
             if (side != s && side != EGameSide::None)

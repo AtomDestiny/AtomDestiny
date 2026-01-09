@@ -32,6 +32,10 @@
 #include "TestWorld.h"
 #include "HAL/ThreadManager.h"
 
+// to FIX build problem with UE 5.7
+#include "Misc/App.h"
+#include "Misc/AutomationTest.h"
+
 using namespace UE5Coro::Private::Test;
 
 FTestWorld::FTestWorld()

@@ -29,32 +29,39 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
-
-#ifndef UE5CORO_DEBUG
-#define UE5CORO_DEBUG (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#include "Category.h"
+#include "ConditionalModifier.h"
+#if WITH_GAMEPLAY_DEBUGGER_MENU
+#include "GameplayDebugger.h"
 #endif
+#include "Internationalization/TextFormatter.h"
 
-#ifndef UE5CORO_PRIVATE_ALLOW_DIRECT_INCLUDE
-#error Do not #include individual headers directly. Use "UE5Coro.h"
+using namespace UE5Coro::Private::Debug;
+
+class FUE5CoroDebugModule final : public IModuleInterface
+{
+	virtual void StartupModule() override
+	{
+#ifdef UE5CORO_PRIVATE_REGISTER_SHORT_MODIFIER
+		FTextFormatter::Get().RegisterTextArgumentModifier(
+			FTextFormatString::MakeReference(FConditionalModifier::ShortKeyword),
+			&FConditionalModifier::Create);
 #endif
+#if WITH_GAMEPLAY_DEBUGGER_MENU
+		FTextFormatter::Get().RegisterTextArgumentModifier(
+			FTextFormatString::MakeReference(FConditionalModifier::LongKeyword),
+			&FConditionalModifier::Create);
+		FUE5CoroCategory::InitLocalization();
 
-static_assert(sizeof(void*) == 8, "UE5Coro only supports 64-bit platforms");
-
-#if defined(_MSC_VER) && !defined(__clang__) && _MSC_VER < 1941
-#error UE5Coro requires MSVC v14.41 or newer
+		auto& Dbg = IGameplayDebugger::Get();
+		Dbg.RegisterCategory("UE5Coro",
+			IGameplayDebugger::FOnGetCategory::CreateLambda([]
+			{
+				return MakeShared<FUE5CoroCategory>();
+			}));
+		Dbg.NotifyCategoriesChanged();
 #endif
+	}
+};
 
-#include "UE5Coro/Debug.h"
-
-// INCLUDES TO FIX UE 5.7 compilation
-#include "Engine/Engine.h"
-#include "Engine/World.h"
-
-#include "UObject/Package.h"
-#include "UObject/UObjectIterator.h"
-
-#include "Animation/AnimInstance.h"
-#include "Animation/AnimMontage.h"
-
-#include "GameFramework/WorldSettings.h"
+IMPLEMENT_MODULE(FUE5CoroDebugModule, UE5CoroDebug);

@@ -15,10 +15,10 @@ UCLASS(ClassGroup=(AtomDestiny), meta=(BlueprintSpawnableComponent))
 class ATOMDESTINY_API ULancerCannonAnimation final : public UWeaponAnimationBase
 {
     GENERATED_BODY()
-    
+
 public:
     void BeginPlay() override;
-    
+
     bool IsReady() const override;
     void Animate() override;
     void SetDefaultState() override;

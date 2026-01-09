@@ -11,6 +11,8 @@
 #include <GameFramework/GameStateBase.h>
 #include <Templates/UnrealTemplate.h>
 
+#include <Engine/World.h>
+
 #include "AtomDestinyGameStateBase.generated.h"
 
 ///
@@ -23,10 +25,10 @@ class ATOMDESTINY_API AAtomDestinyGameStateBase : public AGameStateBase
     GENERATED_BODY()
 
 public:
-    
+
     AAtomDestinyGameStateBase();
     virtual ~AAtomDestinyGameStateBase() override = default;
-    
+
     void AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
     void RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
 
@@ -35,7 +37,7 @@ public:
     // use this method to prevent crushes for GetEnemies reference
     bool IsEnemiesExist(EGameSide side) const;
     const FEnemiesList& GetEnemies(EGameSide side) const;
-    
+
     ///
     /// Adds damage from projectile to object with explosion point parameters.
     /// Clients should be able to add damage only through projectile implementation.
@@ -52,17 +54,17 @@ protected:
     // called by GameMode directly
     virtual void HandleBeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-    
+
     ///
     /// Event callbacks
     ///
-    
+
     UFUNCTION()
     void OnUnitCreated(AActor* actor, EGameSide side, EADUnitType unitType);
-    
+
     UFUNCTION()
     void OnUnitDestroyed(AActor* actor, EGameSide side, EADUnitType unitType);
-    
+
     void InitializeSides();
     void InitializeEnemies();
 
@@ -82,5 +84,5 @@ namespace AtomDestiny
     {
         return MakeWeakObjectPtr(Cast<AAtomDestinyGameStateBase>(actor->GetWorld()->GetGameState()));
     }
-    
+
 } // namespace AtomDestiny

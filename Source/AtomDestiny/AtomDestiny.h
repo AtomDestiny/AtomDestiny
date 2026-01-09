@@ -1,7 +1,9 @@
 #pragma once
 
-#include "CoreMinimal.h"
+#include <CoreMinimal.h>
 #include <Templates/UnrealTemplate.h>
+
+#include <GameFramework/Actor.h>
 
 UENUM(BlueprintType)
 enum class EGameSide : uint8

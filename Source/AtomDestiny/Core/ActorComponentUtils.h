@@ -11,17 +11,17 @@ namespace AtomDestiny::Utils
 
     ///
     /// Adds new component to actor as new instance
-    /// 
+    ///
     template<typename Component>
     [[maybe_unused]] Component* AddNewComponentToActor(AActor* actor)
     {
         static_assert(IsActorComponent<Component>::value, "Component parameter is not an UActorComponent");
-        
+
         check(actor != nullptr);
 
         const auto newComponent = NewObject<Component>(actor);
         newComponent->RegisterComponent();
-        
+
         actor->AddInstanceComponent(newComponent);
 
         return newComponent;
@@ -51,13 +51,13 @@ namespace AtomDestiny::Utils
     TWeakObjectPtr<Component> GetComponentFromReference(const FComponentReference& componentReference, AActor* actor)
     {
         UActorComponent* component = componentReference.GetComponent(actor);
-        
+
         if (component == nullptr)
         {
             UE_LOG(LogTemp, Warning, TEXT("Can not get component from FComponentReference"));
             return {};
         }
-        
+
         return MakeWeakObjectPtr(CastChecked<Component>(component));
     }
 
@@ -96,7 +96,7 @@ namespace AtomDestiny::Utils
 
         if (const auto interface = actor->FindComponentByInterface<Interface>(); interface != nullptr)
             return CreateInterface<Interface>(actor, interface);
-        
+
         return nullptr;
     }
 

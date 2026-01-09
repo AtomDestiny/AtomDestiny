@@ -41,7 +41,7 @@ void UUnitParameters::BeginPlay()
 void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActorComponentTickFunction* func)
 {
     Super::TickComponent(deltaTime, levelTick, func);
-    
+
     RenderHealthBar();
 }
 

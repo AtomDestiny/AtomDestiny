@@ -1,6 +1,9 @@
 ﻿#include "Despawner.h"
 #include "ActorPool.h"
 
+#include "TimerManager.h"
+#include "Engine/World.h"
+
 using namespace AtomDestiny;
 
 void UDespawner::Despawn(double time)
@@ -9,9 +12,9 @@ void UDespawner::Despawn(double time)
     const auto despawnHandler = [this] {
         ObjectPool::Instance().Despawn(MakeWeakObjectPtr(this->GetOwner()));
     };
-    
+
     constexpr bool noLoop = false;
-    
+
     timerManager.ClearTimer(m_timerHandle);
     timerManager.SetTimer(m_timerHandle, despawnHandler, time, noLoop);
 }
