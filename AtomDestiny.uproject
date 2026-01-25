@@ -56,6 +56,10 @@
 		{
 			"Name": "AutomationDriverTests",
 			"Enabled": true
+		},
+		{
+			"Name": "AIAssistant",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [

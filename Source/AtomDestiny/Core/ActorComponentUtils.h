@@ -95,7 +95,7 @@ namespace AtomDestiny::Utils
         }
 
         if (const auto interface = actor->FindComponentByInterface<Interface>(); interface != nullptr)
-            return CreateInterface<Interface>(actor, interface);
+            return CreateInterface<Interface>(Cast<UObject>(interface), interface);
 
         return nullptr;
     }
