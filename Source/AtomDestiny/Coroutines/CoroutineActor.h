@@ -17,7 +17,7 @@ class ATOMDESTINY_API ACoroutineActor: public AActor
 public:
     explicit ACoroutineActor(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
-    [[maybe_unused]] TOptional<uint64_t> RunCoroutine(FAsyncCoroutine&& coroutine);
+    [[maybe_unused]] TOptional<uint64_t> RunCoroutine(FVoidCoroutine&& coroutine);
     [[maybe_unused]] bool StopCoroutine(const uint64_t id);
     void StopAllCoroutines();
 
@@ -35,7 +35,7 @@ inline ACoroutineActor::ACoroutineActor(const FObjectInitializer& objectInitiali
 {
 }
 
-inline TOptional<uint64_t> ACoroutineActor::RunCoroutine(FAsyncCoroutine&& coroutine)
+inline TOptional<uint64_t> ACoroutineActor::RunCoroutine(FVoidCoroutine&& coroutine)
 {
     return m_runner.RunCoroutine(std::move(coroutine), this);
 }

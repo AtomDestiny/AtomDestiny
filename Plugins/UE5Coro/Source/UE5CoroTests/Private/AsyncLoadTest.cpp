@@ -31,20 +31,20 @@
 
 #include "TestWorld.h"
 #include "Misc/AutomationTest.h"
-#include "UE5Coro/AggregateAwaiters.h"
-#include "UE5Coro/LatentAwaiters.h"
+#include "UE5Coro.h"
 #include "UE5CoroTestObject.h"
 
 using namespace UE5Coro;
+using namespace UE5Coro::Latent;
 using namespace UE5Coro::Private::Test;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAsyncLoadTestLatent, "UE5Coro.AsyncLoad.Latent",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAsyncLoadTestAsync, "UE5Coro.AsyncLoad.Async",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
@@ -56,49 +56,49 @@ void DoTest(FAutomationTestBase& Test)
 	FTestWorld World;
 
 	{
-		TStrongObjectPtr<UWorld> Object(World.operator->());
+		TStrongObjectPtr<UWorld> Object(World);
 		UWorld* Result;
 		FEventRef CoroToTest;
 		World.Run(CORO
 		{
-			co_await Latent::NextTick();
+			co_await NextTick();
 			TSoftObjectPtr<UWorld> Soft = Object.Get();
-			Result = co_await Latent::AsyncLoadObject(Soft);
+			Result = co_await AsyncLoadObject(Soft);
 			CoroToTest->Trigger();
 		});
 		FTestHelper::PumpGameThread(World, [&] { return CoroToTest->Wait(0); });
-		Test.TestEqual(TEXT("Loaded"), Result, Object.Get());
+		Test.TestEqual("Loaded", Result, Object.Get());
 	}
 
 	{
-		TStrongObjectPtr<UObject> Object1(World.operator->());
-		TStrongObjectPtr<UObject> Object2(NewObject<UUE5CoroTestObject>());
+		TStrongObjectPtr<UObject> Object1(World);
+		TStrongObjectPtr<UObject> Object2(NewObject<UUE5CoroTestObject>(World));
 		TArray<UObject*> Result;
 		FEventRef CoroToTest;
 		World.Run(CORO
 		{
-			co_await Latent::NextTick();
-			TSoftObjectPtr<UObject> Soft1 = Object1.Get();
-			TSoftObjectPtr<UObject> Soft2 = Object2.Get();
-			Result = co_await Latent::AsyncLoadObjects(TArray{Soft1, Soft2});
+			co_await NextTick();
+			TSoftObjectPtr Soft1 = Object1.Get();
+			TSoftObjectPtr Soft2 = Object2.Get();
+			Result = co_await AsyncLoadObjects(TArray{Soft1, Soft2});
 			CoroToTest->Trigger();
 		});
 		FTestHelper::PumpGameThread(World, [&] { return CoroToTest->Wait(0); });
-		Test.TestEqual(TEXT("Num"), Result.Num(), 2);
-		Test.TestEqual(TEXT("Loaded 1"), Result[0], Object1.Get());
-		Test.TestEqual(TEXT("Loaded 2"), Result[1], Object2.Get());
+		Test.TestEqual("Num", Result.Num(), 2);
+		Test.TestEqual("Loaded 1", Result[0], Object1.Get());
+		Test.TestEqual("Loaded 2", Result[1], Object2.Get());
 	}
 
 	{
-		TStrongObjectPtr<UObject> Object1(World.operator->());
-		TStrongObjectPtr<UObject> Object2(NewObject<UUE5CoroTestObject>());
+		TStrongObjectPtr<UObject> Object1(World);
+		TStrongObjectPtr<UObject> Object2(NewObject<UUE5CoroTestObject>(World));
 		FEventRef CoroToTest;
 		World.Run(CORO
 		{
-			co_await Latent::NextTick();
+			co_await NextTick();
 			FSoftObjectPath Soft1 = Object1.Get();
 			FSoftObjectPath Soft2 = Object2.Get();
-			co_await Latent::AsyncLoadObjects(TArray{Soft1, Soft2});
+			co_await AsyncLoadObjects(TArray{Soft1, Soft2});
 			CoroToTest->Trigger();
 		});
 		FTestHelper::PumpGameThread(World, [&] { return CoroToTest->Wait(0); });
@@ -110,13 +110,13 @@ void DoTest(FAutomationTestBase& Test)
 		FEventRef CoroToTest;
 		World.Run(CORO
 		{
-			co_await Latent::NextTick();
-			TSoftClassPtr<UObject> Soft = UObject::StaticClass();
-			Result = co_await Latent::AsyncLoadClass(Soft);
+			co_await NextTick();
+			TSoftClassPtr Soft = UObject::StaticClass();
+			Result = co_await AsyncLoadClass(Soft);
 			CoroToTest->Trigger();
 		});
 		FTestHelper::PumpGameThread(World, [&] { return CoroToTest->Wait(0); });
-		Test.TestEqual(TEXT("Loaded"), Result, UObject::StaticClass());
+		Test.TestEqual("Loaded", Result, UObject::StaticClass());
 	}
 
 	{
@@ -124,48 +124,49 @@ void DoTest(FAutomationTestBase& Test)
 		FEventRef CoroToTest;
 		World.Run(CORO
 		{
-			co_await Latent::NextTick();
-			TSoftClassPtr<UObject> Soft1 = UObject::StaticClass();
-			TSoftClassPtr<UObject> Soft2 = AActor::StaticClass();
-			Result = co_await Latent::AsyncLoadClasses(TArray{Soft1, Soft2});
+			co_await NextTick();
+			TSoftClassPtr Soft1 = UObject::StaticClass();
+			TSoftClassPtr Soft2 = AActor::StaticClass();
+			Result = co_await AsyncLoadClasses(TArray{Soft1, Soft2});
 			CoroToTest->Trigger();
 		});
 		FTestHelper::PumpGameThread(World, [&] { return CoroToTest->Wait(0); });
-		Test.TestEqual(TEXT("Num"), Result.Num(), 2);
-		Test.TestEqual(TEXT("Loaded 1"), Result[0], UObject::StaticClass());
-		Test.TestEqual(TEXT("Loaded 2"), Result[1], AActor::StaticClass());
+		Test.TestEqual("Num", Result.Num(), 2);
+		Test.TestEqual("Loaded 1", Result[0], UObject::StaticClass());
+		Test.TestEqual("Loaded 2", Result[1], AActor::StaticClass());
 	}
 
 	constexpr auto RawPath = TEXT("/Engine/BasicShapes/Cube");
 	FPackagePath PackagePath;
 	bool bSuccess = FPackagePath::TryFromPackageName(RawPath, PackagePath);
-	Test.TestTrue(TEXT("Package path"), bSuccess);
+	Test.TestTrue("Package path", bSuccess);
 
 	{
 		UPackage* Package = nullptr;
 		FEventRef CoroToTest;
 		World.Run(CORO
 		{
-			co_await Latent::NextTick();
-			Package = co_await Latent::AsyncLoadPackage(PackagePath);
+			co_await NextTick();
+			Package = co_await AsyncLoadPackage(PackagePath);
 			CoroToTest->Trigger();
 		});
 		FTestHelper::PumpGameThread(World, [&] { return CoroToTest->Wait(0); });
-		Test.TestEqual(TEXT("Package"), Package->GetName(), RawPath);
+		Test.TestEqual("Package", Package->GetName(), RawPath);
 	}
 
 	{
-		TStrongObjectPtr<UObject> Object1(World.operator->());
+		TStrongObjectPtr<UObject> Object1(World);
 		FEventRef CoroToTest;
 		World.Run(CORO
 		{
-			co_await Latent::NextTick();
-			TSoftObjectPtr<UObject> Soft1 = Object1.Get();
-			TSoftClassPtr<UObject> Soft2 = UObject::StaticClass();
-			auto Load1 = Latent::AsyncLoadObject(Soft1);
-			auto Load2 = Latent::AsyncLoadClass(Soft2);
-			auto Load3 = Latent::AsyncLoadPackage(PackagePath);
-			co_await WhenAll(std::move(Load1), std::move(Load2), Load3);
+			co_await NextTick();
+			TSoftObjectPtr Soft1 = Object1.Get();
+			TSoftClassPtr Soft2 = UObject::StaticClass();
+			auto Load1 = AsyncLoadObject(Soft1);
+			auto Load2 = AsyncLoadClass(Soft2);
+			auto Load3 = AsyncLoadPackage(PackagePath);
+			co_await WhenAll(std::move(Load1), std::move(Load2),
+			                 std::move(Load3));
 			CoroToTest->Trigger();
 		});
 		FTestHelper::PumpGameThread(World, [&] { return CoroToTest->Wait(0); });

@@ -29,8 +29,8 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "UE5Coro/LatentAwaiter.h"
 #include "Engine/AssetManager.h"
-#include "UE5Coro/LatentAwaiters.h"
 
 using namespace UE5Coro;
 using namespace UE5Coro::Private;
@@ -38,19 +38,17 @@ using namespace UE5Coro::Private;
 namespace
 {
 template<typename T, typename Item>
-struct TLatentLoader
+struct TLatentLoader final
 {
 	T Manager;
 	TArray<Item> Sources;
 	TSharedPtr<FStreamableHandle> Handle;
 
 	explicit TLatentLoader(TArray<Item> Paths, TAsyncLoadPriority Priority)
-#if UE5CORO_CPP20
-		requires std::is_same_v<Item, FSoftObjectPath>
-#endif
+		requires std::same_as<Item, FSoftObjectPath>
 		: Sources(std::move(Paths))
 	{
-		static_assert(std::is_same_v<T, FStreamableManager>);
+		static_assert(std::same_as<T, FStreamableManager>);
 		checkf(IsInGameThread(),
 		       TEXT("Latent awaiters may only be used on the game thread"));
 		Handle = Manager.RequestAsyncLoad(Sources, FStreamableDelegate(),
@@ -59,12 +57,10 @@ struct TLatentLoader
 
 	explicit TLatentLoader(TArray<Item> AssetIds, const TArray<FName>& Bundles,
 	                       TAsyncLoadPriority Priority)
-#if UE5CORO_CPP20
-		requires std::is_same_v<Item, FPrimaryAssetId>
-#endif
+		requires std::same_as<Item, FPrimaryAssetId>
 		: Manager(UAssetManager::Get()), Sources(std::move(AssetIds))
 	{
-		static_assert(std::is_same_v<T, UAssetManager&>);
+		static_assert(std::same_as<T, UAssetManager&>);
 		checkf(IsInGameThread(),
 		       TEXT("Latent awaiters may only be used on the game thread"));
 		Handle = Manager.LoadPrimaryAssets(Sources, Bundles,
@@ -88,13 +84,12 @@ struct TLatentLoader
 		for (auto& i : Sources)
 		{
 			UObject* Obj = nullptr;
-			if constexpr (std::is_same_v<Item, FSoftObjectPath>)
+			if constexpr (std::same_as<Item, FSoftObjectPath>)
 				Obj = i.ResolveObject();
-			else if constexpr (std::is_same_v<Item, FPrimaryAssetId>)
+			else if constexpr (std::same_as<Item, FPrimaryAssetId>)
 				Obj = Manager.GetPrimaryAssetObject(i);
 			else
-				// This needs to depend on a template parameter
-				static_assert(false && std::is_void_v<Item>, "Unknown type");
+				static_assert(bFalse<T>, "Unknown type");
 
 			// Null filtering matches how the array BP nodes behave
 			if (IsValid(Obj))
@@ -102,33 +97,65 @@ struct TLatentLoader
 		}
 		return Items;
 	}
+
+	static bool ShouldResume(void* State, bool bCleanup)
+	{
+		auto* This = static_cast<TLatentLoader*>(State);
+		if (bCleanup) [[unlikely]]
+		{
+			delete This;
+			return false;
+		}
+
+		// This condition matches FLoadAssetActionBase::UpdateOperation().
+		// !Handle is how UAssetManager reports an instant/synchronous finish.
+		auto& Handle = This->Handle;
+		return !Handle || Handle->HasLoadCompleted() || Handle->WasCanceled();
+	}
 };
 using FLatentLoader = TLatentLoader<FStreamableManager, FSoftObjectPath>;
 using FPrimaryLoader = TLatentLoader<UAssetManager&, FPrimaryAssetId>;
 
-template<typename T>
-bool ShouldResume(void* Loader, bool bCleanup)
+struct FPackageLoadState final
 {
-	auto* This = static_cast<T*>(Loader);
+	using FPtr = TSharedRef<FPackageLoadState, ESPMode::NotThreadSafe>;
+	TStrongObjectPtr<UPackage> Result; // This might be carried across co_awaits
 
-	if (UNLIKELY(bCleanup))
+#if UE5CORO_DEBUG
+	~FPackageLoadState()
 	{
-		delete This;
-		return false;
+		checkf(IsInGameThread(), TEXT("Expected cleanup on the game thread"));
+	}
+#endif
+
+	void ReceiveResult(const FName&, UPackage* Package, EAsyncLoadingResult::Type)
+	{
+		checkf(IsInGameThread(),
+		       TEXT("Internal error: expected callback on the game thread"));
+		checkf(IsValid(Package),
+		       TEXT("Internal error: unhandled invalid freshly-loaded package"));
+		checkf(!Result.IsValid(),
+		       TEXT("Internal error: unexpected double result"));
+		Result.Reset(Package); // Store the result
 	}
 
-	// This is the same logic that FLoadAssetActionBase::UpdateOperation() uses.
-	// !Handle is how UAssetManager communicates an instant/synchronous finish.
-	auto& Handle = This->Handle;
-	return !Handle || Handle->HasLoadCompleted() || Handle->WasCanceled();
-}
+	static bool ShouldResume(void* State, bool bCleanup)
+	{
+		if (bCleanup) [[unlikely]]
+		{
+			delete static_cast<FPtr*>(State);
+			return false;
+		}
+		return static_cast<FPtr*>(State)->Get().Result.IsValid();
+	}
+};
 }
 
 template<int HiddenType>
 TArray<UObject*> AsyncLoad::InternalResume(void* State)
 {
 	using T = std::conditional_t<HiddenType, FPrimaryLoader, FLatentLoader>;
-	checkf(ShouldResume<T>(State, false),
+	checkf(T::ShouldResume(State, false),
 	       TEXT("Internal error: resuming with !ShouldResume"));
 
 	return static_cast<T*>(State)->ResolveItems();
@@ -140,7 +167,18 @@ FLatentAwaiter Latent::AsyncLoadObjects(TArray<FSoftObjectPath> Paths,
                                         TAsyncLoadPriority Priority)
 {
 	return FLatentAwaiter(new FLatentLoader(std::move(Paths), Priority),
-	                      &ShouldResume<FLatentLoader>);
+	                      &FLatentLoader::ShouldResume, std::false_type());
+}
+
+FAsyncPreloadAwaiter Latent::AsyncPreloadPrimaryAssets(
+	const TArray<FPrimaryAssetId>& AssetsToLoad,
+	const TArray<FName>& LoadBundles, bool bLoadRecursive,
+	TAsyncLoadPriority Priority)
+{
+	return FAsyncPreloadAwaiter(
+		new auto(UAssetManager::Get().PreloadPrimaryAssets(
+			AssetsToLoad, LoadBundles, bLoadRecursive, FStreamableDelegate(),
+			Priority)));
 }
 
 FLatentAwaiter Latent::AsyncLoadPrimaryAsset(const FPrimaryAssetId& AssetToLoad,
@@ -156,18 +194,17 @@ FLatentAwaiter Latent::AsyncLoadPrimaryAssets(TArray<FPrimaryAssetId> AssetsToLo
 {
 	return FLatentAwaiter(
 		new FPrimaryLoader(std::move(AssetsToLoad), LoadBundles, Priority),
-		&ShouldResume<FPrimaryLoader>);
+		&FPrimaryLoader::ShouldResume, std::false_type());
 }
 
-auto Latent::AsyncLoadClass(TSoftClassPtr<UObject> Ptr,
-                            TAsyncLoadPriority Priority)
+auto Latent::AsyncLoadClass(TSoftClassPtr<> Ptr, TAsyncLoadPriority Priority)
 	-> TAsyncLoadAwaiter<UClass*, 0>
 {
 	return TAsyncLoadAwaiter<UClass*, 0>(
 		AsyncLoadObjects(TArray{Ptr.ToSoftObjectPath()}, Priority));
 }
 
-auto Latent::AsyncLoadClasses(const TArray<TSoftClassPtr<UObject>>& Ptrs,
+auto Latent::AsyncLoadClasses(const TArray<TSoftClassPtr<>>& Ptrs,
                               TAsyncLoadPriority Priority)
 	-> TAsyncLoadAwaiter<TArray<UClass*>, 0>
 {
@@ -194,54 +231,52 @@ auto Latent::AsyncLoadPackage(const FPackagePath& Path,
 	                           InstancingContext);
 }
 
+FAsyncPreloadAwaiter::FAsyncPreloadAwaiter(TSharedPtr<FStreamableHandle>* State)
+	: FLatentAwaiter(State, &ShouldResume, std::false_type())
+{
+}
+
+TSharedPtr<FStreamableHandle> FAsyncPreloadAwaiter::await_resume()
+{
+	return *static_cast<TSharedPtr<FStreamableHandle>*>(State);
+}
+
+bool FAsyncPreloadAwaiter::ShouldResume(void* State, bool bCleanup)
+{
+	auto& Handle = *static_cast<TSharedPtr<FStreamableHandle>*>(State);
+	if (bCleanup) [[unlikely]]
+	{
+		delete &Handle;
+		return false;
+	}
+
+	// This condition matches FLoadAssetActionBase::UpdateOperation().
+	// !Handle is how UAssetManager reports an instant/synchronous finish.
+	return !Handle || Handle->HasLoadCompleted() || Handle->WasCanceled();
+}
+
 FPackageLoadAwaiter::FPackageLoadAwaiter(
 	const FPackagePath& Path, FName PackageNameToCreate,
 	EPackageFlags PackageFlags, int32 PIEInstanceID,
 	TAsyncLoadPriority PackagePriority,
 	const FLinkerInstancingContext* InstancingContext)
-	: State(new FState)
+	: FLatentAwaiter(new FPackageLoadState::FPtr(new FPackageLoadState),
+	                 &FPackageLoadState::ShouldResume, std::false_type())
 {
-	auto Delegate = FLoadPackageAsyncDelegate::CreateSP(State.ToSharedRef(),
-	                                                    &FState::Loaded);
+	auto& Ptr = *static_cast<FPackageLoadState::FPtr*>(State);
+	auto Delegate = FLoadPackageAsyncDelegate::CreateSP(
+		Ptr, &FPackageLoadState::ReceiveResult);
 	LoadPackageAsync(Path, PackageNameToCreate, std::move(Delegate),
 	                 PackageFlags, PIEInstanceID, PackagePriority,
 	                 InstancingContext);
-}
-
-void FPackageLoadAwaiter::FState::Loaded(const FName&, UPackage* Package,
-                                         EAsyncLoadingResult::Type)
-{
-	checkf(IsInGameThread(),
-	       TEXT("Internal error: expected callback on the game thread"));
-	Result.Reset(Package); // Store the result
-
-	// Promise being nullptr indicates that the load finished between
-	// AsyncLoadPackage() and co_await
-	if (Promise)
-		Promise->Resume();
-}
-
-bool FPackageLoadAwaiter::await_ready()
-{
-	checkf(IsInGameThread(),
-	       TEXT("Latent awaiters may only be used on the game thread"));
-	checkf(State, TEXT("Attempting to use invalid awaiter"));
-	return State->Result.IsValid();
-}
-
-void FPackageLoadAwaiter::Suspend(FPromise& Promise)
-{
-	checkf(IsInGameThread(),
-	       TEXT("Latent awaiters may only be used on the game thread"));
-	checkf(!State->Promise, TEXT("Attempted second concurrent co_await"));
-
-	State->Promise = &Promise;
 }
 
 UPackage* FPackageLoadAwaiter::await_resume()
 {
 	checkf(IsInGameThread(),
 	       TEXT("Internal error: expected to resume on the game thread"));
-	checkf(State, TEXT("Internal error: resuming without a result"));
-	return State->Result.Get();
+	auto& Ptr = *static_cast<FPackageLoadState::FPtr*>(State);
+	checkf(Ptr->Result.IsValid(),
+	       TEXT("Internal error: resuming without a valid result"));
+	return Ptr->Result.Get();
 }

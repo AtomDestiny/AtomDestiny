@@ -32,12 +32,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UE5Coro/Definitions.h"
+#include "UE5Coro/Definition.h"
+#include <concepts>
 #include <functional>
 #include "Engine/LatentActionManager.h"
 #include "Engine/World.h"
 #include "UE5Coro/UE5CoroSubsystem.h"
 
+#pragma region Private
 namespace UE5Coro::Private
 {
 UE5CORO_API std::tuple<FLatentActionInfo, FTwoLives*> MakeLatentInfo();
@@ -52,7 +54,6 @@ public:
 
 static_assert(sizeof(FLatentAwaiter) == sizeof(FLatentChainAwaiter));
 
-#if UE5CORO_CPP20
 template<typename T>
 concept TWorldContext = std::same_as<std::decay_t<T>, UObject*> ||
                         std::same_as<std::decay_t<T>, const UObject*> ||
@@ -61,11 +62,6 @@ concept TWorldContext = std::same_as<std::decay_t<T>, UObject*> ||
 
 template<typename T>
 concept TLatentInfo = std::same_as<std::decay_t<T>, FLatentActionInfo>;
-
-template<typename T>
-using TForwardRef =
-	std::conditional_t<std::is_lvalue_reference_v<T>,
-                       std::reference_wrapper<std::remove_reference_t<T>>, T&&>;
 
 // Terminator
 template<bool, bool bInfo, typename...>
@@ -76,7 +72,6 @@ struct FLatentChain
 		static_assert(!bInfo, "Chained function is not latent");
 		static_assert(sizeof...(Args) == 0,
 		              "Too many parameters provided for chained call");
-		// This one last forward is needed to forward &&s all the way through
 		std::forward<decltype(Fn)>(Fn)();
 	}
 };
@@ -87,10 +82,12 @@ struct FLatentChain<true, bInfo, Type, Types...>
 {
 	static void Call(auto&& Fn, FLatentActionInfo LatentInfo, auto&&... Args)
 	{
+		checkf(IsValid(GWorld),
+		       TEXT("Could not chain latent action: no valid world found"));
 		FLatentChain<false, bInfo, Types...>::Call(
-			std::bind_front(std::move(Fn), GWorld),
-			LatentInfo,
-			TForwardRef<decltype(Args)>(Args)...);
+			std::bind_front(std::forward<decltype(Fn)>(Fn), &*GWorld),
+			std::move(LatentInfo),
+			std::forward<decltype(Args)>(Args)...);
 	}
 };
 
@@ -101,9 +98,9 @@ struct FLatentChain<bWorld, true, Type, Types...>
 	static void Call(auto&& Fn, FLatentActionInfo LatentInfo, auto&&... Args)
 	{
 		FLatentChain<bWorld, false, Types...>::Call(
-			std::bind_front(std::move(Fn), LatentInfo),
+			std::bind_front(std::forward<decltype(Fn)>(Fn), LatentInfo),
 			LatentInfo,
-			TForwardRef<decltype(Args)>(Args)...);
+			std::forward<decltype(Args)>(Args)...);
 	}
 };
 
@@ -113,40 +110,29 @@ struct FLatentChain<bWorld, bInfo, Type, Types...>
 {
 	static void Call(auto&&, FLatentActionInfo)
 	{
-		static_assert(false && bWorld, // This needs to depend on a template param
+		static_assert(bFalse<Type>,
 		              "Not enough parameters provided for chained call");
 	}
 
 	static void Call(auto&& Fn, FLatentActionInfo LatentInfo,
-	                 Type&& Arg1, auto&&... Args)
+	                 auto&& Arg1, auto&&... Args)
 	{
 		FLatentChain<bWorld, bInfo, Types...>::Call(
-			std::bind_front(std::move(Fn), TForwardRef<Type>(Arg1)),
-			LatentInfo,
-			TForwardRef<decltype(Args)>(Args)...);
+			std::bind_front(std::forward<decltype(Fn)>(Fn),
+			                TForwardRef<Type>(Arg1)),
+			std::move(LatentInfo),
+			std::forward<decltype(Args)>(Args)...);
 	}
 };
-#endif
 }
 
 namespace UE5Coro::Latent
 {
-#if UE5CORO_CPP20
-
-#if defined(_MSC_VER) && _MSC_VER < 1930
-#define UE5CORO_PRIVATE_LATENT_CHAIN_IS_OK 0
-#define UE5CORO_PRIVATE_LATENT_CHAIN_BUG_MSG \
-[[deprecated("Old versions of MSVC are known to have codegen issues with Chain. " \
-"Consider updating to something less broken, or using ChainEx as a workaround.")]]
-#else
-#define UE5CORO_PRIVATE_LATENT_CHAIN_IS_OK 1
-#define UE5CORO_PRIVATE_LATENT_CHAIN_BUG_MSG
-#endif
-
 template<typename... FnParams>
-UE5CORO_PRIVATE_LATENT_CHAIN_BUG_MSG
 Private::FLatentChainAwaiter Chain(auto (*Function)(FnParams...), auto&&... Args)
 {
+	checkf(IsInGameThread(),
+	       TEXT("Latent awaiters may only be used on the game thread"));
 	auto [LatentInfo, Done] = Private::MakeLatentInfo();
 	Private::FLatentChain<true, true, FnParams...>::Call(
 		Function,
@@ -156,10 +142,12 @@ Private::FLatentChainAwaiter Chain(auto (*Function)(FnParams...), auto&&... Args
 }
 
 template<std::derived_from<UObject> Class, typename... FnParams>
-UE5CORO_PRIVATE_LATENT_CHAIN_BUG_MSG
-Private::FLatentChainAwaiter Chain(auto (Class::*Function)(FnParams...),
-                                   Class* Object, auto&&... Args)
+Private::FLatentChainAwaiter Chain(Class* Object,
+                                   auto (Class::*Function)(FnParams...),
+                                   auto&&... Args)
 {
+	checkf(IsInGameThread(),
+	       TEXT("Latent awaiters may only be used on the game thread"));
 	auto [LatentInfo, Done] = Private::MakeLatentInfo();
 	Private::FLatentChain<true, true, FnParams...>::Call(
 		std::bind_front(Function, Object),
@@ -167,20 +155,21 @@ Private::FLatentChainAwaiter Chain(auto (Class::*Function)(FnParams...),
 		std::forward<decltype(Args)>(Args)...);
 	return Private::FLatentChainAwaiter(Done);
 }
-#else
-// C++17: not available
-#define UE5CORO_PRIVATE_LATENT_CHAIN_IS_OK 0
-#endif
 
-template<typename F, typename... A>
-Private::FLatentChainAwaiter ChainEx(F&& Function, A&&... Args)
+Private::FLatentChainAwaiter ChainEx(auto&& Function, auto&&... Args)
 {
-	static_assert((... || (std::is_placeholder_v<std::decay_t<A>> == 2)),
+	checkf(IsInGameThread(),
+	       TEXT("Latent awaiters may only be used on the game thread"));
+	if constexpr ((... || (std::is_placeholder_v<std::decay_t<decltype(Args)>> == 1)))
+		checkf(IsValid(GWorld),
+		       TEXT("Could not chain latent action: no valid world found for _1"));
+	static_assert((... || (std::is_placeholder_v<std::decay_t<decltype(Args)>> == 2)),
 	              "The _2 parameter for LatentInfo is mandatory");
 
 	auto [LatentInfo, Done] = Private::MakeLatentInfo();
-	std::bind(std::forward<F>(Function),
-	          std::forward<A>(Args)...)(GWorld, LatentInfo);
+	std::bind(std::forward<decltype(Function)>(Function),
+	          std::forward<decltype(Args)>(Args)...)(&*GWorld, LatentInfo);
 	return Private::FLatentChainAwaiter(Done);
 }
 }
+#pragma endregion

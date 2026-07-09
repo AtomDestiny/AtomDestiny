@@ -35,7 +35,7 @@ protected:
     
 private:
 
-    FAsyncCoroutine MakeShot();
+    FVoidCoroutine MakeShot();
     
     // Time between every shot
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shot delay", AllowPrivateAccess = "true"))

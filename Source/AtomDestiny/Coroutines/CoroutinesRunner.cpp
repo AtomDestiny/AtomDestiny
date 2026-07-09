@@ -2,7 +2,7 @@
 
 #include <AtomDestiny/Core/Logger.h>
 
-TOptional<uint64_t> AtomDestiny::CoroutinesRunner::RunCoroutine(FAsyncCoroutine&& coroutine, UObject* owner)
+TOptional<uint64_t> AtomDestiny::CoroutinesRunner::RunCoroutine(FVoidCoroutine&& coroutine, UObject* owner)
 {
     const uint64_t id = ++Id;
 

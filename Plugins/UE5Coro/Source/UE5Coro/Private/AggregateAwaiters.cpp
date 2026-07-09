@@ -29,23 +29,62 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/AggregateAwaiters.h"
+#include "UE5Coro/AggregateAwaiter.h"
 
 using namespace UE5Coro;
 using namespace UE5Coro::Private;
 
+void FAggregateAwaiter::Cancel(void* This, FPromise& Promise)
+{
+	auto* Awaiter = static_cast<FAggregateAwaiter*>(This);
+	if (Promise.UnregisterCancelableAwaiter<false>())
+	{
+		TArray<TCoroutine<>> Handles;
+		{
+			auto* Data = Awaiter->Data.get();
+			UE::TUniqueLock Lock(Data->Lock);
+			verifyf(!std::exchange(Data->bCanceled, true),
+			        TEXT("Internal error: double cancellation"));
+			verifyf(std::exchange(Data->Promise, nullptr) == &Promise,
+			        TEXT("Internal error: expected active awaiter"));
+			Handles = std::move(Data->Handles);
+		}
+		FAsyncYieldAwaiter::Suspend(Promise);
+		for (auto& Coro : Handles) // Cancel all inner coroutines
+			Coro.Cancel();
+	}
+}
+
 int FAggregateAwaiter::GetResumerIndex() const
 {
 	checkf(Data->Count <= 0, TEXT("Internal error: resuming too early"));
-	checkf(Data->Index != -1, TEXT("Internal error: resuming with no result"));
+	checkf(Data->Count == 0 || Data->Index != -1,
+	       TEXT("Internal error: resuming with no result"));
+	checkf(!Data->bCanceled, TEXT("Internal error: resuming after cancellation"));
 	return Data->Index;
 }
+
+FAggregateAwaiter::FAggregateAwaiter(auto All,
+                                     const TArray<TCoroutine<>>& Coroutines)
+	: TCancelableAwaiter(&Cancel),
+	  Data(std::make_shared<FData>(All.value ? Coroutines.Num()
+	                                         : Coroutines.Num() ? 1 : 0))
+{
+	for (int i = 0; i < Coroutines.Num(); ++i)
+		Data->Handles.Add(Consume(Data, i, Coroutines[i]));
+}
+template UE5CORO_API FAggregateAwaiter::FAggregateAwaiter(
+	std::false_type, const TArray<TCoroutine<>>&);
+template UE5CORO_API FAggregateAwaiter::FAggregateAwaiter(
+	std::true_type, const TArray<TCoroutine<>>&);
 
 bool FAggregateAwaiter::await_ready()
 {
 	checkf(Data, TEXT("Attempting to await moved-from aggregate awaiter"));
 	Data->Lock.Lock();
 	checkf(!Data->Promise, TEXT("Attempting to reuse aggregate awaiter"));
+	checkf(!Data->bCanceled,
+	       TEXT("Attempting to reuse canceled aggregate awaiter"));
 
 	// Unlock if ready and resume immediately by returning true,
 	// otherwise carry the lock to await_suspend/Suspend
@@ -57,11 +96,23 @@ bool FAggregateAwaiter::await_ready()
 
 void FAggregateAwaiter::Suspend(FPromise& Promise)
 {
-	checkf(!Data->Lock.TryLock(), TEXT("Internal error: lock was not taken"));
+	checkf(Data->Lock.IsLocked(), TEXT("Internal error: lock was not taken"));
 	checkf(!Data->Promise, TEXT("Attempting to reuse aggregate awaiter"));
+	checkf(!Data->bCanceled,
+	       TEXT("Attempting to reuse canceled aggregate awaiter"));
 
-	Data->Promise = &Promise;
+	UE::TUniqueLock Lock(Promise.GetLock());
+
+	if (Promise.RegisterCancelableAwaiter(this))
+		Data->Promise = &Promise;
+	else
+		FAsyncYieldAwaiter::Suspend(Promise);
 	Data->Lock.Unlock();
+}
+
+FAnyAwaiter UE5Coro::WhenAny(const TArray<TCoroutine<>>& Coroutines)
+{
+	return FAnyAwaiter(std::false_type(), Coroutines);
 }
 
 FRaceAwaiter UE5Coro::Race(TArray<TCoroutine<>> Array)
@@ -69,8 +120,14 @@ FRaceAwaiter UE5Coro::Race(TArray<TCoroutine<>> Array)
 	return FRaceAwaiter(std::move(Array));
 }
 
+FAllAwaiter UE5Coro::WhenAll(const TArray<TCoroutine<>>& Coroutines)
+{
+	return FAllAwaiter(std::true_type(), Coroutines);
+}
+
 FRaceAwaiter::FRaceAwaiter(TArray<TCoroutine<>>&& Array)
-	: Data(std::make_shared<FData>(std::move(Array)))
+	: TCancelableAwaiter(&Cancel),
+	  Data(std::make_shared<FData>(std::move(Array)))
 {
 	// Add a continuation to every coroutine, but any one of them might
 	// invalidate the array
@@ -79,8 +136,7 @@ FRaceAwaiter::FRaceAwaiter(TArray<TCoroutine<>>&& Array)
 		TCoroutine<>* Coro;
 		{
 			// Must be limited in scope because ContinueWith may be synchronous
-			// and the lock is not recursive
-			UE::TScopeLock _(Data->Lock);
+			UE::TUniqueLock Lock(Data->Lock);
 			if (Data->Index != -1) // Did a coroutine finish during this loop?
 				return; // Don't bother asking the others, they've all canceled
 			Coro = &Data->Handles[i];
@@ -88,10 +144,10 @@ FRaceAwaiter::FRaceAwaiter(TArray<TCoroutine<>>&& Array)
 
 		Coro->ContinueWith([Data = Data, i]
 		{
-			UE::TScopeLock _(Data->Lock);
+			UE::TDynamicUniqueLock Lock(Data->Lock);
 
-			// Nothing to do if this wasn't the first one
-			if (Data->Index != -1)
+			// Nothing to do if this wasn't the first one, or the race is canceled
+			if (Data->Index != -1 || Data->bCanceled)
 				return;
 			Data->Index = i;
 
@@ -101,17 +157,44 @@ FRaceAwaiter::FRaceAwaiter(TArray<TCoroutine<>>&& Array)
 
 			if (auto* Promise = Data->Promise)
 			{
-				_.Unlock();
-				Promise->Resume();
+				Lock.Unlock();
+				if (Promise->UnregisterCancelableAwaiter<true>())
+					Promise->Resume();
 			}
 		});
+	}
+}
+
+FRaceAwaiter::~FRaceAwaiter()
+{
+	UE::TUniqueLock Lock(Data->Lock);
+	Data->bCanceled = true;
+	if (Data->Index == -1)
+		for (auto& Handle : Data->Handles)
+			Handle.Cancel();
+}
+
+void FRaceAwaiter::Cancel(void* This, FPromise& Promise)
+{
+	auto* Awaiter = static_cast<FRaceAwaiter*>(This);
+	if (Promise.UnregisterCancelableAwaiter<false>())
+	{
+		UE::TUniqueLock Lock(Awaiter->Data->Lock);
+		checkf(Awaiter->Data->Promise,
+		       TEXT("Internal error: expected active awaiter"));
+		verifyf(!std::exchange(Awaiter->Data->bCanceled, true),
+		        TEXT("Internal error: unexpected double cancellation"));
+		for (auto& Handle : Awaiter->Data->Handles)
+			Handle.Cancel();
+		FAsyncYieldAwaiter::Suspend(Promise);
 	}
 }
 
 bool FRaceAwaiter::await_ready()
 {
 	Data->Lock.Lock();
-	if (Data->Index != -1)
+	checkf(!Data->bCanceled, TEXT("Attempting to reuse canceled awaiter"));
+	if (Data->Handles.Num() == 0 || Data->Index != -1)
 	{
 		Data->Lock.Unlock();
 		return true;
@@ -123,9 +206,15 @@ bool FRaceAwaiter::await_ready()
 void FRaceAwaiter::Suspend(FPromise& Promise)
 {
 	// Expecting a lock from await_ready
-	checkf(!Data->Lock.TryLock(), TEXT("Internal error: lock not held"));
+	checkf(Data->Lock.IsLocked(), TEXT("Internal error: lock not held"));
+	checkf(!Data->bCanceled, TEXT("Attempting to reuse canceled awaiter"));
 	checkf(!Data->Promise, TEXT("Unexpected double race await"));
-	Data->Promise = &Promise;
+
+	UE::TUniqueLock Lock(Promise.GetLock());
+	if (Promise.RegisterCancelableAwaiter(this))
+		Data->Promise = &Promise;
+	else
+		FAsyncYieldAwaiter::Suspend(Promise);
 	Data->Lock.Unlock();
 }
 
@@ -133,7 +222,34 @@ int FRaceAwaiter::await_resume() noexcept
 {
 	// This will be read on the same thread that wrote Index, or after
 	// await_ready determined its value; no lock needed
-	checkf(Data->Index != -1,
+	checkf(Data->Handles.Num() == 0 || Data->Index != -1,
 	       TEXT("Internal error: resuming with unknown result"));
 	return Data->Index;
+}
+
+bool FLatentAggregate::ShouldResume(void* State, bool bCleanup)
+{
+	auto* This = static_cast<FLatentAggregate*>(State);
+	if (bCleanup)
+	{
+		for (auto& Handle : This->Handles)
+			Handle.Cancel();
+		This->Release();
+		return false;
+	}
+	return This->Remaining <= 0;
+}
+
+void FLatentAggregate::Release()
+{
+	checkf(IsInGameThread(),
+	       TEXT("Internal error: expected to be released on the game thread"));
+	checkf(RefCount > 0, TEXT("Internal error: RefCount underflow"));
+	if (--RefCount == 0)
+		delete this;
+}
+
+int FLatentAnyAwaiter::await_resume()
+{
+	return static_cast<FLatentAggregate*>(State)->First;
 }

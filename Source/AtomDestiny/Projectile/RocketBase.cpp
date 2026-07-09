@@ -42,7 +42,7 @@ void ARocketBase::OnDisabled()
     // reset rigid body
 }
 
-FAsyncCoroutine ARocketBase::LockOn()
+FVoidCoroutine ARocketBase::LockOn()
 {
     if (m_activationTime <= m_lockedTime)
     {

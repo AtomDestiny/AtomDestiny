@@ -29,13 +29,14 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/AsyncAwaiters.h"
+#include "UE5Coro/AsyncAwaiter.h"
+#include "TimerThread.h"
 
 using namespace UE5Coro::Private;
 
 namespace
 {
-class FResumeTask
+class FResumeTask final
 {
 	ENamedThreads::Type Thread;
 	FPromise& Promise;
@@ -63,11 +64,6 @@ public:
 
 bool FAsyncAwaiter::await_ready()
 {
-	// This needs to be scheduled after the coroutine's completion regardless of
-	// the target thread
-	if (ResumeAfter.has_value() && !ResumeAfter->IsDone())
-		return false;
-
 	// Don't move threads if we're already on the target thread
 	auto ThisThread = FTaskGraphInterface::Get().GetCurrentThreadIfKnown();
 	return (ThisThread & ThreadTypeMask) == (Thread & ThreadTypeMask);
@@ -75,15 +71,70 @@ bool FAsyncAwaiter::await_ready()
 
 void FAsyncAwaiter::Suspend(FPromise& Promise)
 {
-	auto* Task = TGraphTask<FResumeTask>::CreateTask()
-	                                     .ConstructAndHold(Thread, Promise);
+	TGraphTask<FResumeTask>::CreateTask().ConstructAndDispatchWhenReady(Thread,
+	                                                                    Promise);
+}
 
-	// await_ready returning false and the coroutine having finished since is OK,
-	// ContinueWith will run this synchronously
-	if (ResumeAfter.has_value())
-		ResumeAfter->ContinueWith([Task] { Task->Unlock(); });
+FAsyncTimeAwaiter::FAsyncTimeAwaiter(const FAsyncTimeAwaiter& Other)
+	: TCancelableAwaiter(&Cancel), TargetTime(Other.TargetTime),
+	  Thread(Other.Thread) // bAnyThread included
+{
+	// Such a copy would need to happen after the coroutine was canceled
+	ensureMsgf(TargetTime != std::numeric_limits<double>::lowest(),
+	           TEXT("Copying a canceled awaiter copies the cancellation, too"));
+}
+
+FAsyncTimeAwaiter::~FAsyncTimeAwaiter()
+{
+	if (Promise) [[unlikely]]
+		FTimerThread::Get().TryUnregister(this);
+}
+
+bool FAsyncTimeAwaiter::await_ready() noexcept
+{
+	return FPlatformTime::Seconds() >= TargetTime;
+}
+
+void FAsyncTimeAwaiter::Suspend(FPromise& InPromise)
+{
+	checkf(!Promise, TEXT("Internal error: double suspend after await_ready"));
+	if (bAnyThread)
+		Thread = ENamedThreads::AnyThread;
 	else
-		Task->Unlock();
+		Thread = FTaskGraphInterface::Get().GetCurrentThreadIfKnown();
+	UE::TUniqueLock Lock(InPromise.GetLock());
+	Promise = &InPromise;
+	if (!InPromise.RegisterCancelableAwaiter(this))
+		TargetTime = std::numeric_limits<double>::lowest(); // Expire ASAP
+	FTimerThread::Get().Register(this);
+}
+
+void FAsyncTimeAwaiter::Cancel(void* This, FPromise& Promise)
+{
+	// Synchronize with the timer thread first, promise second
+	if (auto* Awaiter = static_cast<FAsyncTimeAwaiter*>(This);
+	    FTimerThread::Get().TryUnregister(Awaiter))
+	{
+		if (Promise.UnregisterCancelableAwaiter<false>())
+		{
+			verifyf(Awaiter->Promise.exchange(nullptr) == &Promise,
+			        TEXT("Internal error: mismatched promise at cancellation"));
+			AsyncTask(Awaiter->Thread, [&Promise] { Promise.Resume(); });
+		}
+		else
+			check(!"Internal error: unexpected race condition");
+	}
+}
+
+void FAsyncTimeAwaiter::Resume()
+{
+	// This is called from the timer thread, coroutine resumption must be async
+	checkf(Promise, TEXT("Internal error: spurious resume without suspension"));
+	if (auto* P = Promise.exchange(nullptr);
+	    P->UnregisterCancelableAwaiter<true>())
+		AsyncTask(Thread, [P] { P->Resume(); });
+	else
+		check(!"Internal error: unexpected race condition");
 }
 
 void FAsyncYieldAwaiter::Suspend(FPromise& Promise)

@@ -29,51 +29,57 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/AnimationAwaiters.h"
+#include "UE5Coro/AnimationAwaiter.h"
 #include "UE5CoroAnimCallbackTarget.h"
 
 using namespace UE5Coro;
 using namespace UE5Coro::Private;
 
-FAnimAwaiterBool Anim::MontageBlendingOut(UAnimInstance* Instance,
+namespace
+{
+using FPayloadPtr = const FBranchingPointNotifyPayload*;
+using FPayloadTuple = TTuple<FName, const FBranchingPointNotifyPayload*>;
+}
+
+TAnimAwaiter<bool> Anim::MontageBlendingOut(UAnimInstance* Instance,
                                           UAnimMontage* Montage)
 {
 	return {std::false_type(), Instance, Montage};
 }
 
-FAnimAwaiterBool Anim::MontageEnded(UAnimInstance* Instance,
+TAnimAwaiter<bool> Anim::MontageEnded(UAnimInstance* Instance,
                                     UAnimMontage* Montage)
 {
 	return {std::true_type(), Instance, Montage};
 }
 
-FAnimAwaiterVoid Anim::NextNotify(UAnimInstance* Instance, FName NotifyName)
+TAnimAwaiter<void> Anim::NextNotify(UAnimInstance* Instance, FName NotifyName)
 {
 	return {std::monostate(), Instance, nullptr, NotifyName};
 }
 
-FAnimAwaiterTuple Anim::PlayMontageNotifyBegin(UAnimInstance* Instance,
-                                               UAnimMontage* Montage)
+TAnimAwaiter<FPayloadTuple> Anim::PlayMontageNotifyBegin(UAnimInstance* Instance,
+                                                         UAnimMontage* Montage)
 {
 	return {std::false_type(), Instance, Montage};
 }
 
-FAnimAwaiterTuple Anim::PlayMontageNotifyEnd(UAnimInstance* Instance,
-                                             UAnimMontage* Montage)
+TAnimAwaiter<FPayloadTuple> Anim::PlayMontageNotifyEnd(UAnimInstance* Instance,
+                                                       UAnimMontage* Montage)
 {
 	return {std::true_type(), Instance, Montage};
 }
 
-FAnimAwaiterPayload Anim::PlayMontageNotifyBegin(UAnimInstance* Instance,
-                                                 UAnimMontage* Montage,
-                                                 FName NotifyName)
+TAnimAwaiter<FPayloadPtr> Anim::PlayMontageNotifyBegin(UAnimInstance* Instance,
+                                                       UAnimMontage* Montage,
+                                                       FName NotifyName)
 {
 	return {std::false_type(), Instance, Montage, NotifyName};
 }
 
-FAnimAwaiterPayload Anim::PlayMontageNotifyEnd(UAnimInstance* Instance,
-                                               UAnimMontage* Montage,
-                                               FName NotifyName)
+TAnimAwaiter<FPayloadPtr> Anim::PlayMontageNotifyEnd(UAnimInstance* Instance,
+                                                     UAnimMontage* Montage,
+                                                     FName NotifyName)
 {
 	return {std::true_type(), Instance, Montage, NotifyName};
 }
@@ -85,15 +91,14 @@ FAnimAwaiter::FAnimAwaiter(UAnimInstance* Instance, UAnimMontage*)
 	checkf(Instance, TEXT("Attempting to wait on a null anim instance"));
 	// A null montage is valid, meaning "any montage"
 
-	auto* Obj = NewObject<UUE5CoroAnimCallbackTarget>();
-	Target = TStrongObjectPtr(Obj);
+	Target = TStrongObjectPtr(NewObject<UUE5CoroAnimCallbackTarget>());
 }
 
 FAnimAwaiter::~FAnimAwaiter()
 {
 	checkf(IsInGameThread(),
 	       TEXT("Unexpected anim awaiter destruction off the game thread"));
-	if (UNLIKELY(bSuspended))
+	if (bSuspended) [[unlikely]]
 		Target->CancelResume();
 }
 
@@ -108,36 +113,35 @@ void FAnimAwaiter::Suspend(FPromise& Promise)
 }
 
 template<typename T>
-template<typename TEnd>
-TAnimAwaiter<T>::TAnimAwaiter(TEnd, UAnimInstance* Instance,
+TAnimAwaiter<T>::TAnimAwaiter(auto End, UAnimInstance* Instance,
                               UAnimMontage* Montage)
 	: FAnimAwaiter(Instance, Montage)
 {
-	if constexpr (Type == Bool)
-		Target->ListenForMontageEvent(Instance, Montage, TEnd::value);
+	if constexpr (std::same_as<T, bool>)
+		Target->ListenForMontageEvent(Instance, Montage, End.value);
 	else
 	{
-		static_assert(Type == NameAndPayload);
-		Target->ListenForPlayMontageNotify(Instance, Montage, {}, TEnd::value);
+		static_assert(std::same_as<T, FPayloadTuple>);
+		Target->ListenForPlayMontageNotify(Instance, Montage, NAME_None,
+		                                   End.value);
 	}
 }
 
 template<typename T>
-template<typename TEnd>
-TAnimAwaiter<T>::TAnimAwaiter(TEnd, UAnimInstance* Instance,
+TAnimAwaiter<T>::TAnimAwaiter(auto End, UAnimInstance* Instance,
                               UAnimMontage* Montage, FName NotifyName)
 	: FAnimAwaiter(Instance, Montage)
 {
-	if constexpr (Type == Void)
+	if constexpr (std::is_void_v<T>)
 	{
-		static_assert(std::is_same_v<TEnd, std::monostate>);
+		static_assert(std::same_as<decltype(End), std::monostate>);
 		Target->ListenForNotify(Instance, Montage, NotifyName);
 	}
 	else
 	{
-		static_assert(Type == Payload);
+		static_assert(std::same_as<T, FPayloadPtr>);
 		Target->ListenForPlayMontageNotify(Instance, Montage, NotifyName,
-		                                   TEnd::value);
+		                                   End.value);
 	}
 }
 
@@ -149,13 +153,13 @@ bool TAnimAwaiter<T>::await_ready()
 {
 	checkf(IsInGameThread(),
 	       TEXT("Animation awaiters may only be used on the game thread"));
-	auto* Obj = Target.Get();
-	if (!std::holds_alternative<std::monostate>(Obj->Result))
+	if (auto* Obj = Target.Get();
+	    !std::holds_alternative<std::monostate>(Obj->Result))
 	{
 		// If Result is or contains a payload pointer, that has expired by now
-		if constexpr (Type == Payload)
+		if constexpr (std::same_as<T, FPayloadPtr>)
 			std::get<FPayloadPtr>(Obj->Result) = nullptr;
-		else if constexpr (Type == NameAndPayload)
+		else if constexpr (std::same_as<T, FPayloadTuple>)
 			std::get<FPayloadTuple>(Obj->Result).Value = nullptr;
 		return true;
 	}
@@ -163,8 +167,7 @@ bool TAnimAwaiter<T>::await_ready()
 }
 
 template<typename T>
-auto TAnimAwaiter<T>::await_resume()
-	-> std::conditional_t<Type == Void, void, T>
+T TAnimAwaiter<T>::await_resume()
 {
 	// bSuspended can be false
 	checkf(Target, TEXT("Internal error: resuming without a callback target"));
@@ -177,24 +180,25 @@ auto TAnimAwaiter<T>::await_resume()
 	// through an exception, which won't work for most UE projects.
 	// Interested callers can use IsValid(Instance) after co_await to determine
 	// if this happened, but this is expected to be a very rare situation.
-	// Usually, the caller is also getting destroyed and the stack will be
-	// unwound (by coroutine_handle::destroy()) instead of resuming.
+	// Usually, the caller is also getting destroyed and the coroutine state
+	// will be destroyed (by coroutine_handle::destroy()) instead of resuming.
 	auto& Result = Target->Result;
 	bool bDestroyed = std::holds_alternative<std::monostate>(Result);
 
-	if constexpr (Type == Bool)
-		return std::get<bool>(bDestroyed ? true : Result);
-	else if constexpr (Type == Payload)
+	if constexpr (std::same_as<T, bool>)
+		return bDestroyed ? true : std::get<bool>(Result);
+	else if constexpr (std::same_as<T, FPayloadPtr>)
 		return bDestroyed ? nullptr : std::get<FPayloadPtr>(Result);
-	else if constexpr (Type == NameAndPayload)
+	else if constexpr (std::same_as<T, FPayloadTuple>)
 		return bDestroyed ? FPayloadTuple(NAME_None, nullptr)
 		                  : std::get<FPayloadTuple>(Result);
+	else static_assert(std::is_void_v<T>);
 }
 
 namespace UE5Coro::Private
 {
-template class TAnimAwaiter<std::monostate>;
-template class TAnimAwaiter<bool>;
-template class TAnimAwaiter<FPayloadPtr>;
-template class TAnimAwaiter<FPayloadTuple>;
+template struct TAnimAwaiter<void>;
+template struct TAnimAwaiter<bool>;
+template struct TAnimAwaiter<FPayloadPtr>;
+template struct TAnimAwaiter<FPayloadTuple>;
 }

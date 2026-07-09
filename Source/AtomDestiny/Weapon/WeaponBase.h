@@ -143,7 +143,7 @@ protected:
     bool CheckRaycastToTarget(const FVector& from, const TWeakObjectPtr<AActor>& target, FHitResult* hitResult = nullptr) const;
     
     // Reload coroutine for reset fire
-    FAsyncCoroutine FiringDelay();
+    FVoidCoroutine FiringDelay();
     
     // Recalculates weapon parameter
     virtual void RecalculateParameter(EObjectParameters parameter) override;

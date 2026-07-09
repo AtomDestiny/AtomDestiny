@@ -29,24 +29,11 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/HttpAwaiters.h"
-#include "UE5Coro/AsyncAwaiters.h"
+#include "UE5Coro/HttpAwaiter.h"
+#include "UE5Coro/AsyncAwaiter.h"
 
 using namespace UE5Coro;
 using namespace UE5Coro::Private;
-
-namespace
-{
-ENamedThreads::Type ThreadForRequest(const FHttpRequestRef& Request)
-{
-#if ENGINE_MINOR_VERSION >= 3
-	if (Request->GetDelegateThreadPolicy() ==
-	    EHttpRequestDelegateThreadPolicy::CompleteOnHttpThread)
-		return ENamedThreads::UnusedAnchor;
-#endif
-	return FTaskGraphInterface::Get().GetCurrentThreadIfKnown();
-}
-}
 
 FHttpAwaiter Http::ProcessAsync(FHttpRequestRef Request)
 {
@@ -54,7 +41,10 @@ FHttpAwaiter Http::ProcessAsync(FHttpRequestRef Request)
 }
 
 FHttpAwaiter::FState::FState(FHttpRequestRef&& Request)
-	: Thread(ThreadForRequest(Request))
+	: Thread(Request->GetDelegateThreadPolicy() ==
+	             EHttpRequestDelegateThreadPolicy::CompleteOnHttpThread
+	         ? ENamedThreads::UnusedAnchor
+	         : FTaskGraphInterface::Get().GetCurrentThreadIfKnown())
 	, Request(std::move(Request))
 {
 }
@@ -77,19 +67,17 @@ bool FHttpAwaiter::await_ready()
 		State->Lock.Unlock();
 		return true;
 	}
-	else
-	{
-		// State->Lock is deliberately left locked
-		checkf(!State->bSuspended, TEXT("Attempted second concurrent co_await"));
-		State->bSuspended = true;
-		return false;
-	}
+
+	// Carry the lock into Suspend()
+	checkf(!State->bSuspended, TEXT("Attempted second concurrent co_await"));
+	State->bSuspended = true;
+	return false;
 }
 
 void FHttpAwaiter::Suspend(FPromise& Promise)
 {
 	// This should be locked from await_ready
-	checkf(!State->Lock.TryLock(), TEXT("Internal error: lock wasn't taken"));
+	checkf(State->Lock.IsLocked(), TEXT("Internal error: lock wasn't taken"));
 	State->Promise = &Promise;
 	State->Lock.Unlock();
 }
@@ -114,11 +102,11 @@ void FHttpAwaiter::FState::RequestComplete(FHttpRequestPtr,
                                            FHttpResponsePtr Response,
                                            bool bConnectedSuccessfully)
 {
-	UE::TScopeLock _(Lock);
+	UE::TDynamicUniqueLock L(Lock);
 	Result = {std::move(Response), bConnectedSuccessfully};
 	if (bSuspended)
 	{
-		_.Unlock();
+		L.Unlock();
 		Resume();
 	}
 }

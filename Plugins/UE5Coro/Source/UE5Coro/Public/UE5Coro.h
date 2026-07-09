@@ -31,17 +31,26 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "UE5Coro/Definitions.h"
-#include "UE5Coro/AggregateAwaiters.h"
-#include "UE5Coro/AnimationAwaiters.h"
-#include "UE5Coro/AsyncAwaiters.h"
+#ifndef UE5CORO_PRIVATE_ALLOW_DIRECT_INCLUDE
+#define UE5CORO_PRIVATE_ALLOW_DIRECT_INCLUDE
+#endif
+
+#include "UE5Coro/Definition.h"
+#include "UE5Coro/AggregateAwaiter.h"
+#include "UE5Coro/AnimationAwaiter.h"
+#include "UE5Coro/AsyncAwaiter.h"
 #include "UE5Coro/Cancellation.h"
 #include "UE5Coro/Coroutine.h"
-#include "UE5Coro/CoroutineAwaiters.h"
+#include "UE5Coro/CoroutineAwaiter.h"
 #include "UE5Coro/Generator.h"
-#include "UE5Coro/HttpAwaiters.h"
-#include "UE5Coro/LatentAwaiters.h"
-#include "UE5Coro/LatentCallbacks.h"
+#include "UE5Coro/HttpAwaiter.h"
+#include "UE5Coro/LatentAwaiter.h"
+#include "UE5Coro/LatentCallback.h"
 #include "UE5Coro/LatentTimeline.h"
-#include "UE5Coro/TaskAwaiters.h"
+#include "UE5Coro/Private.h"
+#include "UE5Coro/TaskAwaiter.h"
+#include "UE5Coro/TickTimeBudget.h"
+#include "UE5Coro/Threading.h"
+#include "UE5Coro/UnrealTypes.h"
+
+#undef UE5CORO_PRIVATE_ALLOW_DIRECT_INCLUDE

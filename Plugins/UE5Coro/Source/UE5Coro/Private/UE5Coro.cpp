@@ -32,7 +32,7 @@
 #include "UE5Coro.h"
 #include "Modules/ModuleManager.h"
 
-class FUE5CoroModule : public IModuleInterface
+class FUE5CoroModule final : public IModuleInterface
 {
 };
 

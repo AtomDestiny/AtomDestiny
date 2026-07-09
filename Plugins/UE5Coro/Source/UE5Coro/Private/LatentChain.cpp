@@ -29,7 +29,7 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/LatentAwaiters.h"
+#include "UE5Coro/LatentAwaiter.h"
 #include "UE5Coro/UE5CoroSubsystem.h"
 
 using namespace UE5Coro;
@@ -37,6 +37,7 @@ using namespace UE5Coro::Private;
 
 std::tuple<FLatentActionInfo, FTwoLives*> Private::MakeLatentInfo()
 {
+	checkf(IsValid(GWorld), TEXT("Internal error: unguarded world access"));
 	auto* Sys = GWorld->GetSubsystem<UUE5CoroSubsystem>();
 	// Will be Released by the FLatentAwaiter from the caller
 	// and UUE5CoroSubsystem on the latent action's completion.
@@ -45,7 +46,8 @@ std::tuple<FLatentActionInfo, FTwoLives*> Private::MakeLatentInfo()
 }
 
 FLatentChainAwaiter::FLatentChainAwaiter(FTwoLives* Done) noexcept
-	: FLatentAwaiter(Done, &FTwoLives::ShouldResume)
+	// The chained latent action can be anything, assume it's world sensitive
+	: FLatentAwaiter(Done, &FTwoLives::ShouldResume, std::true_type())
 {
 }
 

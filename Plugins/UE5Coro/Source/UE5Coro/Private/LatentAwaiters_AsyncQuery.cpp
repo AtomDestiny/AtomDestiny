@@ -29,7 +29,7 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/LatentAwaiters.h"
+#include "UE5Coro/LatentAwaiter.h"
 #include <optional>
 
 using namespace UE5Coro;
@@ -38,57 +38,65 @@ using namespace UE5Coro::Private;
 namespace
 {
 template<typename T>
-using TQueryDelegate = std::conditional_t<std::is_same_v<T, FHitResult>,
+using TQueryDelegate = std::conditional_t<std::same_as<T, FHitResult>,
                                           FTraceDelegate, FOverlapDelegate>;
 template<typename T>
-using TQueryDatum = std::conditional_t<std::is_same_v<T, FHitResult>,
+using TQueryDatum = std::conditional_t<std::same_as<T, FHitResult>,
                                        FTraceDatum, FOverlapDatum>;
+
+template<typename T>
+struct TQueryResult final
+{
+	using FPtr = TSharedRef<TQueryResult, ESPMode::NotThreadSafe>;
+	std::optional<TArray<T>> Result;
+
+#if UE5CORO_DEBUG
+	~TQueryResult()
+	{
+		checkf(IsInGameThread(), TEXT("Expected cleanup on the game thread"));
+	}
+#endif
+
+	void ReceiveResult(const FTraceHandle&, TQueryDatum<T>& Datum)
+	{
+		checkf(IsInGameThread(),
+		       TEXT("Internal error: expected result on the game thread"));
+		checkf(!Result.has_value(),
+		       TEXT("Internal error: unexpected double result"));
+		if constexpr (std::same_as<T, FHitResult>)
+			Result = std::move(Datum.OutHits);
+		else
+			Result = std::move(Datum.OutOverlaps);
+	}
+
+	static bool ShouldResume(void* State, bool bCleanup)
+	{
+		if (bCleanup) [[unlikely]]
+		{
+			delete static_cast<FPtr*>(State);
+			return false;
+		}
+		return static_cast<FPtr*>(State)->Get().Result.has_value();
+	}
+};
 }
 
 namespace UE5Coro::Private
 {
 template<typename T>
-class TAsyncQueryAwaiter<T>::TImpl
-{
-public:
-	FPromise* Promise = nullptr;
-	std::optional<TArray<T>> Result;
-
-	void ReceiveResult(const FTraceHandle&, TQueryDatum<T>& Datum)
-	{
-		// Receive results
-		if constexpr (std::is_same_v<T, FHitResult>)
-			Result = std::move(Datum.OutHits);
-		else
-			Result = std::move(Datum.OutOverlaps);
-
-		// If the coroutine is suspended (Promise is valid), resume it now
-		if (Promise)
-			Promise->Resume();
-	}
-};
-
-template<typename T>
-template<typename... P, typename... A>
+template<typename... P>
 TAsyncQueryAwaiter<T>::TAsyncQueryAwaiter(UWorld* World,
                                           FTraceHandle (UWorld::*Fn)(P...),
-                                          A... Params)
-	: Impl(new TImpl)
+                                          auto&&... Params)
+	: FLatentAwaiter(new typename TQueryResult<T>::FPtr(new TQueryResult<T>),
+	                 &TQueryResult<T>::ShouldResume, std::false_type())
 {
 	checkf(IsInGameThread(),
-	       TEXT("Async queries may only be started from the game thread."));
-	auto Delegate = TQueryDelegate<T>::CreateSP(Impl.ToSharedRef(),
-	                                            &TImpl::ReceiveResult);
-	(World->*Fn)(Params..., &Delegate, 0);
-}
-
-template<typename T>
-TAsyncQueryAwaiter<T>::~TAsyncQueryAwaiter() = default;
-
-template<typename T>
-TAsyncQueryAwaiter<T>& TAsyncQueryAwaiter<T>::operator co_await() &
-{
-	return *this;
+	       TEXT("Async queries may only be started from the game thread"));
+	auto& Ptr = *static_cast<typename TQueryResult<T>::FPtr*>(State);
+	auto Delegate = TQueryDelegate<T>::CreateSP(Ptr,
+	                                            &TQueryResult<T>::ReceiveResult);
+	(World->*Fn)(std::forward<decltype(Params)>(Params)..., &Delegate, 0);
 }
 
 template<typename T>
@@ -100,30 +108,14 @@ TAsyncQueryAwaiterRV<T>& TAsyncQueryAwaiter<T>::operator co_await() &&
 }
 
 template<typename T>
-bool TAsyncQueryAwaiter<T>::await_ready()
-{
-	checkf(IsInGameThread(),
-	       TEXT("Async queries may only be awaited on the game thread."));
-	return Impl->Result.has_value();
-}
-
-template<typename T>
-void TAsyncQueryAwaiter<T>::Suspend(FPromise& Promise)
-{
-	checkf(IsInGameThread(),
-	       TEXT("Async queries may only be awaited on the game thread."));
-	checkf(!Impl->Promise, TEXT("Attempted second concurrent co_await"));
-	Impl->Promise = &Promise;
-}
-
-template<typename T>
 const TArray<T>& TAsyncQueryAwaiter<T>::await_resume()
 {
+	auto& Ptr = *static_cast<typename TQueryResult<T>::FPtr*>(State);
 	checkf(IsInGameThread(),
 	       TEXT("Internal error: expected to resume on the game thread"));
-	checkf(Impl->Result.has_value(),
-	       TEXT("Internal error: resuming without a query result"));
-	return *Impl->Result;
+	checkf(Ptr->Result.has_value(),
+	       TEXT("Internal error: Resuming without valid result"));
+	return *Ptr->Result;
 }
 
 template<typename T>
@@ -132,10 +124,10 @@ TArray<T> TAsyncQueryAwaiterRV<T>::await_resume()
 	return const_cast<TArray<T>&&>(TAsyncQueryAwaiter<T>::await_resume());
 }
 
-template class UE5CORO_API TAsyncQueryAwaiter<FHitResult>;
-template class UE5CORO_API TAsyncQueryAwaiterRV<FHitResult>;
-template class UE5CORO_API TAsyncQueryAwaiter<FOverlapResult>;
-template class UE5CORO_API TAsyncQueryAwaiterRV<FOverlapResult>;
+template struct UE5CORO_API TAsyncQueryAwaiter<FHitResult>;
+template struct UE5CORO_API TAsyncQueryAwaiterRV<FHitResult>;
+template struct UE5CORO_API TAsyncQueryAwaiter<FOverlapResult>;
+template struct UE5CORO_API TAsyncQueryAwaiterRV<FOverlapResult>;
 }
 
 TAsyncQueryAwaiter<FHitResult> Latent::AsyncLineTraceByChannel(

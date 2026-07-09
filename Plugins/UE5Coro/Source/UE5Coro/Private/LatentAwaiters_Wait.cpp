@@ -29,9 +29,9 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/LatentAwaiters.h"
+#include "UE5Coro/LatentAwaiter.h"
 #include "Engine/World.h"
-#include "UE5CoroDelegateCallbackTarget.h"
+#include "UE5Coro/CoroutineAwaiter.h"
 
 using namespace UE5Coro;
 using namespace UE5Coro::Private;
@@ -47,19 +47,19 @@ template<auto GetTime>
 bool WaitUntilTime(void* State, bool bCleanup)
 {
 	// Don't attempt to access GWorld in this case, it could be nullptr
-	if (UNLIKELY(bCleanup))
+	if (bCleanup) [[unlikely]]
 		return false;
 
-	static_assert(sizeof(void*) >= sizeof(double),
-	              "32-bit platforms are not supported");
 	auto& TargetTime = reinterpret_cast<double&>(State);
+	checkf(IsValid(GWorld),
+	       TEXT("Internal error: latent poll outside of a valid world"));
 	return (GWorld->*GetTime)() >= TargetTime;
 }
 
 bool WaitUntilPredicate(void* State, bool bCleanup)
 {
 	auto* Function = static_cast<std::function<bool()>*>(State);
-	if (UNLIKELY(bCleanup))
+	if (bCleanup) [[unlikely]]
 	{
 		delete Function;
 		return false;
@@ -68,52 +68,94 @@ bool WaitUntilPredicate(void* State, bool bCleanup)
 	return (*Function)();
 }
 
-template<auto GetTime>
-FLatentAwaiter GenericSeconds(double Seconds)
+template<auto GetTime, bool bTimeIsOffset>
+FLatentAwaiter GenericUntil(double Time)
 {
 #if ENABLE_NAN_DIAGNOSTIC
-	if (FMath::IsNaN(Seconds))
+	if (FMath::IsNaN(Time))
+	{
 		logOrEnsureNanError(TEXT("Latent wait started with NaN time"));
+	}
 #endif
+	checkf(IsInGameThread(),
+	       TEXT("Latent awaiters may only be used on the game thread"));
+	checkf(IsValid(GWorld),
+	       TEXT("This function may only be used in the context of a valid world"));
 
+	if constexpr (bTimeIsOffset)
+		Time += (GWorld->*GetTime)();
+
+	ensureMsgf((GWorld->*GetTime)() <= Time,
+	           TEXT("Latent wait will finish immediately"));
+
+	// Definition.h validates that a double fits into a void*
 	void* State = nullptr;
-	reinterpret_cast<double&>(State) = (GWorld->*GetTime)() + Seconds;
-	return FLatentAwaiter(State, &WaitUntilTime<GetTime>);
+	reinterpret_cast<double&>(State) = Time;
+	return FLatentAwaiter(State, &WaitUntilTime<GetTime>, std::true_type());
 }
 
-class [[nodiscard]] FUntilDelegateState
-	: public std::enable_shared_from_this<FUntilDelegateState>
+struct FCustomTimeDilationAwaiterState
 {
-	TStrongObjectPtr<UUE5CoroDelegateCallbackTarget> Target;
-	// This object is on the game thread, but the delegate might not be
-	std::atomic<bool> bExecuted = false;
+	TWeakObjectPtr<AActor> Actor;
+	double Remaining;
+	double PreviousTime;
+};
+}
 
-public:
-	explicit FUntilDelegateState(UUE5CoroDelegateCallbackTarget* Target)
-		: Target(Target) { }
-
-	void Init()
+template<auto GetTime>
+struct FCustomTimeDilationAwaiter::TState : FCustomTimeDilationAwaiterState
+{
+	explicit TState(AActor* InActor, double InRemaining)
 	{
-		Target->Init([Weak = weak_from_this()](void*)
+#if ENABLE_NAN_DIAGNOSTIC
+		if (FMath::IsNaN(Remaining))
 		{
-			if (auto Strong = Weak.lock())
-				Strong->bExecuted = true;
-		});
+			logOrEnsureNanError(TEXT("Latent wait started with NaN time"));
+		}
+#endif
+		checkf(IsInGameThread(),
+		       TEXT("Latent awaiters may only be used on the game thread"));
+		checkf(::IsValid(GWorld),
+		       TEXT("This awaiter may only be used in the context of a valid world"));
+		Actor = InActor;
+		Remaining = InRemaining;
+		PreviousTime = (GWorld->*GetTime)();
 	}
 
 	static bool ShouldResume(void* State, bool bCleanup)
 	{
-		auto& This = *static_cast<std::shared_ptr<FUntilDelegateState>*>(State);
-		if (UNLIKELY(bCleanup))
+		auto* This = static_cast<TState*>(State);
+		if (bCleanup) [[unlikely]]
 		{
-			if (This->Target.IsValid())
-				This->Target->MarkAsGarbage();
-			delete &This;
+			delete This;
 			return false;
 		}
-		return This->bExecuted;
+
+		auto* Actor = This->Actor.Get();
+		if (!Actor)
+			return true;
+
+		checkf(::IsValid(GWorld),
+		       TEXT("Internal error: latent poll outside of a valid world"));
+		auto Time = (GWorld->*GetTime)();
+		auto DeltaSeconds = Time - std::exchange(This->PreviousTime, Time);
+		DeltaSeconds *= Actor->CustomTimeDilation;
+		This->Remaining -= DeltaSeconds;
+		return This->Remaining <= 0;
 	}
 };
+
+template<auto GetTime>
+FCustomTimeDilationAwaiter::FCustomTimeDilationAwaiter(TState<GetTime>* State)
+	: FLatentAwaiter(State, &TState<GetTime>::ShouldResume, std::true_type())
+{
+}
+
+bool FCustomTimeDilationAwaiter::await_resume()
+{
+	checkf(IsInGameThread(),
+	       TEXT("Internal error: expected resumption on the game thread"));
+	return static_cast<FCustomTimeDilationAwaiterState*>(State)->Actor.IsValid();
 }
 
 FLatentAwaiter Latent::NextTick()
@@ -124,46 +166,69 @@ FLatentAwaiter Latent::NextTick()
 FLatentAwaiter Latent::Ticks(int64 Ticks)
 {
 	ensureMsgf(Ticks >= 0, TEXT("Invalid number of ticks %lld"), Ticks);
-	static_assert(sizeof(void*) == sizeof(uint64),
-	              "32-bit platforms are not supported");
 	uint64 Target = GFrameCounter + Ticks;
-	return FLatentAwaiter(reinterpret_cast<void*>(Target), &WaitUntilFrame);
+	return FLatentAwaiter(reinterpret_cast<void*>(Target), &WaitUntilFrame,
+	                      std::false_type());
 }
 
 FLatentAwaiter Latent::Until(std::function<bool()> Function)
 {
 	checkf(Function, TEXT("Provided function is empty"));
 	return FLatentAwaiter(new std::function(std::move(Function)),
-	                      &WaitUntilPredicate);
-}
-
-std::tuple<FLatentAwaiter, UObject*> Private::UntilDelegateCore()
-{
-	checkf(IsInGameThread(), TEXT("")
-	       "Awaiting delegates this way is only available on the game thread. "
-	       "co_awaiting delegates directly works on any thread.");
-	auto* Target = NewObject<UUE5CoroDelegateCallbackTarget>();
-	auto* State = new auto(std::make_shared<FUntilDelegateState>(Target));
-	(*State)->Init();
-	return {FLatentAwaiter(State, &FUntilDelegateState::ShouldResume), Target};
+	                      &WaitUntilPredicate, std::false_type());
 }
 
 FLatentAwaiter Latent::Seconds(double Seconds)
 {
-	return GenericSeconds<&UWorld::GetTimeSeconds>(Seconds);
+	return GenericUntil<&UWorld::GetTimeSeconds, true>(Seconds);
+}
+
+FCustomTimeDilationAwaiter Latent::SecondsForActor(AActor* Actor, double Seconds)
+{
+	return FCustomTimeDilationAwaiter(
+		new FCustomTimeDilationAwaiter::TState<&UWorld::GetTimeSeconds>(
+			Actor, Seconds));
+}
+
+FCustomTimeDilationAwaiter Latent::UnpausedSecondsForActor(AActor* Actor,
+                                                           double Seconds)
+{
+	return FCustomTimeDilationAwaiter(
+		new FCustomTimeDilationAwaiter::TState<&UWorld::GetUnpausedTimeSeconds>(
+			Actor, Seconds));
 }
 
 FLatentAwaiter Latent::UnpausedSeconds(double Seconds)
 {
-	return GenericSeconds<&UWorld::GetUnpausedTimeSeconds>(Seconds);
+	return GenericUntil<&UWorld::GetUnpausedTimeSeconds, true>(Seconds);
 }
 
 FLatentAwaiter Latent::RealSeconds(double Seconds)
 {
-	return GenericSeconds<&UWorld::GetRealTimeSeconds>(Seconds);
+	return GenericUntil<&UWorld::GetRealTimeSeconds, true>(Seconds);
 }
 
 FLatentAwaiter Latent::AudioSeconds(double Seconds)
 {
-	return GenericSeconds<&UWorld::GetAudioTimeSeconds>(Seconds);
+	return GenericUntil<&UWorld::GetAudioTimeSeconds, true>(Seconds);
+}
+
+FLatentAwaiter Latent::UntilTime(double Seconds)
+{
+	return GenericUntil<&UWorld::GetTimeSeconds, false>(Seconds);
+}
+
+FLatentAwaiter Latent::UntilUnpausedTime(double Seconds)
+{
+	return GenericUntil<&UWorld::GetUnpausedTimeSeconds, false>(Seconds);
+}
+
+FLatentAwaiter Latent::UntilRealTime(double Seconds)
+{
+	return GenericUntil<&UWorld::GetRealTimeSeconds, false>(Seconds);
+}
+
+FLatentAwaiter Latent::UntilAudioTime(double Seconds)
+{
+	return GenericUntil<&UWorld::GetAudioTimeSeconds, false>(Seconds);
 }

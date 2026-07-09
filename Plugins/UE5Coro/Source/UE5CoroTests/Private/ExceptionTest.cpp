@@ -32,9 +32,8 @@
 #include <exception>
 #include "TestWorld.h"
 #include "Misc/AutomationTest.h"
+#include "UE5Coro.h"
 #include "UE5CoroTestObject.h"
-#include "UE5Coro/AsyncAwaiters.h"
-#include "UE5Coro/Generator.h"
 
 using namespace UE5Coro;
 using namespace UE5Coro::Private;
@@ -44,45 +43,33 @@ using namespace UE5Coro::Private::Test;
 #if !PLATFORM_EXCEPTIONS_DISABLED
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExceptionTest, "UE5Coro.Exceptions",
-                                 EAutomationTestFlags::ApplicationContextMask |
+                                 EAutomationTestFlags_ApplicationContextMask |
                                  EAutomationTestFlags::HighPriority |
                                  EAutomationTestFlags::ProductFilter)
 
-namespace
-{
-class FTestException final : public std::exception
-{
-	const char* What;
-
-public:
-	explicit FTestException(const char* What) : What(What) { }
-	virtual const char* what() const noexcept override { return What; }
-};
-}
-
 bool FExceptionTest::RunTest(const FString& Parameters)
 {
-	FTestWorld World; // This is not used but it needs to exist in this scope
+	FTestWorld World;
 
 	try
 	{
 		auto Fn = []() -> TGenerator<int>
 		{
 			co_yield 1;
-			throw FTestException("test");
+			throw 123;
 		};
 		auto Gen = Fn();
-		TestEqual(TEXT("Generator init value"), Gen.Current(), 1);
+		TestEqual("Generator init value", Gen.Current(), 1);
 		Gen.Resume();
-		TestTrue(TEXT("Generator unreachable code"), false);
+		AddError("Generator unreachable code");
 	}
-	catch (const FTestException& Ex)
+	catch (int Value)
 	{
-		TestEqual(TEXT("Generator exception"), Ex.what(), "test");
+		TestEqual("Generator exception", Value, 123);
 	}
 	catch (...)
 	{
-		TestTrue(TEXT("Generator unexpected exception"), false);
+		AddError("Generator unexpected exception");
 	}
 
 	std::optional<TCoroutine<>> Coro;
@@ -90,54 +77,55 @@ bool FExceptionTest::RunTest(const FString& Parameters)
 	{
 		auto Fn = [&]() -> TCoroutine<>
 		{
-			co_await stdcoro::suspend_never();
+			co_await std::suspend_never();
 			Coro = static_cast<TCoroutinePromise<void, FAsyncPromise>&>(
 				FPromise::Current()).get_return_object();
-			throw FTestException("async");
+			throw 456;
 		};
 		Coro = std::nullopt;
 		Fn();
-		TestTrue(TEXT("Async unreachable code"), false);
+		AddError("Async unreachable code");
 	}
-	catch (const FTestException& Ex)
+	catch (int Value)
 	{
-		TestEqual(TEXT("Async exception"), Ex.what(), "async");
+		TestEqual("Async exception", Value, 456);
 	}
 	catch (...)
 	{
-		TestTrue(TEXT("Async unexpected exception"), false);
+		AddError("Async unexpected exception");
 	}
-	TestTrue(TEXT("Handle captured"), Coro.has_value());
-	TestTrue(TEXT("Done"), Coro->IsDone());
-	TestFalse(TEXT("Not successful"), Coro->WasSuccessful());
+	TestTrue("Handle captured", Coro.has_value());
+	TestTrue("Done", Coro->IsDone());
+	TestFalse("Not successful", Coro->WasSuccessful());
 
 	try
 	{
 		auto Fn = [&](FLatentActionInfo) -> TCoroutine<>
 		{
-			co_await stdcoro::suspend_never();
+			co_await std::suspend_never();
 			Coro = static_cast<TCoroutinePromise<void, FLatentPromise>&>(
 				FPromise::Current()).get_return_object();
-			throw FTestException("latent");
+			throw 789;
 		};
-		FLatentActionInfo Info(0, 0, nullptr, NewObject<UUE5CoroTestObject>());
+		FLatentActionInfo Info(0, 0, nullptr,
+		                       NewObject<UUE5CoroTestObject>(World));
 		Coro = std::nullopt;
 		Fn(Info);
-		TestTrue(TEXT("Latent unreachable code"), false);
+		AddError("Latent unreachable code");
 	}
-	catch (const FTestException& Ex)
+	catch (int Value)
 	{
-		TestEqual(TEXT("Latent exception"), Ex.what(), "latent");
+		TestEqual("Latent exception", Value, 789);
 	}
 	catch (...)
 	{
-		TestTrue(TEXT("Latent unexpected exception"), false);
+		AddError("Latent unexpected exception");
 	}
-	TestTrue(TEXT("Handle captured"), Coro.has_value());
-	TestTrue(TEXT("Done"), Coro->IsDone());
-	TestFalse(TEXT("Not successful"), Coro->WasSuccessful());
+	TestTrue("Handle captured", Coro.has_value());
+	TestTrue("Done", Coro->IsDone());
+	TestFalse("Not successful", Coro->WasSuccessful());
 
-	// Check if FLatentPromise detached correctly
+	// Check if FLatentPromise detached correctly, i.e., these don't crash
 	World.Tick();
 	World.Tick();
 	World.Tick();

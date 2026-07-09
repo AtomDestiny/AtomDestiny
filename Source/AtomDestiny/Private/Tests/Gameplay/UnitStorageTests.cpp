@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUnitStorageTests, "AtomDestiny.Gameplay.UnitStorage",
-    EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+    EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 static constexpr auto WrongValue = EADUnitType::None;
 

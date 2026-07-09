@@ -32,60 +32,55 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UE5Coro/Definitions.h"
-#include <memory>
-#include "CoroutinePrivate.inl"
-#include "Coroutine.generated.h"
+#include "UE5Coro/Definition.h"
+#include "UE5Coro/Private.h"
 
 namespace UE5Coro
 {
-/**
- * Asynchronous coroutine. Return this type from a function and it will be able
- * to co_await various awaiters without blocking the calling thread.<br>
- * These objects do not represent ownership of the coroutine and do not need to
- * be stored. Copies will refer to the same coroutine.<br>
- * TCoroutine<T> objects may be safely object sliced to TCoroutine<>, providing
- * a return-type-erased handle to the same coroutine.
- * @tparam T Optional return value of the coroutine. @p void if not provided.
- */
+/** Coroutine handle. Return this type from a function, and it will be able
+ *  to co_await various awaiters without blocking the calling thread.
+ *  These objects do not represent ownership of the coroutine and do not need to
+ *  be stored. Copies will refer to the same coroutine.
+ *  TCoroutine<T> objects may be safely object sliced to TCoroutine<>, providing
+ *  a result-type-erased handle to the same coroutine.
+ *  @tparam T Optional result type of the coroutine. @p void if not provided. */
 template<typename T = void>
 class TCoroutine;
 
-/** Common functionality for TCoroutines of all return types. */
+// Common functionality for TCoroutines of all result types.
 template<>
 class UE5CORO_API TCoroutine<>
 {
 	template<typename, typename>
 	friend class Private::TCoroutinePromise;
-	friend UE5CORO_API uint32 GetTypeHash(const TCoroutine<>&) noexcept; // ADL
-	friend std::hash<TCoroutine<>>;
+	friend std::hash<TCoroutine>;
 
 protected:
 	std::shared_ptr<Private::FPromiseExtras> Extras;
 
-	explicit TCoroutine(std::shared_ptr<Private::FPromiseExtras> Extras)
+	explicit TCoroutine(std::shared_ptr<Private::FPromiseExtras> Extras) noexcept
 		: Extras(std::move(Extras)) { }
 
 public:
-	/** A coroutine that has already completed with no return value. */
-	static const TCoroutine<> CompletedCoroutine;
+	/** A coroutine that has already completed with no result. */
+	static const TCoroutine CompletedCoroutine;
 
 	/** A coroutine that has already completed with the provided value. */
 	template<typename V>
-	static auto FromResult(V&& Value)
-		-> TCoroutine<std::remove_cv_t<std::remove_reference_t<V>>>;
+	[[nodiscard]] static TCoroutine<std::decay_t<V>> FromResult(V&& Value);
 
-	/** Request the coroutine to stop executing at the next opportunity.<br>
-	 *  This function returns immediately, with the coroutine still running.<br>
+	/** Request the coroutine to stop executing at the next opportunity.
+	 *  This function returns immediately, with the coroutine still running.
 	 *  Has no effect on coroutines that have already completed. */
 	void Cancel();
 
 	/** Blocks until the coroutine completes for any reason, including being
 	 *  unsuccessful or canceled.
-	 *  This could result in a deadlock if the coroutine wants to use the thread
-	 *  that's blocking.
+	 *
+	 *  This can lead to a deadlock if the coroutine wants to use the thread
+	 *  that's waiting.
 	 *  @return True if the coroutine completed, false on timeout. */
-	bool Wait(uint32 WaitTimeMilliseconds = MAX_uint32,
+	bool Wait(uint32 WaitTimeMilliseconds = std::numeric_limits<uint32>::max(),
 	          bool bIgnoreThreadIdleStats = false) const;
 
 	/** Returns true if the coroutine has ended for any reason, including normal
@@ -93,50 +88,44 @@ public:
 	[[nodiscard]] bool IsDone() const;
 
 	/** Returns true if the coroutine ran to completion successfully.
-	 *  Cancellations after completion don't change this flag. */
-	[[nodiscard]] bool WasSuccessful() const;
+	 *  Cancellations after successful completion don't change this flag. */
+	[[nodiscard]] bool WasSuccessful() const noexcept;
 
 	/** Calls the provided functor when this coroutine is complete, including
-	 *  unsuccessful completions such as being canceled.<br>
-	 *  If the coroutine is already complete, it will be called immediately,
-	 *  otherwise it will be called on the same thread where the coroutine
-	 *  completes. */
-	template<typename F>
-	auto ContinueWith(F Continuation)
-		-> std::enable_if_t<std::is_invocable_v<F>>;
+	 *  unsuccessful completions, such as being canceled.
+	 *
+	 *  If the coroutine is already complete, the parameter will be called
+	 *  immediately, otherwise it will be called on the thread where the
+	 *  coroutine completes. */
+	void ContinueWith(std::invocable auto Fn);
 
 	/** Like ContinueWith, but the provided functor will only be called if the
-	 *  object is still alive at the time of coroutine completion.<br>
-	 *  The first parameter may be UObject*, TSharedPtr, or std::shared_ptr. */
-	template<typename U, typename F>
-	auto ContinueWithWeak(U Ptr, F Continuation)
-		-> std::enable_if_t<Private::TWeak<U>::value && std::is_invocable_v<F>>;
+	 *  object is still alive at the time of the coroutine's completion.
+	 *  @param Ptr UObject*, TSharedPtr, or std::shared_ptr */
+	void ContinueWithWeak(Private::TStrongPtr auto Ptr, std::invocable auto Fn);
 
-	/** Convenience overload that also passes the object as the first argument
-	 *  for, e.g., UObject/Slate member function pointers or static methods with
-	 *  a world context.<br>
-	 *  The first parameter may be UObject*, TSharedPtr, or std::shared_ptr.<br>
-	 *  Example usage: ContinueWithWeak(this, &ThisClass::Method) */
-	template<typename U, typename F>
-	auto ContinueWithWeak(U Ptr, F Continuation)
-		-> std::enable_if_t<std::is_invocable_v<F, typename Private::TWeak<U>::ptr>>;
+	/** Convenience overload that invokes the provided functor with the provided
+	 *  pointer as the first argument for, e.g., UObject/Slate member function
+	 *  pointers, or static functions with a world context.
+	 *  @param Ptr UObject*, TSharedPtr, or std::shared_ptr */
+	void ContinueWithWeak(Private::TStrongPtr auto Ptr,
+	                      Private::TInvocableWithPtr<decltype(Ptr)> auto Fn);
 
 	/** Sets a debug name for the currently-executing coroutine.
-	 *  Only valid to call from within a coroutine returning TCoroutine. */
+	 *  Only valid to call from within a coroutine returning TCoroutine.
+	 *  Has no effect in release/shipping builds. */
 	static void SetDebugName(const TCHAR* Name);
 
-	/** @return True if the two objects refer to the same coroutine invocation. */
-	bool operator==(const TCoroutine<>&) const noexcept;
+	/** Returns true if the two objects refer to the same coroutine invocation. */
+	[[nodiscard]] bool operator==(const TCoroutine&) const noexcept;
 
-#if UE5CORO_CPP20
-	std::strong_ordering operator<=>(const TCoroutine<>&) const noexcept;
-#else
-	bool operator!=(const TCoroutine<>&) const noexcept;
-	bool operator<(const TCoroutine<>&) const noexcept;
-#endif
+	/** Compares this coroutine invocation to another one.
+	 *  The order of TCoroutines is meaningless, but it is strict and total
+	 *  across all type parameters. */
+	[[nodiscard]] std::strong_ordering operator<=>(const TCoroutine&) const noexcept;
 };
 
-/** Extra functionality for coroutines with non-void return types. */
+// Extra functionality for coroutines with non-void result types.
 template<typename T>
 class TCoroutine : public TCoroutine<>
 {
@@ -144,73 +133,93 @@ protected:
 	using TCoroutine<>::TCoroutine;
 
 public:
+	using FResultType = T;
+
+	using TCoroutine<>::ContinueWith;
+	using TCoroutine<>::ContinueWithWeak;
+
 	/** A coroutine that has already completed with the provided value. */
-	static TCoroutine<T> FromResult(T Value);
+	[[nodiscard]] static TCoroutine<T> FromResult(T Value);
 
-	/** Waits for the coroutine to finish, then gets its result. */
-	const T& GetResult() const;
+	/** Waits for the coroutine to finish, then gets its result.
+	 *
+	 *  This can lead to a deadlock if the coroutine wants to use the thread
+	 *  that's waiting. */
+	[[nodiscard]] const T& GetResult() const;
 
-	/** Waits for the coroutine to finish, then gets its result as an rvalue.<br>
+	/** Waits for the coroutine to finish, then gets its result as an rvalue.
+	 *
 	 *  Depending on T, this will often invalidate further GetResult and
-	 *  ContinueWith calls across all copies that refer to the same coroutine. */
-	T&& MoveResult();
+	 *  ContinueWith calls across all copies that refer to the same coroutine.
+	 *
+	 *  Calling this can lead to a deadlock if the coroutine wants to use the
+	 *  thread that's waiting. */
+	[[nodiscard]] T&& MoveResult();
 
 	/** Calls the provided functor with this coroutine's result when it's
-	 *  complete, including unsuccessful completions such as being canceled.<br>
+	 *  complete, including unsuccessful completions, such as being canceled.
 	 *  If the coroutine is already complete, it will be called immediately,
 	 *  otherwise it will be called on the same thread where the coroutine
 	 *  completes. */
-	template<typename F>
-	auto ContinueWith(F Continuation)
-		-> std::enable_if_t<std::is_invocable_v<F> || std::is_invocable_v<F, T>>;
+	void ContinueWith(std::invocable<T> auto Fn);
 
 	/** Like ContinueWith, but the provided functor will only be called if the
-	 *  object is still alive at the time of coroutine completion.<br>
-	 *  The first parameter may be UObject*, TSharedPtr, or std::shared_ptr. */
-	template<typename U, typename F>
-	auto ContinueWithWeak(U Ptr, F Continuation)
-		-> std::enable_if_t<Private::TWeak<U>::value &&
-		                    (std::is_invocable_v<F> || std::is_invocable_v<F, T>)>;
+	 *  object is still alive at the time of coroutine completion.
+	 *  @param Ptr UObject*, TSharedPtr, or std::shared_ptr */
+	void ContinueWithWeak(Private::TStrongPtr auto Ptr,
+	                      std::invocable<T> auto Fn);
 
 	/** Convenience overload that also passes the object as the first argument
 	 *  for, e.g., UObject/Slate member function pointers or static methods with
-	 *  a world context.<br>
-	 *  The first parameter may be UObject*, TSharedPtr, or std::shared_ptr.<br>
-	 *  Example usage: ContinueWithWeak(this, &ThisClass::Method) */
-	template<typename U, typename F>
-	auto ContinueWithWeak(U Ptr, F Continuation) -> std::enable_if_t<
-		std::is_invocable_v<F, typename Private::TWeak<U>::ptr> ||
-		std::is_invocable_v<F, typename Private::TWeak<U>::ptr, T>>;
+	 *  a world context.
+	 *  @param Ptr UObject*, TSharedPtr, or std::shared_ptr */
+	void ContinueWithWeak(Private::TStrongPtr auto Ptr,
+	                      Private::TInvocableWithPtr<decltype(Ptr), T> auto Fn);
 };
 
-static_assert(sizeof(TCoroutine<int>) == sizeof(TCoroutine<>));
-#if UE5CORO_CPP20
+static_assert(sizeof(TCoroutine<>) == sizeof(TCoroutine<FTransform>));
 static_assert(std::totally_ordered<TCoroutine<>>);
-static_assert(std::totally_ordered_with<TCoroutine<>, TCoroutine<int>>);
-#endif
+static_assert(std::totally_ordered_with<TCoroutine<>, TCoroutine<FTransform>>);
+
+/** Taking this struct as a parameter in a coroutine will force latent execution
+ *  mode, without automatic coroutine target or world context detection.
+ *
+ *  Instead, values from this struct are used directly.
+ *
+ *  See FForceLatentCoroutine for a simpler, UFUNCTION-compatible alternative
+ *  that keeps automatic detection. */
+template<std::derived_from<UObject> T = UObject>
+struct TLatentContext final
+{
+	/** The object registered with the latent action manager for the coroutine. */
+	T* Target;
+
+	/** The world that will contain the latent action. */
+	UWorld* World;
+
+	/** Implicit conversion from T* that sets the world to GetWorld(). */
+	TLatentContext(T* Target) noexcept
+		: Target(Target), World(Target->GetWorld()) { }
+	TLatentContext(T* Target, UWorld* World) noexcept
+		: Target(Target), World(World) { }
+	template<typename U> requires std::convertible_to<U*, T*>
+	TLatentContext(const TLatentContext<U>& Other)
+		: Target(Other.Target), World(Other.World) { }
+
+	/** Makes this type useful as a `this` replacement in lambdas. */
+	T* operator->() const noexcept { return Target; }
+	T& operator*() const noexcept { return *Target; }
+};
 }
 
-/** USTRUCT wrapper for TCoroutine<>. */
-USTRUCT(BlueprintInternalUseOnly)
-struct UE5CORO_API FAsyncCoroutine
-#if CPP
-	: UE5Coro::TCoroutine<>
-#endif
+UE5CORO_API uint32 GetTypeHash(const UE5Coro::TCoroutine<>&) noexcept;
+
+#pragma region Private
+namespace UE5Coro::Private
 {
-	GENERATED_BODY()
-
-	/** This constructor is public to placate the reflection system and BP.<br>
-	 *  Do not use directly. Interacting with default-constructed
-	 *  FAsyncCoroutines is undefined behavior. */
-	FAsyncCoroutine() : TCoroutine(nullptr) { }
-
-	/** Implicit conversion from any TCoroutine. */
-	template<typename T>
-	FAsyncCoroutine(const TCoroutine<T>& Coroutine) : TCoroutine(Coroutine) { }
-};
-
-static_assert(sizeof(FAsyncCoroutine) == sizeof(UE5Coro::TCoroutine<>));
-
+template<typename T> constexpr bool bIsLatentContext = false;
+template<typename T> constexpr bool bIsLatentContext<TLatentContext<T>> = true;
+}
 
 #pragma region std::hash
 template<>
@@ -218,14 +227,16 @@ struct UE5CORO_API std::hash<UE5Coro::TCoroutine<>>
 {
 	size_t operator()(const UE5Coro::TCoroutine<>&) const noexcept;
 };
+
 template<>
-struct std::hash<FAsyncCoroutine>
+struct std::hash<struct FVoidCoroutine>
 {
 	size_t operator()(const UE5Coro::TCoroutine<>& Handle) const noexcept
 	{
 		return std::hash<UE5Coro::TCoroutine<>>()(Handle);
 	}
 };
+
 template<typename T>
 struct std::hash<UE5Coro::TCoroutine<T>>
 {
@@ -236,18 +247,10 @@ struct std::hash<UE5Coro::TCoroutine<T>>
 };
 #pragma endregion
 
-/** Taking this struct as a parameter in a coroutine will force latent execution
- *  mode, even if it does not have a FLatentActionInfo parameter.<br>
- *  It is compatible with UFUNCTIONs and hidden on BP call nodes. */
-USTRUCT(BlueprintInternalUseOnly)
-struct UE5CORO_API FForceLatentCoroutine
-{
-	GENERATED_BODY()
-};
-
 #if CPP
-#include "UE5Coro/AsyncCoroutine.h"
+#include "UE5Coro/Promise.h"
 #ifndef UE5CORO_PRIVATE_SUPPRESS_COROUTINE_INL
 #include "UE5Coro/Coroutine.inl"
 #endif
 #endif
+#pragma endregion

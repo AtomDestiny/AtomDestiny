@@ -50,7 +50,7 @@ bool FTwoLives::Release()
 bool FTwoLives::ShouldResume(void* State, bool bCleanup)
 {
 	auto* This = static_cast<FTwoLives*>(State);
-	if (UNLIKELY(bCleanup))
+	if (bCleanup) [[unlikely]]
 	{
 		This->Release();
 		return false;
@@ -72,7 +72,7 @@ FLatentActionInfo UUE5CoroSubsystem::MakeLatentInfo(FTwoLives* State)
 
 	// Lazy delegate binding in order to not affect
 	// projects that never use Chain/ChainEx.
-	if (UNLIKELY(!LatentActionsChangedHandle.IsValid()))
+	if (!LatentActionsChangedHandle.IsValid()) [[unlikely]]
 		LatentActionsChangedHandle =
 			FLatentActionManager::OnLatentActionsChanged().AddUObject(
 				this, &ThisClass::LatentActionsChanged);
@@ -101,10 +101,14 @@ void UUE5CoroSubsystem::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// ProcessLatentActions refuses to work on non-BP classes.
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
+	// ProcessLatentActions refuses to work on non-BP classes before UE5.5.
 	GetClass()->ClassFlags |= CLASS_CompiledFromBlueprint;
+#endif
 	GetWorld()->GetLatentActionManager().ProcessLatentActions(this, DeltaTime);
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 	GetClass()->ClassFlags &= ~CLASS_CompiledFromBlueprint;
+#endif
 }
 
 TStatId UUE5CoroSubsystem::GetStatId() const

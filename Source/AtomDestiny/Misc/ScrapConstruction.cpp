@@ -2,6 +2,8 @@
 
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 
+#include <Components/StaticMeshComponent.h>
+
 void UScrapConstruction::Construct()
 {
     const TArray<UStaticMeshComponent*> components = AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(GetOwner());
@@ -12,7 +14,7 @@ void UScrapConstruction::Construct()
 
         UStaticMeshComponent* component = components[index];
         const FTransform& localTransform = m_localTransforms[index];
-        
+
         component->SetWorldLocation(component->GetComponentLocation() + localTransform.GetLocation());
         component->SetRelativeRotation(localTransform.GetRotation());
     }
@@ -21,7 +23,7 @@ void UScrapConstruction::Construct()
 void UScrapConstruction::BeginPlay()
 {
     Super::BeginPlay();
-    
+
     for (const UStaticMeshComponent* component : AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(GetOwner()))
     {
         m_localTransforms.Add(component->GetRelativeTransform());
@@ -31,7 +33,7 @@ void UScrapConstruction::BeginPlay()
 void UScrapConstruction::Deactivate()
 {
     Super::Deactivate();
-    
+
     const auto rootComponent = GetOwner()->GetRootComponent();
     const TArray<UStaticMeshComponent*> components = AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(GetOwner());
 

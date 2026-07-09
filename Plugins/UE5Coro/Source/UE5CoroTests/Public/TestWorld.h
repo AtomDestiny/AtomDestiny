@@ -32,53 +32,64 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UE5Coro/Definitions.h"
-#include <functional>
-#include "UE5Coro/AsyncCoroutine.h"
-#include "UE5Coro/UE5CoroSubsystem.h"
+#include "UE5Coro.h"
+#include "Misc/EngineVersionComparison.h"
 
-#define CORO [&](T...) -> FAsyncCoroutine
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
+constexpr EAutomationTestFlags::Type EAutomationTestFlags_ApplicationContextMask =
+	EAutomationTestFlags::ApplicationContextMask;
+#endif
+
+#define CORO [&](T...) -> FVoidCoroutine
 #define CORO_R(Type) [&](T...) -> TCoroutine<Type>
+#define IF_CORO_ASYNC if constexpr (sizeof...(T) != 1)
+#define IF_CORO_ASYNC_OR(Condition) if constexpr (sizeof...(T) != 1 || (Condition))
 #define IF_CORO_LATENT if constexpr (sizeof...(T) == 1)
-#define IF_NOT_CORO_LATENT if constexpr (sizeof...(T) != 1)
+#define IF_CORO_LATENT_AND(Condition) if constexpr (sizeof...(T) == 1 && (Condition))
+#define IF_CORO_LATENT_OR(Condition) if constexpr (sizeof...(T) == 1 || (Condition))
+
+#ifndef UE_VERSION_NEWER_THAN_OR_EQUAL
+#define UE_VERSION_NEWER_THAN_OR_EQUAL(X, Y, Z) (!(UE_VERSION_OLDER_THAN(X, Y, Z)))
+#endif
 
 namespace UE5Coro::Private::Test
 {
 class UE5COROTESTS_API FTestWorld
 {
-	UWorld* World;
-
 	UWorld* PrevWorld;
 	decltype(GFrameCounter) OldFrameCounter;
 
+protected:
+	UWorld* World;
+
 public:
 	FTestWorld();
+	UE_NONCOPYABLE(FTestWorld);
 	~FTestWorld();
 
-	UWorld* operator->() const { return World; }
+	UWorld* operator->() const noexcept { return World; }
+	operator UWorld*() const noexcept { return World; }
 
 	void Tick(float DeltaSeconds = 0.125);
 	void EndTick();
 
-	template<typename T>
-	std::invoke_result_t<T> Run(T Fn)
+	auto Run(std::invocable auto Fn)
 	{
-		// Extend the lifetime of Fn's lambda captures until it's complete
-		auto* Copy = new T(std::move(Fn));
-		auto Coro = (*Copy)();
-		Coro.ContinueWith([=] { delete Copy; });
+		// Extend the lifetime of Fn's lambda captures until it is complete
+		auto* ExtendedLifeFn = new auto(std::move(Fn));
+		auto Coro = (*ExtendedLifeFn)();
+		Coro.ContinueWith([=] { delete ExtendedLifeFn; });
 		return Coro;
 	}
 
-	template<typename T>
-	std::invoke_result_t<T, FLatentActionInfo> Run(T Fn)
+	auto Run(std::invocable<FLatentActionInfo> auto Fn)
 	{
 		auto* Sys = World->GetSubsystem<UUE5CoroSubsystem>();
 		auto LatentInfo = Sys->MakeLatentInfo();
 
-		auto* Copy = new T(std::move(Fn));
-		auto Coro = (*Copy)(LatentInfo);
-		Coro.ContinueWith([=] { delete Copy; });
+		auto* ExtendedLifeFn = new auto(std::move(Fn));
+		auto Coro = (*ExtendedLifeFn)(LatentInfo);
+		Coro.ContinueWith([=] { delete ExtendedLifeFn; });
 		return Coro;
 	}
 };
@@ -88,5 +99,8 @@ class UE5COROTESTS_API FTestHelper
 public:
 	static void PumpGameThread(FTestWorld& World,
 	                           std::function<bool()> ExitCondition);
+	static void CheckWorld(FAutomationTestBase& Test, UWorld* World);
+	static bool ReadEvent(FAwaitableEvent&);
+	static int ReadSemaphore(FAwaitableSemaphore&);
 };
 }

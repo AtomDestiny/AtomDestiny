@@ -29,14 +29,9 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/TaskAwaiters.h"
+#include "UE5Coro/TaskAwaiter.h"
 
 using namespace UE5Coro::Private;
-
-FTaskAwaiter UE5Coro::Tasks::MoveToTask(const TCHAR* DebugName)
-{
-	return FTaskAwaiter(DebugName);
-}
 
 void FTaskAwaiter::Suspend(FPromise& Promise)
 {

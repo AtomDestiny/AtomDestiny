@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <Components/ActorComponent.h>
+#include <Components/SkeletalMeshComponent.h>
 
 #include <AtomDestiny/Core/Macros.h>
 #include <AtomDestiny/Weapon/WeaponAnimation.h>
@@ -18,12 +19,12 @@ class UWeaponAnimationBase : public UActorComponent, public IWeaponAnimation
 public:
     explicit UWeaponAnimationBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
-    virtual bool IsReady() const ABSTRACT_RETURN_METHOD;
-    virtual void Animate() ABSTRACT_METHOD;
-    virtual void SetDefaultState() ABSTRACT_METHOD;
+    bool IsReady() const ABSTRACT_RETURN_METHOD;
+    void Animate() ABSTRACT_METHOD;
+    void SetDefaultState() ABSTRACT_METHOD;
 
 protected:
-    virtual void InitializeComponent() override;
+    void InitializeComponent() override;
 
     // Skeletal mesh that contains an animator
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Skeletal mesh with animation"))

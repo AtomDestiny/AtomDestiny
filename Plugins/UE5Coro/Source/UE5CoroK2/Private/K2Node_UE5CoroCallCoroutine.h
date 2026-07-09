@@ -31,14 +31,13 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_UE5CoroCallCoroutine.generated.h"
 
-/** A minor cosmetic alteration of the regular "Call Function" node, hiding the
- *  useless return value of coroutines. */
-UCLASS()
-class UE5COROK2_API UK2Node_UE5CoroCallCoroutine : public UK2Node_CallFunction
+/** A minor cosmetic alteration of the regular CallFunction node, hiding the
+ *  useless pins on coroutine calls. */
+UCLASS(MinimalAPI)
+class UK2Node_UE5CoroCallCoroutine : public UK2Node_CallFunction
 {
 	GENERATED_BODY()
 

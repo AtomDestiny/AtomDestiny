@@ -29,7 +29,8 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5Coro/AsyncAwaiters.h"
+#include "UE5Coro/AsyncAwaiter.h"
+#include "UE5Coro/TaskAwaiter.h"
 #include "UE5CoroDelegateCallbackTarget.h"
 
 using namespace UE5Coro;
@@ -40,14 +41,18 @@ namespace
 struct FAutoStartResumeRunnable final : FRunnable
 {
 	FPromise& Promise;
+	std::atomic<FRunnableThread*> Thread;
 
 	explicit FAutoStartResumeRunnable(FPromise& Promise,
 	                                  EThreadPriority Priority, uint64 Affinity,
 	                                  EThreadCreateFlags Flags)
-		: Promise(Promise)
+		: Promise(Promise), Thread(nullptr)
 	{
-		FRunnableThread::Create(this, TEXT("UE5Coro::Async::MoveToNewThread"),
-		                        0, Priority, Affinity, Flags);
+		// Thread has to start as nullptr and get overwritten later
+		Thread = FRunnableThread::Create(this,
+		                                 TEXT("UE5Coro::Async::MoveToNewThread"),
+		                                 0, Priority, Affinity, Flags);
+		checkf(Thread, TEXT("Internal error: could not create thread"));
 	}
 
 	virtual uint32 Run() override
@@ -56,30 +61,112 @@ struct FAutoStartResumeRunnable final : FRunnable
 		return 0;
 	}
 
-	virtual void Exit() override { delete this; }
+	virtual void Exit() override
+	{
+		AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this]
+		{
+			FRunnableThread* ThreadPtr = Thread.load();
+
+			// Rare case of exiting so quickly, Thread is still nullptr
+			if (ThreadPtr == nullptr) [[unlikely]]
+			{
+				Exit(); // Try again later from another AsyncTask
+				return;
+			}
+
+			ThreadPtr->WaitForCompletion();
+			delete ThreadPtr;
+			delete this;
+		});
+	}
 };
 }
 
-FAsyncAwaiter Async::MoveToThread(ENamedThreads::Type Thread)
+FAsyncAwaiter Async::MoveToThread(ENamedThreads::Type Thread) noexcept
 {
-	return FAsyncAwaiter(Thread, {});
+	return FAsyncAwaiter(Thread);
 }
 
-FAsyncAwaiter Async::MoveToGameThread()
+FAsyncAwaiter Async::MoveToGameThread() noexcept
 {
-	return FAsyncAwaiter(ENamedThreads::GameThread, {});
+	return FAsyncAwaiter(ENamedThreads::GameThread);
 }
 
-FAsyncYieldAwaiter Async::Yield()
+FAsyncAwaiter Async::MoveToSimilarThread()
+{
+	return FAsyncAwaiter(FTaskGraphInterface::Get().GetCurrentThreadIfKnown());
+}
+
+FTaskAwaiter Async::MoveToTask(const TCHAR* DebugName)
+{
+	return FTaskAwaiter(DebugName);
+}
+
+FThreadPoolAwaiter Async::MoveToThreadPool(FQueuedThreadPool& ThreadPool,
+                                           EQueuedWorkPriority Priority)
+{
+	return FThreadPoolAwaiter(ThreadPool, Priority);
+}
+
+FAsyncYieldAwaiter Async::Yield() noexcept
 {
 	return {};
 }
 
 FNewThreadAwaiter Async::MoveToNewThread(EThreadPriority Priority,
                                          uint64 Affinity,
-                                         EThreadCreateFlags Flags)
+                                         EThreadCreateFlags Flags) noexcept
 {
 	return FNewThreadAwaiter(Priority, Affinity, Flags);
+}
+
+FAsyncTimeAwaiter Async::PlatformSeconds(double Seconds) noexcept
+{
+	return FAsyncTimeAwaiter(FPlatformTime::Seconds() + Seconds, false);
+}
+
+FAsyncTimeAwaiter Async::PlatformSecondsAnyThread(double Seconds) noexcept
+{
+	return FAsyncTimeAwaiter(FPlatformTime::Seconds() + Seconds, true);
+}
+
+FAsyncTimeAwaiter Async::UntilPlatformTime(double Time) noexcept
+{
+	return FAsyncTimeAwaiter(Time, false);
+}
+
+FAsyncTimeAwaiter Async::UntilPlatformTimeAnyThread(double Time) noexcept
+{
+	return FAsyncTimeAwaiter(Time, true);
+}
+
+void FThreadPoolAwaiter::DoThreadedWork()
+{
+	checkf(Promise.load(), TEXT("Internal error: scheduled without a promise"));
+	bAbandoned = false;
+	Promise.exchange(nullptr)->Resume();
+}
+
+void FThreadPoolAwaiter::Abandon()
+{
+	checkf(Promise.load(), TEXT("Internal error: scheduled without a promise"));
+	bAbandoned = true;
+	Promise.exchange(nullptr)->Resume();
+}
+
+FThreadPoolAwaiter::FThreadPoolAwaiter(const FThreadPoolAwaiter& Other)
+	: Pool(Other.Pool), Priority(Other.Priority)
+{
+}
+
+void FThreadPoolAwaiter::Suspend(FPromise& InPromise)
+{
+	checkf(!Promise, TEXT("Internal error: recursive suspension"));
+	Promise = &InPromise;
+	// Since the coroutine is suspended (and detached, if latent), this awaiter
+	// will remain alive until Resume(). Pass ownership to the thread pool,
+	// DoThreadedWork/Abandon will take it back.
+	Pool.AddQueuedWork(this, Priority);
 }
 
 void FNewThreadAwaiter::Suspend(FPromise& Promise)
@@ -87,24 +174,87 @@ void FNewThreadAwaiter::Suspend(FPromise& Promise)
 	new FAutoStartResumeRunnable(Promise, Priority, Affinity, Flags);
 }
 
-FDelegateAwaiter::~FDelegateAwaiter()
+template<>
+FDelegateAwaiter<false>::FDelegateAwaiter()
 {
-	Cleanup();
 }
 
-void FDelegateAwaiter::Suspend(FPromise& InPromise)
+template<>
+FDelegateAwaiter<true>::FDelegateAwaiter()
+	: TCancelableAwaiter(&Cancel)
 {
-	checkf(!Promise, TEXT("Internal error: Unexpected double suspend"));
+}
+
+#if UE5CORO_DEBUG
+template<bool bCancelable>
+FDelegateAwaiter<bCancelable>::~FDelegateAwaiter()
+{
+	checkf(!Promise, TEXT("Internal error: destroying active awaiter"));
+}
+#endif
+
+template<>
+void FDelegateAwaiter<false>::Suspend(FPromise& InPromise)
+{
+	checkf(!Promise, TEXT("Internal error: unexpected double suspend"));
+	checkf(Cleanup, TEXT("Internal error: awaiter was not set up"));
 	Promise = &InPromise;
 }
 
-void FDelegateAwaiter::TryResumeOnce()
+template<>
+void FDelegateAwaiter<true>::Suspend(FPromise& InPromise)
 {
-	if (Promise)
-		std::exchange(Promise, nullptr)->Resume();
+	checkf(!Promise, TEXT("Internal error: unexpected double suspend"));
+	checkf(Cleanup, TEXT("Internal error: awaiter not set up"));
+	UE::TUniqueLock Lock(InPromise.GetLock());
+	if (InPromise.RegisterCancelableAwaiter(this))
+		Promise = &InPromise;
+	else
+	{
+		Cleanup();
+		FAsyncYieldAwaiter::Suspend(InPromise);
+	}
 }
 
-UObject* FDelegateAwaiter::SetupCallbackTarget(std::function<void(void*)> Fn)
+template<bool bCancelable>
+void FDelegateAwaiter<bCancelable>::Cancel(void* This, FPromise& Promise)
+	requires bCancelable
+{
+	if (Promise.UnregisterCancelableAwaiter<false>())
+	{
+		auto* Awaiter = static_cast<FDelegateAwaiter*>(This);
+		verifyf(Awaiter->Promise.exchange(nullptr) == &Promise,
+		        TEXT("Internal error: expected active awaiter"));
+		checkf(Awaiter->Cleanup, TEXT("Internal error: awaiter not set up"));
+		Awaiter->Cleanup();
+		FAsyncYieldAwaiter::Suspend(Promise);
+	}
+}
+
+template<>
+void FDelegateAwaiter<false>::Resume()
+{
+	checkf(Cleanup, TEXT("Internal error: awaiter not set up"));
+	Cleanup();
+	if (auto* P = Promise.exchange(nullptr))
+		P->Resume();
+}
+
+template<>
+void FDelegateAwaiter<true>::Resume()
+{
+	checkf(Cleanup, TEXT("Internal error: awaiter not set up"));
+	if (auto* P = Promise.exchange(nullptr);
+	    P->UnregisterCancelableAwaiter<true>())
+	{
+		Cleanup();
+		P->Resume();
+	}
+}
+
+template<bool bCancelable>
+UObject* FDelegateAwaiter<bCancelable>::SetupCallbackTarget(
+	std::function<void(void*)> Fn)
 {
 	FGCScopeGuard _;
 	auto* Target = NewObject<UUE5CoroDelegateCallbackTarget>();
@@ -118,4 +268,10 @@ UObject* FDelegateAwaiter::SetupCallbackTarget(std::function<void(void*)> Fn)
 		Target->MarkAsGarbage();
 	};
 	return Target;
+}
+
+namespace UE5Coro::Private
+{
+template class FDelegateAwaiter<false>;
+template class FDelegateAwaiter<true>;
 }
