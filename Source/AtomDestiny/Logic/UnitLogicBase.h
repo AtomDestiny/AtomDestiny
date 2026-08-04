@@ -166,7 +166,7 @@ protected:
     bool m_canScan = true;
     
     // Hashed destination point
-    FVector m_destinationPoint;
+    FVector m_destinationPoint{};
     
     // Animation controller (unit animation interface)
     TScriptInterface<IAnimation> m_animation;
