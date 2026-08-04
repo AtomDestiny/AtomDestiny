@@ -51,7 +51,7 @@ class TCoroutine;
 template<>
 class UE5CORO_API TCoroutine<>
 {
-	template<typename, typename>
+	template<typename, typename, typename>
 	friend class Private::TCoroutinePromise;
 	friend std::hash<TCoroutine>;
 
@@ -65,9 +65,16 @@ public:
 	/** A coroutine that has already completed with no result. */
 	static const TCoroutine CompletedCoroutine;
 
+	/** A coroutine that has already failed with no result. */
+	static const TCoroutine FailedCoroutine;
+
 	/** A coroutine that has already completed with the provided value. */
 	template<typename V>
 	[[nodiscard]] static TCoroutine<std::decay_t<V>> FromResult(V&& Value);
+
+	/** A coroutine that has already failed to provide a result. */
+	template<typename T>
+	[[nodiscard]] static TCoroutine<T> FromFailure();
 
 	/** Request the coroutine to stop executing at the next opportunity.
 	 *  This function returns immediately, with the coroutine still running.
@@ -111,10 +118,16 @@ public:
 	void ContinueWithWeak(Private::TStrongPtr auto Ptr,
 	                      Private::TInvocableWithPtr<decltype(Ptr)> auto Fn);
 
+	/** Returns the coroutine's debug name, or an empty string in build
+	 *  configurations where debug names are not stored.
+	 *  Not thread safe with respect to SetDebugName. */
+	FString GetDebugName() const;
+
 	/** Sets a debug name for the currently-executing coroutine.
 	 *  Only valid to call from within a coroutine returning TCoroutine.
-	 *  Has no effect in release/shipping builds. */
-	static void SetDebugName(const TCHAR* Name);
+	 *  Has no effect in release/shipping builds by default, but it's
+	 *  recommended to avoid evaluating its argument for best performance. */
+	static void SetDebugName(FString Name);
 
 	/** Returns true if the two objects refer to the same coroutine invocation. */
 	[[nodiscard]] bool operator==(const TCoroutine&) const noexcept;
@@ -140,6 +153,9 @@ public:
 
 	/** A coroutine that has already completed with the provided value. */
 	[[nodiscard]] static TCoroutine<T> FromResult(T Value);
+
+	/** A coroutine that has already failed to provide a result. */
+	[[nodiscard]] static TCoroutine<T> FromFailure();
 
 	/** Waits for the coroutine to finish, then gets its result.
 	 *
@@ -209,6 +225,7 @@ struct TLatentContext final
 	/** Makes this type useful as a `this` replacement in lambdas. */
 	T* operator->() const noexcept { return Target; }
 	T& operator*() const noexcept { return *Target; }
+	operator T*() const noexcept { return Target; }
 };
 }
 

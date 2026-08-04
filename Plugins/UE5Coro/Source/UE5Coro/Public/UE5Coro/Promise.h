@@ -35,6 +35,7 @@
 #include "UE5Coro/Definition.h"
 #include <coroutine>
 #include <functional>
+#include <vector>
 #include "Engine/LatentActionManager.h"
 #define UE5CORO_PRIVATE_SUPPRESS_COROUTINE_INL
 #include "UE5Coro/Coroutine.h"
@@ -51,6 +52,8 @@ concept TAwaitable = requires
 	                         std::remove_cvref_t<T>>()(std::declval<T>())
 	.await_suspend(std::declval<std::coroutine_handle<Private::FLatentPromise>>());
 };
+template<typename T>
+concept CAwaitable = TAwaitable<T>;
 
 /** Types that get special treatment when awaited from a coroutine (async:
  *  higher overhead, latent: fast path).
@@ -58,6 +61,8 @@ concept TAwaitable = requires
  *  internal, but important implementation detail on the public API. */
 template<typename T>
 concept TLatentAwaiter = std::derived_from<T, Private::FLatentAwaiter>;
+template<typename T>
+concept CLatentAwaiter = TLatentAwaiter<T>;
 
 /** Types that are not TLatentAwaiters, but support expedited cancellation.
  *  This concept is mainly provided for documentation purposes. */
@@ -67,6 +72,8 @@ concept TCancelableAwaiter =
 	requires(T t) { { t.operator co_await() } -> std::derived_from<
 		Private::TCancelableAwaiter<decltype(t.operator co_await())>>; };
 	// TAwaitTransform is not handled by this concept
+template<typename T>
+concept CCancelableAwaiter = TCancelableAwaiter<T>;
 }
 
 #pragma region Private
@@ -106,7 +113,16 @@ public:
 	}
 };
 
-struct UE5CORO_API FCoroutineScope final
+struct FWorldScope
+{
+	UWorld* World;
+	UWorld* PreviousWorld;
+
+	explicit FWorldScope(UWorld*);
+	~FWorldScope();
+};
+
+struct UE5CORO_API FCoroutineScope final : FWorldScope
 {
 	FPromise* Promise;
 	FPromise* PreviousPromise;
@@ -159,10 +175,16 @@ struct FLatentFinalSuspend final
 /** Fields of FPromise that may be alive after the coroutine is done. */
 struct [[nodiscard]] UE5CORO_API FPromiseExtras
 {
-#if UE5CORO_DEBUG
+#if UE5CORO_DEBUG || UE5CORO_ENABLE_COROUTINE_TRACKING
 	int DebugID = -1;
-	const TCHAR* DebugPromiseType = nullptr;
-	const TCHAR* DebugName = nullptr;
+	const TCHAR* DebugPromiseType = nullptr; // "Async", "Latent", or "Manual"
+	FString DebugName;
+	const TCHAR* DebugNamePtr = nullptr; // For debuggers
+	void SetDebugName(FString&& Name)
+	{
+		DebugName = std::move(Name);
+		DebugNamePtr = *DebugName;
+	}
 #endif
 
 	FEventRef Completed{EEventMode::ManualReset};
@@ -185,7 +207,7 @@ struct [[nodiscard]] UE5CORO_API FPromiseExtras
 };
 
 template<typename T>
-struct [[nodiscard]] TPromiseExtras final : FPromiseExtras
+struct [[nodiscard]] TPromiseExtras : FPromiseExtras
 {
 #if UE5CORO_DEBUG
 	std::atomic<bool> bMoveUsed = false;
@@ -212,18 +234,30 @@ public:
 };
 
 extern thread_local FPromise* GCurrentPromise;
+UE5CORO_API extern UWorldProxy GCurrentCoroWorld;
+inline UWorld* GetBestWorld()
+{
+	// Must be called from the game thread, this is guarded by a checkSlow
+	return IsValid(GCurrentCoroWorld) ? GCurrentCoroWorld : GWorld;
+}
 
 class [[nodiscard]] UE5CORO_API FPromise
 {
-	friend void TCoroutine<>::SetDebugName(const TCHAR*);
+	friend void TCoroutine<>::SetDebugName(FString);
+	template<typename T> friend class TManualPromiseExtras;
+	friend FCoroutineScope;
+	friend Debug::FUE5CoroCategory;
 
 	FCancellationTracker CancellationTracker;
 
 protected:
+	// Latent promises always have a home world.
+	// Async promises are sometimes associated with a world.
+	TWeakObjectPtr<UWorld> WeakWorld;
 	void* CancelableAwaiter = nullptr;
 
 	std::shared_ptr<FPromiseExtras> Extras;
-	TArray<std::function<void(void*)>> OnCompleted;
+	std::vector<std::function<void(void*)>> OnCompleted;
 #if !PLATFORM_EXCEPTIONS_DISABLED
 	std::atomic<bool> bUnhandledException = false;
 #endif
@@ -238,6 +272,7 @@ protected:
 public:
 	static FPromise& Current();
 	UE::FMutex& GetLock();
+	UWorld* GetWorld() const; // nullptr if not associated with a world
 
 	[[nodiscard]] bool RegisterCancelableAwaiter(void*);
 	template<bool bLock> [[nodiscard]] bool UnregisterCancelableAwaiter();
@@ -269,6 +304,11 @@ protected:
 		: FPromise(std::move(InExtras), TEXT("Async")) { }
 
 public:
+#if UE5CORO_DEBUG
+	virtual void Resume() override;
+#endif
+	void SetWorld(UWorld* World);
+
 	FInitialSuspend initial_suspend() noexcept
 	{
 		return {FInitialSuspend::Resume};
@@ -287,11 +327,10 @@ public:
 class [[nodiscard]] UE5CORO_API FLatentPromise : public FPromise
 {
 	friend FLatentFinalSuspend;
-	friend Test::FTestHelper;
+	friend Debug::FUE5CoroCategory;
 
 	static int UUID;
 
-	TWeakObjectPtr<UWorld> World;
 	void* LatentAction = nullptr; // Use Extras->Lock for destruction
 	enum ELatentFlags : int
 	{
@@ -303,6 +342,7 @@ class [[nodiscard]] UE5CORO_API FLatentPromise : public FPromise
 
 	void CreateLatentAction(const UObject*);
 	void CreateLatentAction(const FLatentActionInfo&);
+	UObject* GetCallbackTarget() const;
 
 protected:
 	explicit FLatentPromise(std::shared_ptr<FPromiseExtras>, const auto&...);
@@ -334,28 +374,37 @@ public:
 	}
 };
 
-template<typename T, typename Base>
+template<typename T, typename Base, typename Extras>
 class TCoroutinePromise : public Base
 {
 public:
 	explicit TCoroutinePromise(const auto&... Args)
-		: Base(std::make_shared<TPromiseExtras<T>>(*this), Args...) { }
+		: Base(std::make_shared<Extras>(*this), Args...) { }
 	UE_NONCOPYABLE(TCoroutinePromise);
 
 	~TCoroutinePromise()
 	{
-		auto* ExtrasT = static_cast<TPromiseExtras<T>*>(this->Extras.get());
+		auto* ExtrasT = static_cast<Extras*>(this->Extras.get());
 		ExtrasT->Lock.Lock(); // This will be held until the end of ~FPromise
 		checkf(ExtrasT->Promise, TEXT("Unexpected double promise destruction"));
 		ExtrasT->ReturnValuePtr = &ExtrasT->ReturnValue;
 	}
 
 	void return_value(T Value)
+		requires (!std::same_as<Extras, TManualPromiseExtras<T>>)
 	{
-		auto* ExtrasT = static_cast<TPromiseExtras<T>*>(this->Extras.get());
+		auto* ExtrasT = static_cast<Extras*>(this->Extras.get());
 		UE::TUniqueLock Lock(ExtrasT->Lock);
-		check(!ExtrasT->IsComplete()); // Completion is after a value is returned
+		checkf(!ExtrasT->IsComplete(), // Completion happens after this
+		       TEXT("Internal error: Expected incomplete coroutine"));
 		ExtrasT->ReturnValue = std::move(Value);
+	}
+
+	void return_value(FManualCoroutineOverride)
+		requires std::same_as<Extras, TManualPromiseExtras<T>>
+	{
+		checkf(!static_cast<Extras*>(this->Extras.get())->IsComplete(),
+		       TEXT("Internal error: Expected incomplete coroutine"));
 	}
 
 	TCoroutine<T> get_return_object() noexcept
@@ -364,12 +413,12 @@ public:
 	}
 };
 
-template<typename Base>
-class TCoroutinePromise<void, Base> : public Base
+template<typename Base, typename Extras>
+class TCoroutinePromise<void, Base, Extras> : public Base
 {
 public:
 	explicit TCoroutinePromise(const auto&... Args)
-		: Base(std::make_shared<FPromiseExtras>(*this), Args...) { }
+		: Base(std::make_shared<Extras>(*this), Args...) { }
 	UE_NONCOPYABLE(TCoroutinePromise);
 
 	~TCoroutinePromise()
@@ -435,14 +484,14 @@ FLatentPromise::FLatentPromise(std::shared_ptr<FPromiseExtras> InExtras,
 			{
 				checkf(IsValid(Context.CallbackTarget),
 			           TEXT("FLatentActionInfo callback target not valid"));
-				World = Context.CallbackTarget->GetWorld();
+				WeakWorld = Context.CallbackTarget->GetWorld();
 				CreateLatentAction(Context);
 			}
 			else if constexpr (bIsLatentContext<std::decay_t<T>>)
 			{
 				checkf(IsValid(Context.Target) && IsValid(Context.World),
 				       TEXT("Invalid override used for latent coroutine"));
-				World = Context.World;
+				WeakWorld = Context.World;
 				CreateLatentAction(Context.Target);
 			}
 		}(Args), ...);
@@ -458,17 +507,17 @@ FLatentPromise::FLatentPromise(std::shared_ptr<FPromiseExtras> InExtras,
 		{
 			if constexpr (std::is_pointer_v<T>)
 			{
-				World = WorldContext->GetWorld();
+				WeakWorld = WorldContext->GetWorld();
 				CreateLatentAction(WorldContext);
 			}
 			else
 			{
-				World = WorldContext.GetWorld();
+				WeakWorld = WorldContext.GetWorld();
 				CreateLatentAction(&WorldContext);
 			}
 		}(Args...);
 	}
-	checkf(World.IsValid(),
+	checkf(WeakWorld.IsValid(), // Latent coroutines must have a home world
 	       TEXT("Could not determine world for latent coroutine"));
 }
 }
@@ -489,9 +538,12 @@ struct std::coroutine_traits<UE5Coro::TCoroutine<T>, Args...>
 	static constexpr bool bUseLatent = LatentInfoCount || LatentForceCount ||
 	                                   LatentContextCount;
 
+	using FPromiseBase = std::conditional_t<bUseLatent,
+		UE5Coro::Private::FLatentPromise, UE5Coro::Private::FAsyncPromise>;
+	using FPromiseExtras = std::conditional_t<std::is_void_v<T>,
+		UE5Coro::Private::FPromiseExtras, UE5Coro::Private::TPromiseExtras<T>>;
 	using promise_type = UE5Coro::Private::TCoroutinePromise<
-		T, std::conditional_t<bUseLatent, UE5Coro::Private::FLatentPromise,
-		                                  UE5Coro::Private::FAsyncPromise>>;
+		T, FPromiseBase, FPromiseExtras>;
 };
 
 template<typename T, typename... Args>

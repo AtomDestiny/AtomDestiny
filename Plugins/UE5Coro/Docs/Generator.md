@@ -1,5 +1,10 @@
 # Generators
 
+> [!NOTE]
+> TGenerator is deprecated when targeting C++23 or later.<br>
+> std::generator is recommended instead.<br>
+> Define the macro `UE5CORO_DISABLE_GENERATOR_DEPRECATION` to continue using it.
+
 Returning TGenerator\<T\> from a function allows it to yield an arbitrary number
 of values through it (including infinite), with the caller having control over
 when, and how many to fetch.
@@ -10,6 +15,12 @@ This can be more straightforward and memory efficient than allocating memory for
 a TArray, as the values are generated and returned one at a time, on demand.
 Generators can also benefit from compiler
 [HALO](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1365r0.pdf).
+
+A default-constructed TGenerator will yield no elements, as if the generator was
+implemented as `{ co_return; }` (but more efficient).<br>
+Moving a generator transfers the coroutine's execution state between the two
+objects without affecting the coroutine itself.
+A moved-from TGenerator becomes identical to a default-constructed one.
 
 There are multiple ways to consume a TGenerator.
 It has methods for direct manipulation, and it provides a highly-efficient

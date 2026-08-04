@@ -33,13 +33,22 @@
 
 #include "CoreMinimal.h"
 #include "UE5Coro/Definition.h"
+#include <algorithm>
 #include <concepts>
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include "Async/Mutex.h"
 #include "Delegates/DelegateBase.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
+#include "HAL/Event.h"
 #include "Misc/EngineVersionComparison.h"
+#include "Tickable.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "UObject/GarbageCollection.h"
+#include "UObject/Package.h"
 #include "UObject/GCObjectScopeGuard.h"
 #include "UObject/SparseDelegate.h"
 #include "UObject/StrongObjectPtr.h"
@@ -78,6 +87,7 @@ class FAllAwaiter;
 class FAnyAwaiter;
 class FAsyncAwaiter;
 struct FAsyncPreloadAwaiter;
+class FAsyncPromise;
 class FAsyncTimeAwaiter;
 class FAsyncYieldAwaiter;
 class FCancellationAwaiter;
@@ -88,6 +98,7 @@ class FLatentChainAwaiter;
 class FLatentAnyAwaiter;
 class FLatentAwaiter;
 class FLatentPromise;
+struct FManualCoroutineOverride { };
 class FNewThreadAwaiter;
 struct FPackageLoadAwaiter;
 class FPromise;
@@ -98,18 +109,20 @@ class FTaskAwaiter;
 class FThreadPoolAwaiter;
 class FTwoLives;
 struct FNonCancelable;
+namespace Debug { class FUE5CoroCategory; }
 namespace Test { class FTestHelper; }
 template<typename> struct TAnimAwaiter;
 template<typename, int> struct TAsyncLoadAwaiter;
 template<typename> struct TAsyncQueryAwaiter;
 template<typename> struct TAsyncQueryAwaiterRV;
 template<typename> class TCancelableAwaiter;
-template<typename, typename> class TCoroutinePromise;
+template<typename, typename, typename> class TCoroutinePromise;
 template<bool, typename, typename, typename...> class TDelegateAwaiter;
 template<bool, typename, typename> struct TDelegateAwaiterFor;
 template<bool, typename, typename, typename...> class TDynamicDelegateAwaiter;
 template<typename> class TFutureAwaiter;
 template<typename> class TGeneratorPromise;
+template<typename> class TManualPromiseExtras;
 template<typename> class TTaskAwaiter;
 
 template<typename>

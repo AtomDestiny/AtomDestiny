@@ -32,6 +32,7 @@
 #pragma once
 
 #include "Internationalization/ITextFormatArgumentModifier.h"
+#include "Internationalization/Text.h"
 
 namespace UE5Coro::Private::Debug
 {

@@ -29,6 +29,7 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#define UE5CORO_DISABLE_GENERATOR_DEPRECATION
 #include <exception>
 #include "TestWorld.h"
 #include "Misc/AutomationTest.h"
@@ -78,8 +79,8 @@ bool FExceptionTest::RunTest(const FString& Parameters)
 		auto Fn = [&]() -> TCoroutine<>
 		{
 			co_await std::suspend_never();
-			Coro = static_cast<TCoroutinePromise<void, FAsyncPromise>&>(
-				FPromise::Current()).get_return_object();
+			Coro = static_cast<TCoroutinePromise<void, FAsyncPromise,
+				FPromiseExtras>&>(FPromise::Current()).get_return_object();
 			throw 456;
 		};
 		Coro = std::nullopt;
@@ -103,8 +104,8 @@ bool FExceptionTest::RunTest(const FString& Parameters)
 		auto Fn = [&](FLatentActionInfo) -> TCoroutine<>
 		{
 			co_await std::suspend_never();
-			Coro = static_cast<TCoroutinePromise<void, FLatentPromise>&>(
-				FPromise::Current()).get_return_object();
+			Coro = static_cast<TCoroutinePromise<void, FLatentPromise,
+				FPromiseExtras>&>(FPromise::Current()).get_return_object();
 			throw 789;
 		};
 		FLatentActionInfo Info(0, 0, nullptr,

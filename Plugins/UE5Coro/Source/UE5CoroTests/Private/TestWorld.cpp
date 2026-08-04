@@ -30,11 +30,9 @@
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TestWorld.h"
+#include "GameFramework/WorldSettings.h"
 #include "HAL/ThreadManager.h"
-
-// to FIX build problem with UE 5.7
 #include "Misc/App.h"
-#include "Misc/AutomationTest.h"
 
 using namespace UE5Coro::Private::Test;
 
@@ -49,7 +47,7 @@ FTestWorld::FTestWorld()
 	GWorld = World;
 	World->InitializeActorsForPlay(FURL());
 	auto* Settings = World->GetWorldSettings();
-	Settings->MinUndilatedFrameTime = 0.0001;
+	Settings->MinUndilatedFrameTime = 0.0001f;
 	Settings->MaxUndilatedFrameTime = 10;
 	World->BeginPlay();
 }
@@ -92,17 +90,6 @@ void FTestHelper::PumpGameThread(FTestWorld& World,
 		World.Tick();
 }
 
-void FTestHelper::CheckWorld(FAutomationTestBase& Test, UWorld* World)
-{
-	auto& Promise = static_cast<FLatentPromise&>(FPromise::Current());
-	// The check is only using the FPromise base class
-	checkf(!FPlatformString::Strcmp(Promise.Extras->DebugPromiseType,
-	                                TEXT("Latent")),
-	       TEXT("Internal error: only latent coroutines have a world context"));
-	// Now that it's known to be latent, check the world
-	Test.TestEqual("World check", Promise.World.Get(), World);
-}
-
 bool FTestHelper::ReadEvent(FAwaitableEvent& Event)
 {
 	UE::TUniqueLock Lock(Event.Lock);
@@ -113,4 +100,16 @@ int FTestHelper::ReadSemaphore(FAwaitableSemaphore& Semaphore)
 {
 	UE::TUniqueLock Lock(Semaphore.Lock);
 	return Semaphore.Count;
+}
+
+bool FTestHelper::IsIdle(FAwaitableEvent& Event)
+{
+	UE::TUniqueLock Lock(Event.Lock);
+	return Event.AwaitingPromises.empty();
+}
+
+bool FTestHelper::IsIdle(FAwaitableSemaphore& Semaphore)
+{
+	UE::TUniqueLock Lock(Semaphore.Lock);
+	return Semaphore.AwaitingPromises.empty();
 }

@@ -32,6 +32,7 @@
 #include "TestWorld.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Misc/AutomationTest.h"
+#include "UObject/UObjectIterator.h"
 #include "UE5Coro.h"
 
 using namespace std::placeholders;

@@ -47,6 +47,7 @@
 #include "UE5Coro/LatentAwaiter.h"
 #include "UE5Coro/LatentCallback.h"
 #include "UE5Coro/LatentTimeline.h"
+#include "UE5Coro/ManualCoroutine.h"
 #include "UE5Coro/Private.h"
 #include "UE5Coro/TaskAwaiter.h"
 #include "UE5Coro/TickTimeBudget.h"

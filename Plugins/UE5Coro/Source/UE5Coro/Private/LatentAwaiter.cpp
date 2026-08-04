@@ -31,6 +31,7 @@
 
 #include "UE5Coro/LatentAwaiter.h"
 #include "LatentActions.h"
+#include "UE5Coro/Debug.h"
 #include "UE5Coro/Promise.h"
 #include "UE5Coro/UE5CoroSubsystem.h"
 
@@ -44,10 +45,19 @@ class [[nodiscard]] FPendingAsyncCoroutine final : public FPendingLatentAction
 	FLatentAwaiter Awaiter;
 
 public:
-	FPendingAsyncCoroutine(FAsyncPromise& Promise,
+	/** Temporarily associates the coroutine with a world */
+	FPendingAsyncCoroutine(UWorld* World, FAsyncPromise& Promise,
 	                       const FLatentAwaiter& InAwaiter)
 		: Promise(&Promise), Awaiter(InAwaiter)
 	{
+		checkf(!Promise.GetWorld(),
+		       TEXT("Internal error: expected worldless promise"));
+		checkf(IsValid(World),
+		       TEXT("Internal error: expected valid world for latent action"));
+		Promise.SetWorld(World);
+#if UE5CORO_ENABLE_COROUTINE_TRACKING
+		Debug::TrackTickingAsyncPromise(&Promise);
+#endif
 	}
 
 	UE_NONCOPYABLE(FPendingAsyncCoroutine);
@@ -63,6 +73,10 @@ public:
 			UE::TUniqueLock Lock(Promise->GetLock());
 			Promise->Cancel(false);
 		}
+#if UE5CORO_ENABLE_COROUTINE_TRACKING
+		Debug::ForgetTickingAsyncPromise(Promise);
+#endif
+		Promise->SetWorld(nullptr);
 		Promise->Resume(); // The latent action ended, which is a kind of result
 	}
 
@@ -70,12 +84,20 @@ public:
 	{
 		checkf(Promise, TEXT("Internal error: update on null promise"));
 
+		// Display the promise's temporary world to the awaiter
+		checkf(IsValid(Promise->GetWorld()),
+		       TEXT("Internal error: async coroutine's temp world was lost"));
+		FWorldScope WorldScope(Promise->GetWorld());
 		// React to cancellations and the awaiter completing
 		if (Promise->ShouldCancel(false) || Awaiter.ShouldResume())
 		{
 			Response.DoneIf(true);
 
-			// Ownership moves back to the coroutine itself
+#if UE5CORO_ENABLE_COROUTINE_TRACKING
+			Debug::ForgetTickingAsyncPromise(Promise);
+#endif
+			// Remove the world association, and disarm our destructor
+			Promise->SetWorld(nullptr);
 			std::exchange(Promise, nullptr)->Resume();
 		}
 	}
@@ -86,7 +108,7 @@ FLatentAwaiter::FLatentAwaiter(void* State, bool (*Resume)(void*, bool),
                                auto WorldSensitive) noexcept(!UE5CORO_DEBUG)
 	: State(State), Resume(Resume)
 #if UE5CORO_DEBUG
-	, OriginalWorld(WorldSensitive.value ? GWorld : nullptr)
+	, OriginalWorld(WorldSensitive.value ? GetBestWorld() : nullptr)
 #endif
 {
 	checkf(IsInGameThread(),
@@ -132,7 +154,7 @@ bool FLatentAwaiter::ShouldResume()
 	// If you hit this ensure, the awaiter will probably misbehave.
 	// Use an async awaiter instead (if possible), or ensure that the co_await
 	// finishes before changing worlds by, e.g., canceling its coroutine.
-	ensureMsgf(!OriginalWorld || OriginalWorld == GWorld,
+	ensureMsgf(!OriginalWorld || OriginalWorld == GetBestWorld(),
 	           TEXT("World changed since awaiter creation"));
 #endif
 	return (*Resume)(State, false);
@@ -142,15 +164,18 @@ void FLatentAwaiter::Suspend(FAsyncPromise& Promise)
 {
 	checkf(IsInGameThread(),
 	       TEXT("Latent awaiters may only be used on the game thread"));
-	checkf(::IsValid(GWorld),
+	auto* World = GetBestWorld();
+	checkf(::IsValid(World),
 	       TEXT("Awaiting this can only be done in the context of a valid world"));
 
 	// Prepare a latent action on the subsystem and transfer ownership to that
-	auto* Sys = GWorld->GetSubsystem<UUE5CoroSubsystem>();
-	auto* Latent = new FPendingAsyncCoroutine(Promise, *this);
+	auto* Sys = World->GetSubsystem<UUE5CoroSubsystem>();
+	checkf(::IsValid(Sys), TEXT("Latent awaiters may not be used when the "
+	                            "world is not fully initialized"));
+	auto* Latent = new FPendingAsyncCoroutine(World, Promise, *this);
 	auto LatentInfo = Sys->MakeLatentInfo();
-	GWorld->GetLatentActionManager().AddNewAction(LatentInfo.CallbackTarget,
-	                                              LatentInfo.UUID, Latent);
+	World->GetLatentActionManager().AddNewAction(LatentInfo.CallbackTarget,
+	                                             LatentInfo.UUID, Latent);
 }
 
 void FLatentAwaiter::Suspend(FLatentPromise& Promise)

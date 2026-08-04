@@ -26,13 +26,13 @@ required.
 Active coroutine tracking is indicated by the UE5CORO_ENABLE_COROUTINE_TRACKING
 macro, which may be used to guard code that's only supposed to run in this
 specific case.
-UE5CORO_DEBUG or Unreal's built-in UE_BUILD_\* macros should be preferred if the
+UE5CORO_DEBUG, or Unreal's built-in UE_BUILD_* macros should be preferred if the
 goal is to simply exclude code from Shipping builds.
 </sup>
 
-### Optional: enable `|conditional` globally
+### Optional: enable `conditional` globally
 
-If you'd like to use the `|conditional` text formatting modifier for your
+If you'd like to use the `conditional` text formatting modifier for your
 project's localization, add this line to **every** Target.cs:
 
 ```cs
@@ -48,12 +48,12 @@ After enabling the Gameplay Debugger and the UE5Coro category (please refer to
 Unreal Engine's own Gameplay Debugger documentation on how to do this), the list
 of running UE5Coro-managed coroutines across the entire engine will be shown:
 
-![UE5Coro Gameplay Debugger screenshot](GameplayDebugger.jxl)
+![UE5Coro Gameplay Debugger screenshot](GameplayDebugger.avif)
 
 > [!TIP]
 > Localization is fully supported for non-English editors.
 > The texts are in the UE5Coro namespace, to be gathered from text files in the
-> Localization Dashboard. These use the internal `|ue5coro_conditional` modifier,
+> Localization Dashboard. These use the internal `ue5coro_conditional` modifier,
 > which is only available together with the Gameplay Debugger menu.
 
 If an actor is selected for debugging, its coroutines are shown separately.
@@ -86,13 +86,14 @@ from an unexpected garbage collection while it's running on another thread, or
 ensuring that a callback has an object to return to.
 For more details, see [Latent mode](Coroutine.md#latent-mode).
 
-## The `|conditional` modifier
+## The `conditional` modifier
 
-`|conditional` excludes or inserts a formatted substring into the output, based
-on its argument.
-It can be used instead of `|gender` or `|plural` if the condition is unaffected
+Once [enabled](#optional-enable-conditional-globally), `conditional` excludes
+or inserts a formatted substring into the output, based on its argument.
+It can be used instead of `gender` or `plural` if the condition is unaffected
 by the local culture or grammatical rules.
-Nested format strings are supported.
+Nested format strings are supported, but nested parentheses are incorrectly
+parsed by Unreal Engine itself.
 
 The following values will result in no output: `false`, `0`, `0U`, `±0.0f`,
 `±0.0`,`""`, all genders, and anything else that (culture-awarely) formats to an
@@ -102,26 +103,36 @@ the output.
 
 Examples:
 ```c++
-FText Format = LOCTEXT("Example",
+FText Format = LOCTEXT("TitleExample",
     "{Name}'s Adventures{Location}|conditional( in {Location})");
 
-// "Alice's Adventures"
+// Alice's Adventures
 FText::FormatNamed(Format,
     TEXT("Name"), LOCTEXT("Protagonist", "Alice"),
     TEXT("Location"), INVTEXT(""));
 
-// "Alice's Adventures in Wonderland"
+// Alice's Adventures in Wonderland
 FText::FormatNamed(Format,
     TEXT("Name"), LOCTEXT("Protagonist", "Alice"),
     TEXT("Location"), LOCTEXT("Setting", "Wonderland"));
+```
+
+```c++
+FText Format = LOCTEXT("QuoteExample", "{0}|conditional(\"{0}\")");
+
+// "Text", including the quotes
+FText::FormatOrdered(Format, INVTEXT("Text"));
+
+// An empty text, not ""
+FText::FormatOrdered(Format, INVTEXT(""));
 ```
 
 > [!IMPORTANT]
 > Unreal does not evaluate modifiers without an argument.
 > ```c++
 > // "123{1}|conditional(hidden?)"
-> FText::FormatOrdered(INVTEXT("{0}{1}|conditional(hidden?)"), 123)
+> FText::FormatOrdered(INVTEXT("{0}{1}|conditional(hidden?)"), 123);
 >
 > // "123"
-> FText::FormatOrdered(INVTEXT("{0}{1}|conditional(hidden?)"), 123, false)
+> FText::FormatOrdered(INVTEXT("{0}{1}|conditional(hidden?)"), 123, false);
 > ```

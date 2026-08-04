@@ -33,13 +33,14 @@
 
 #include "CoreMinimal.h"
 #include "UE5Coro/Definition.h"
+#include "UE5Coro/Private.h"
 
+namespace UE5Coro::Private::Debug
+{
+/** These utilities are sometimes used to debug UE5Coro itself. */
 #define UE5CORO_PRIVATE_USE_DEBUG_ALLOCATOR 0
 
 #if UE5CORO_DEBUG
-/** The utilities in this namespace are sometimes used to debug UE5Coro itself. */
-namespace UE5Coro::Private::Debug
-{
 constexpr int GMaxEvents = 100;
 constexpr bool bLogThread = false;
 
@@ -72,5 +73,16 @@ void Use(auto&&)
 	namespace D = ::UE5Coro::Private::Debug; \
 	D::GEventLog[D::GNextEvent++] = #__VA_ARGS__; \
 	FPlatformMisc::MemoryBarrier(); } while (false)
-}
 #endif
+
+#if UE5CORO_ENABLE_COROUTINE_TRACKING
+extern UE5CORO_API UE::FMutex GTrackerLock;
+extern UE5CORO_API TSet<FPromise*> GPromises;
+extern UE5CORO_API TSet<FAsyncPromise*> GTickingAsyncPromises;
+
+void TrackPromise(FPromise*);
+void ForgetPromise(FPromise*);
+void TrackTickingAsyncPromise(FAsyncPromise*);
+void ForgetTickingAsyncPromise(FAsyncPromise*);
+#endif
+}

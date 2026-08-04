@@ -1,5 +1,8 @@
 #include "TestWorld.h"
 
+#include "Engine/Engine.h"
+#include "GameFramework/WorldSettings.h"
+
 AtomDestiny::FTestWorld::FTestWorld():
     m_world(UWorld::CreateWorld(EWorldType::Game, false))
 {
