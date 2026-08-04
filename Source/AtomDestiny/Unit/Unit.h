@@ -9,12 +9,13 @@ enum class EADUnitType : uint8
 {
     Shooter,
     Lancer,
+    Hunter,
     None
 };
 
 ///
 /// Unit death match size.
-/// Also it uses at Battle mode, as Unit energy consumption.
+/// Also, it uses at Battle mode, as Unit energy consumption.
 ///
 UENUM(BlueprintType)
 enum class EUnitSize : uint8

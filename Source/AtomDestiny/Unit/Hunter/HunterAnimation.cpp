@@ -1,36 +1,34 @@
-﻿#include "LancerCannonAnimation.h"
+﻿#include "HunterAnimation.h"
 
 #include <Animation/AnimSingleNodeInstance.h>
 
-void ULancerCannonAnimation::BeginPlay()
+void UHunterAnimation::BeginPlay()
 {
     Super::BeginPlay();
-
+    
     if (m_skeletalMeshComponent.IsValid())
     {
         m_animation = m_skeletalMeshComponent->GetSingleNodeInstance();
     }
 }
 
-bool ULancerCannonAnimation::IsReady() const
+void UHunterAnimation::Idle()
 {
     if (m_animation.IsValid())
     {
-        return !m_animation->IsPlaying();
+        m_animation->StopAnim();
     }
-
-    return false;
 }
 
-void ULancerCannonAnimation::Animate()
+void UHunterAnimation::Walk()
 {
-    if (IsReady())
+    if (m_animation.IsValid())
     {
         m_animation->PlayAnim();
     }
 }
 
-void ULancerCannonAnimation::SetDefaultState()
+void UHunterAnimation::Attack()
 {
     if (m_animation.IsValid())
     {
