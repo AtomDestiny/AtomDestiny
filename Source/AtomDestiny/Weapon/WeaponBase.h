@@ -189,7 +189,7 @@ protected:
     
     // Weapon type
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Weapon type"))
-    EWeaponType m_weaponType;
+    EWeaponType m_weaponType = EWeaponType::Ballistic;
     
     // Weapon rotation ability
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Rotated weapon"))

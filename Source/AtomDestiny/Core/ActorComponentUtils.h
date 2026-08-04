@@ -95,6 +95,12 @@ namespace AtomDestiny::Utils
         return nullptr;
     }
 
+    template<typename Interface>
+    [[nodiscard]] TScriptInterface<Interface> GetInterface(const TWeakObjectPtr<AActor>& actor)
+    {
+        return GetInterface<Interface>(actor.Get());
+    }
+
     template<typename Interface, typename UEInterface>
     [[nodiscard]] TArray<TScriptInterface<Interface>> GetInterfaces(AActor* actor)
     {
