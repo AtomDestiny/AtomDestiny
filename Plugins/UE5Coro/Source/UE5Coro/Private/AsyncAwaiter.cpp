@@ -42,8 +42,15 @@ class FResumeTask final
 	FPromise& Promise;
 
 public:
-	explicit FResumeTask(ENamedThreads::Type Thread, FPromise& Promise)
-		: Thread(Thread), Promise(Promise) { }
+	explicit FResumeTask(ENamedThreads::Type InThread, FPromise& Promise)
+		: Thread(InThread), Promise(Promise)
+	{
+		// Round unnamed worker threads up to AnyThread
+		if (ENamedThreads::GetThreadIndex(Thread) >
+		    ENamedThreads::ActualRenderingThread)
+			Thread = static_cast<ENamedThreads::Type>(Thread | 0xFF);
+		static_assert(ENamedThreads::AnyThread == 0xFF);
+	}
 
 	void DoTask(ENamedThreads::Type, FGraphEvent*) { Promise.Resume(); }
 
@@ -119,7 +126,8 @@ void FAsyncTimeAwaiter::Cancel(void* This, FPromise& Promise)
 		{
 			verifyf(Awaiter->Promise.exchange(nullptr) == &Promise,
 			        TEXT("Internal error: mismatched promise at cancellation"));
-			AsyncTask(Awaiter->Thread, [&Promise] { Promise.Resume(); });
+			TGraphTask<FResumeTask>::CreateTask().ConstructAndDispatchWhenReady(
+				Awaiter->Thread, Promise);
 		}
 		else
 			check(!"Internal error: unexpected race condition");
@@ -130,9 +138,10 @@ void FAsyncTimeAwaiter::Resume()
 {
 	// This is called from the timer thread, coroutine resumption must be async
 	checkf(Promise, TEXT("Internal error: spurious resume without suspension"));
-	if (auto* P = Promise.exchange(nullptr);
-	    P->UnregisterCancelableAwaiter<true>())
-		AsyncTask(Thread, [P] { P->Resume(); });
+	if (auto& P = *Promise.exchange(nullptr);
+	    P.UnregisterCancelableAwaiter<true>())
+		TGraphTask<FResumeTask>::CreateTask().ConstructAndDispatchWhenReady(
+			Thread, P);
 	else
 		check(!"Internal error: unexpected race condition");
 }

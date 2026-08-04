@@ -35,11 +35,32 @@
 using namespace UE5Coro::Private;
 
 thread_local FPromise* UE5Coro::Private::GCurrentPromise = nullptr;
+UWorldProxy UE5Coro::Private::GCurrentCoroWorld;
 thread_local bool UE5Coro::Private::GDestroyedEarly = false;
 
+FWorldScope::FWorldScope(UWorld* World)
+	: World(World),
+	  PreviousWorld(World ? std::exchange(GCurrentCoroWorld, World) : nullptr)
+{
+	checkf(!World || IsInGameThread(),
+	       TEXT("Internal error: world scope off the game thread"));
+	checkf(!World || IsValid(World),
+	       TEXT("Internal error: invalid world scope"));
+}
+
+FWorldScope::~FWorldScope()
+{
+	if (!World)
+		return;
+	checkf(IsInGameThread(),
+	       TEXT("Internal error: unexpected cross-thread world scope"));
+	verifyf(std::exchange(GCurrentCoroWorld, PreviousWorld) == World,
+	        TEXT("Internal error: world tracking derailed"));
+}
+
 FCoroutineScope::FCoroutineScope(FPromise* Promise)
-	: Promise(Promise),
-	  PreviousPromise(std::exchange(GCurrentPromise, Promise))
+	: FWorldScope(IsInGameThread() ? Promise->GetWorld() : nullptr),
+	  Promise(Promise), PreviousPromise(std::exchange(GCurrentPromise, Promise))
 {
 }
 
@@ -64,6 +85,10 @@ FPromise::FPromise(std::shared_ptr<FPromiseExtras> InExtras,
 	Extras->DebugID = ++Debug::GLastDebugID;
 	Extras->DebugPromiseType = PromiseType;
 #endif
+#if UE5CORO_ENABLE_COROUTINE_TRACKING
+	Extras->DebugPromiseType = PromiseType;
+	Debug::TrackPromise(this);
+#endif
 }
 
 FPromise::~FPromise()
@@ -71,6 +96,9 @@ FPromise::~FPromise()
 #if UE5CORO_DEBUG
 	verifyf(--Debug::GActiveCoroutines >= 0,
 	        TEXT("Internal error: promise tracking derailed"));
+#endif
+#if UE5CORO_ENABLE_COROUTINE_TRACKING
+	Debug::ForgetPromise(this);
 #endif
 	// Expecting the lock to be taken by a derived destructor
 	checkf(Extras->Lock.IsLocked(), TEXT("Internal error: lock not held"));
@@ -85,10 +113,11 @@ FPromise::~FPromise()
 
 	// The coroutine is considered completed NOW
 	auto* ReturnValuePtr = std::exchange(Extras->ReturnValuePtr, nullptr);
-	Extras->Completed->Trigger();
+	Extras->Completed->Trigger(); // This prevents new continuations
+	auto Completions = std::move(OnCompleted);
 	Extras->Lock.Unlock();
 
-	for (auto& Fn : OnCompleted)
+	for (auto& Fn : Completions)
 		Fn(ReturnValuePtr);
 }
 
@@ -135,6 +164,13 @@ FPromise& FPromise::Current()
 UE::FMutex& FPromise::GetLock()
 {
 	return Extras->Lock;
+}
+
+UWorld* FPromise::GetWorld() const
+{
+	checkf(IsInGameThread(), TEXT("Internal error: attempted to read coroutine "
+	                              "world from outside the game thread"));
+	return WeakWorld.Get();
 }
 
 bool FPromise::RegisterCancelableAwaiter(void* Awaiter)
@@ -218,7 +254,7 @@ void FPromise::AddContinuation(std::function<void(void*)> Fn)
 	checkf(Extras->Lock.IsLocked(), TEXT("Internal error: lock not held"));
 	checkf(Fn, TEXT("Internal error: adding empty function as continuation"));
 
-	OnCompleted.Add(std::move(Fn));
+	OnCompleted.push_back(std::move(Fn));
 }
 
 void FPromise::unhandled_exception()

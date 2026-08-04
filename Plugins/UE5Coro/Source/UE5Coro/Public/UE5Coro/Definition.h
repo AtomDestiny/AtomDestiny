@@ -35,6 +35,11 @@
 #define UE5CORO_DEBUG (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
 #endif
 
+// Don't edit this, see Docs/GameplayDebugger.md for instructions
+#ifndef UE5CORO_ENABLE_COROUTINE_TRACKING
+#define UE5CORO_ENABLE_COROUTINE_TRACKING 0
+#endif
+
 #ifndef UE5CORO_PRIVATE_ALLOW_DIRECT_INCLUDE
 #error Do not #include individual headers directly. Use "UE5Coro.h"
 #endif
@@ -46,15 +51,3 @@ static_assert(sizeof(void*) == 8, "UE5Coro only supports 64-bit platforms");
 #endif
 
 #include "UE5Coro/Debug.h"
-
-// INCLUDES TO FIX UE 5.7 compilation
-#include "Engine/Engine.h"
-#include "Engine/World.h"
-
-#include "UObject/Package.h"
-#include "UObject/UObjectIterator.h"
-
-#include "Animation/AnimInstance.h"
-#include "Animation/AnimMontage.h"
-
-#include "GameFramework/WorldSettings.h"

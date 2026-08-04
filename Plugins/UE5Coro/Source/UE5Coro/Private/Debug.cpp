@@ -31,13 +31,43 @@
 
 #include "UE5Coro/Debug.h"
 
-#if UE5CORO_DEBUG
 using namespace UE5Coro::Private;
 using namespace UE5Coro::Private::Debug;
 
+#if UE5CORO_DEBUG
 FEventLogEntry Debug::GEventLog[GMaxEvents];
 std::atomic<int> Debug::GNextEvent = 0;
 
 std::atomic<int> Debug::GLastDebugID = -1; // -1 = no coroutines yet
 std::atomic<int> Debug::GActiveCoroutines = 0;
+#endif
+
+#if UE5CORO_ENABLE_COROUTINE_TRACKING
+UE::FMutex Debug::GTrackerLock;
+TSet<FPromise*> Debug::GPromises;
+TSet<FAsyncPromise*> Debug::GTickingAsyncPromises;
+
+void Debug::TrackPromise(FPromise* Promise)
+{
+	UE::TUniqueLock Lock(GTrackerLock);
+	GPromises.Add(Promise);
+}
+
+void Debug::ForgetPromise(FPromise* Promise)
+{
+	UE::TUniqueLock Lock(GTrackerLock);
+	GPromises.Remove(Promise);
+}
+
+void Debug::TrackTickingAsyncPromise(FAsyncPromise* Promise)
+{
+	UE::TUniqueLock Lock(GTrackerLock);
+	GTickingAsyncPromises.Add(Promise);
+}
+
+void Debug::ForgetTickingAsyncPromise(FAsyncPromise* Promise)
+{
+	UE::TUniqueLock Lock(GTrackerLock);
+	GTickingAsyncPromises.Remove(Promise);
+}
 #endif

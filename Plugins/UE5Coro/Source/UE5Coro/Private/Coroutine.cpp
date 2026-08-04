@@ -30,6 +30,7 @@
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "UE5Coro/Coroutine.h"
+#include "UE5Coro/Cancellation.h"
 
 using namespace UE5Coro;
 using namespace UE5Coro::Private;
@@ -37,6 +38,11 @@ using namespace UE5Coro::Private;
 const TCoroutine<> TCoroutine<>::CompletedCoroutine = []() -> TCoroutine
 {
 	co_return;
+}();
+
+const TCoroutine<> TCoroutine<>::FailedCoroutine = []() -> TCoroutine
+{
+	co_await FSelfCancellation();
 }();
 
 void TCoroutine<>::Cancel()
@@ -63,12 +69,21 @@ bool TCoroutine<>::WasSuccessful() const noexcept
 	return Extras->bWasSuccessful;
 }
 
-void TCoroutine<>::SetDebugName(const TCHAR* Name)
+FString TCoroutine<>::GetDebugName() const
 {
-#if UE5CORO_DEBUG
+#if UE5CORO_DEBUG || UE5CORO_ENABLE_COROUTINE_TRACKING
+	return Extras->DebugName;
+#else
+	return FString();
+#endif
+}
+
+void TCoroutine<>::SetDebugName(FString Name)
+{
+#if UE5CORO_DEBUG || UE5CORO_ENABLE_COROUTINE_TRACKING
 	if (ensureMsgf(GCurrentPromise,
 	               TEXT("Attempting to set a debug name outside a coroutine")))
-		GCurrentPromise->Extras->DebugName = Name;
+		GCurrentPromise->Extras->SetDebugName(std::move(Name));
 #endif
 }
 

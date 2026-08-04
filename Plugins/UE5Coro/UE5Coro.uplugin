@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "2.2.2",
+	"VersionName": "2.3.2",
 	"FriendlyName": "UE5Coro",
 	"Description": "C++20 coroutine implementation for Unreal Engine",
 	"Category": "Programming",
@@ -26,6 +26,11 @@
 			"Name": "UE5CoroAI",
 			"Type": "Runtime",
 			"LoadingPhase": "PreDefault"
+		},
+		{
+			"Name": "UE5CoroDebug",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
 		},
 		{
 			"Name": "UE5CoroGAS",

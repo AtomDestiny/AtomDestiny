@@ -69,6 +69,12 @@ The ownership problem was solved by DetachFromGameThread, which will be
 Crossing over in the opposite direction is much more straightforward; it's
 handled by FPendingAsyncCoroutine (as opposed to FPendingLatentCoroutine).
 
+#### Manual coroutines
+
+Manual coroutines use FAsyncPromise, but they override its promise extras type
+to hold an extra FAwaitableEvent and a second atomic reference counter.
+This is to avoid having two std::shared_ptrs when one is enough.
+
 ### No awaiter base class
 
 This has some pretty obvious limitations, e.g., WhenAny/WhenAll cannot take
@@ -114,7 +120,8 @@ than it was back then.
 
 ## Debug tools
 
-Debug.h contains a few unused debug utilities that might be useful.
+Debug.h contains coroutine tracking, and a few unused debug utilities that might
+be useful.
 
 Defining `UE5CORO_PRIVATE_USE_DEBUG_ALLOCATOR` to 1 applies a lighter version of
 stompmalloc to just coroutine states (Windows only).
@@ -128,8 +135,11 @@ Use ClearEvents() before the problem section, and
 `bLogThread` can be set to true to capture the source thread of each message,
 but this has higher overhead.
 
-`GLastDebugID` and `GActiveCoroutines` can help to track down coroutine leaks.
-`FPromiseExtras::DebugID` uses the same counter.
+`GLastDebugID`, `GActiveCoroutines`, and `GPromises` (if coroutine tracking is
+enabled) can help to track down coroutine leaks.
+If coroutine tracking is enabled, the [Gameplay Debugger](GameplayDebugger.md)
+is more convenient.
+`FPromiseExtras::DebugID` uses the same counter as `GLastDebugID`.
 
 `Use()` is useful on some compilers to extend the lifetimes of certain primitive
 local variables that are optimized out even in debug builds.

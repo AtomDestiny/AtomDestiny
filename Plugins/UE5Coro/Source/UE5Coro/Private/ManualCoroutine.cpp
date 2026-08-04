@@ -29,23 +29,59 @@
 // OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 // ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "UE5CoroDelegateCallbackTarget.h"
+#include "UE5Coro/ManualCoroutine.h"
 
-void UUE5CoroDelegateCallbackTarget::Init(std::function<void(void*)> InFn)
+using namespace UE5Coro;
+using namespace UE5Coro::Private;
+
+TManualCoroutine<void>::TManualCoroutine(FString DebugName)
+	: TCoroutine<>(TManualPromiseExtras<void>::Run(std::move(DebugName)))
 {
-	Fn = std::move(InFn);
+	// Initial refcount is already set to 1
 }
 
-void UUE5CoroDelegateCallbackTarget::ProcessEvent(UFunction*, void* Parms)
+TManualCoroutine<void>::TManualCoroutine(const TManualCoroutine& Other)
+	: TCoroutine<>(Other)
 {
-	// This might also be caused by a multithreaded race condition
-	checkf(Fn, TEXT("Internal error: unexpected early or double callback"));
-	FGCObjectScopeGuard Scope(this); // Guard against the coroutine forcing GC
-	std::exchange(Fn, nullptr)(Parms);
-	MarkAsGarbage(); // Prevent further calls from dynamic delegates
+	TManualPromiseExtras<void>::RawCast(Extras)->AddRef();
 }
 
-void UUE5CoroDelegateCallbackTarget::Core()
+TManualCoroutine<void>::~TManualCoroutine()
 {
-	check(!"Internal error: this function should never run");
+	if (TManualPromiseExtras<void>::RawCast(Extras)->Release())
+		Cancel();
+}
+
+TManualCoroutine<void>& TManualCoroutine<void>::operator=(
+	const TManualCoroutine& Other)
+{
+	if (this == &Other)
+		return *this;
+	this->~TManualCoroutine();
+	return *new (this) TManualCoroutine(Other);
+}
+
+void TManualCoroutine<void>::SetResult()
+{
+	bool bSuccessful = TrySetResult();
+	ensureMsgf(bSuccessful, TEXT("The coroutine was already complete"));
+}
+
+bool TManualCoroutine<void>::TrySetResult()
+{
+	auto ExtrasT = TManualPromiseExtras<void>::SharedCast(Extras);
+	auto& Lock = ExtrasT->Lock;
+	Lock.Lock(); // Block incoming cancellations
+	if (!ExtrasT->IsComplete())
+	{
+		Lock.Unlock();
+		ExtrasT->Event.Trigger(); // Might delete this if the coroutine cleans up
+		// Success is synchronous, cancellation isn't
+		return ExtrasT->bWasSuccessful;
+	}
+	else
+	{
+		Lock.Unlock();
+		return false; // Already complete
+	}
 }

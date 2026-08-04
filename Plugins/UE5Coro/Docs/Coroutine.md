@@ -8,6 +8,8 @@ UE5Coro::TCoroutine\<\> or another compatible type.
 The term subroutine refers to a function that does not have co_await, co_yield,
 or co_return in its body, regardless of its return type.
 
+## TCoroutine
+
 TCoroutine is copyable and represents an individual coroutine call.
 Calling the same coroutine multiple times with the same parameters (or no
 parameters) will return different values each time.
@@ -25,6 +27,8 @@ it a suitable key for ordered containers.
 GetTypeHash() and std::hash are also supported for unordered containers.
 TCoroutine values remain valid indefinitely, even after their coroutines have
 completed.
+
+### FVoidCoroutine
 
 FVoidCoroutine (in the global namespace, by necessity) is provided as a USTRUCT
 wrapper for TCoroutine\<\> to work around UHT limitations.
@@ -46,6 +50,17 @@ If a function is changed into a coroutine after it has been used in BP, the
 hidden pin(s) might appear on the node graph, but this is harmless and does not
 affect behavior as long as these pins remain disconnected.
 If desired, affected nodes may be recreated to fix their visuals.
+
+More documentation can be found [below](#fvoidcoroutine-1).
+
+### TManualCoroutine
+
+TManualCoroutine cannot be returned from a coroutine.
+It is default constructible, and automatically starts its own coroutine, which
+is then controlled manually by calling SetResult, TrySetResult, or Cancel on the
+handle.
+
+Detailed documentation can be found [below](#tmanualcoroutinet).
 
 ## Result types
 
@@ -111,6 +126,11 @@ Class member functions are also responsible for tracking the lifetime of their
 objects: resuming a coroutine on a deleted object is just as bad as calling a
 function on one if it attempts to access `this`.
 
+> [!WARNING]
+> Manual lifetime management with C++ coroutines is extremely difficult.
+> Latent mode, non-static UCLASS member coroutines are recommended, even for
+> multithreading.
+
 BlueprintCallable and/or BlueprintPure coroutine UFUNCTIONs in async mode will
 synchronously continue BP execution at the first co_await or co_return, and the
 rest of the coroutine will execute independently.
@@ -129,6 +149,7 @@ valid.
 In this case, attempt to move the co_await to a different point in time, use an
 async equivalent to the affected latent awaiter, if available, or change the
 coroutine's execution mode to latent.
+Failing to do so might result in undefined behavior.
 
 Most of the memory associated with a coroutine is freed when control leaves the
 coroutine body, either explicitly via co_return, or implicitly, by falling off
@@ -351,14 +372,45 @@ This field contains a handle to a coroutine with a `void` result that has
 already completed successfully.
 It's useful as a default value of TCoroutine\<\> fields.
 
-### static TCoroutine\<std::decay_t\<V\>\> TCoroutine\<\>::FromResult(V&& Value)
+### static const TCoroutine\<\> TCoroutine\<\>::FailedCoroutine
+
+This field contains a handle to a coroutine with a `void` result that has
+already failed.
+It's useful as a default value of TCoroutine\<\> fields.
+
+### static TCoroutine\<T\> TCoroutine\<T\>::FromResult(T Value)
 
 This function can be used to convert a value to a coroutine handle that acts as
 if a coroutine has immediately and successfully co_returned that value.
+
+The coroutine will be `IsDone()`, `WasSuccessful()`, and its result will be
+moved from `Value`.
+
+### static TCoroutine\<std::decay_t\<V\>\> TCoroutine\<\>::FromResult\<V\>(V&& Value)
+
+This overload can be used to convert a value to a coroutine handle that acts as
+if a coroutine has immediately and successfully co_returned that value, without
+having to explicitly specify the type in code (use `TCoroutine<>::` instead of
+`TCoroutine<T>::`).
+
 Since the function parameter is subject to decay, this method will work even if,
 e.g., V is an lvalue reference.
-An explicit type parameter may be provided to `TCoroutine<T>::FromResult` if
-this is not desired.
+
+The coroutine will be `IsDone()`, `WasSuccessful()`, and its result will be
+forwarded from `Value`.
+
+### static TCoroutine\<\>::FromFailure\<T\>()
+### static TCoroutine\<T\>::FromFailure()
+
+These functions return a coroutine handle that acts as if a coroutine has
+immediately failed to co_return a value of type T.
+They behave identically.
+
+Such a coroutine will be `IsDone()`, **not** `WasSuccessful()`, and its result
+will be a default-constructed `T()`.
+
+`FromFailure<void>()` will return a coroutine similar, but not equal to
+[FailedCoroutine](#static-const-tcoroutine-tcoroutinefailedcoroutine).
 
 ## Async->Sync transitions
 
@@ -497,14 +549,53 @@ Cancellation has [its own documentation page](Cancellation.md).
 
 ## Miscellaneous features
 
-### static void TCoroutine\<\>::SetDebugName(const TCHAR* Name)
+### FString TCoroutine\<\>::GetDebugName() const
 
-When called from within a coroutine, attaches a debug name to the
-currently-executing coroutine, which will be displayed by UE5Coro.natvis.
-This function does nothing in Shipping builds, so calls to it with TEXT literals
-are OK to leave in if you don't want to #ifdef/macro its use.
+Returns the same string that a coroutine has set for itself using SetDebugName,
+or an empty string in Shipping builds, unless
+[coroutine tracking](GameplayDebugger.md#setup) is enabled.
 
-Behavior is undefined if this is called from outside a coroutine.
+Not thread safe with respect to SetDebugName.
+
+### static void TCoroutine\<\>::SetDebugName(FString Name)
+
+When called from within a coroutine returning TCoroutine, attaches a debug name
+to the currently-executing coroutine, which will be displayed by UE5Coro.natvis,
+and the UE5Coro [gameplay debugger](GameplayDebugger.md).
+This function does nothing in Shipping builds by default, but it will activate
+if [coroutine tracking](GameplayDebugger.md#setup) is enabled.
+
+It is recommended to call SetDebugName before the first co_await in a coroutine.
+Calling SetDebugName from outside a coroutine is undefined behavior.
+
+Examples:
+
+```c++
+// UE5Coro intentionally does not provide macros like these,
+// but feel free to define your own!
+#define MY_SET_COROUTINE_FUNCTION_NAME() do if constexpr (UE5CORO_DEBUG)       \
+    ::UE5Coro::TCoroutine<>::SetDebugName(TEXT("") __FUNCTION__); while (false)
+#define MY_FORMAT_COROUTINE_NAME(Fmt, ...) do if constexpr (UE5CORO_DEBUG)     \
+    ::UE5Coro::TCoroutine<>::SetDebugName(FString::Format(TEXT(Fmt),           \
+                                          {__VA_ARGS__})); while (false)
+
+using namespace UE5Coro;
+
+TCoroutine<> Example()
+{
+    MY_SET_COROUTINE_FUNCTION_NAME();
+    co_await Latent::Seconds(1);
+}
+
+TCoroutine<> DynamicExample()
+{
+    for (int i = 0; i < 100; ++i)
+    {
+        MY_FORMAT_COROUTINE_NAME("DynamicExample {0}% complete", i);
+        co_await Latent::Seconds(0.01);
+    }
+}
+```
 
 ### TCoroutine::operator==, TCoroutine::operator<=>, GetTypeHash, std::hash
 
@@ -629,3 +720,81 @@ UPROPERTY.
 Its only intended use is to be directly passed to a latent coroutine, which
 already provides UObject lifetime management for the coroutine target and world
 through the engine's latent action manager.
+
+# TManualCoroutine\<T\>
+
+See also: [FAwaitableEvent](Threading.md#fawaitableevent), the multithreading
+primitive that provides similar functionality for coroutines.
+TManualCoroutine is a FAwaitableEvent wrapper on steroids.
+
+TManualCoroutine\<T\> can only be returned from subroutines (to `co_return` one,
+which is not commonly useful, the return type would need to be
+`TCoroutine<TManualCoroutine<T>>`).
+It immediately starts a coroutine on the current thread, which will call
+[SetDebugName](#static-void-tcoroutinesetdebugnamefstring-name) with the
+provided name, then suspend and do nothing until it's either canceled, or a
+result is provided externally, acting as if it was implemented like this:
+
+```c++
+TManualCoroutine<T> IllustrationOnly_WillNotCompile()
+{
+    TCoroutine<>::SetDebugName(Debug_name_passed_to_constructor);
+    co_await SetResult_gets_called_externally; // Cancellation might happen here
+    co_return The_argument_passed_to_SetResult;
+}
+```
+
+In the [gameplay debugger](GameplayDebugger.md), these will show up as `Manual`
+coroutines.
+
+TManualCoroutine\<T\> is copyable, and safely object-sliceable to TCoroutine\<T\>
+or TCoroutine\<\> to observe it (which is then copyable once again).
+TCoroutines, however, may not be downcast back into TManualCoroutine.
+Like TCoroutine, all copies refer to the same coroutine execution, and these
+handles are directly awaitable in other (TCoroutine-returning) coroutines.
+
+The last TManualCoroutine to go out of scope or be otherwise destroyed will
+cancel the coroutine to prevent it from lingering forever and causing a memory
+leak.
+If the coroutine was already successful, this cancellation is a no-op.
+
+Example:
+```c++
+// To wrap a legacy, callback-based API with a subroutine:
+TCoroutine<int> ExampleSubroutine()
+{
+    TManualCoroutine<int> Coro(TEXT("Example name"));
+    ExternalDelegate.BindLambda([=](bool bSuccess, int Result)
+    {
+        if (bSuccess)
+            Coro.SetResult(Result);
+        else
+            Coro.Cancel();
+    });
+    return Coro; // Intentional and safe object slicing
+}
+```
+
+### TManualCoroutine\<T\>::TManualCoroutine(FString DebugName = \{\})
+
+Starts a manual coroutine with an optional debug name.
+
+### TManualCoroutine\<T\>::~TManualCoroutine()
+
+If this is the last TManualCoroutine object that refers to the same coroutine
+(TCoroutine\<T\> handles are only observers and **do not count!**), cancels the
+coroutine.
+
+### void TManualCoroutine\<T\>::SetResult(T Result)
+
+If the coroutine is not complete yet due to another call to (Try)SetResult or
+Cancel, causes the coroutine to successfully `co_return` the provided value.
+
+If the coroutine is already complete, its state or result will not change,
+and the call will trigger an `ensure`.
+
+### bool TManualCoroutine\<T\>::TrySetResult(T Result)
+
+Like SetResult, but no `ensure` is triggered.
+Returns `true` if this call successfully completed the coroutine, `false` if the
+coroutine was already complete (successful or canceled).

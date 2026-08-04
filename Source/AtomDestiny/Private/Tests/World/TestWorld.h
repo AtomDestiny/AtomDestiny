@@ -1,6 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/World.h"
+#include "GameFramework/Actor.h"
 
 namespace AtomDestiny
 {
