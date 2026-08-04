@@ -101,7 +101,7 @@ namespace AtomDestiny::Utils
         return GetInterface<Interface>(actor.Get());
     }
 
-    template<typename Interface>
+    template<typename Interface, typename UEInterface>
     [[nodiscard]] TArray<TScriptInterface<Interface>> GetInterfaces(AActor* actor)
     {
         if (actor == nullptr)
