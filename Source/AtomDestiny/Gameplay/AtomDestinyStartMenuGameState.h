@@ -8,9 +8,9 @@
 #include "AtomDestinyStartMenuGameState.generated.h"
 
 ///
-/// Use this class for start menu to add units to unit storage.
-/// It initializes UnitStorage instance only once.
-/// So check to use it only when game loads at start.
+/// Optional start-menu override for the unit catalog.
+/// Prefer Project Settings -> Game -> Unit Catalog for names/prefabs.
+/// If this map is filled, it replaces UnitStorage once when the menu loads.
 ///
 UCLASS(Blueprintable)
 class ATOMDESTINY_API AAtomDestinyStartMenuGameState : public AAtomDestinyGameStateBase

@@ -1,60 +1,93 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "UI/TrainingMainWidget.h"
 
-#include <Unit/Unit.h>
-#include <Gameplay/UnitStorage.h>
-#include <UObject/ConstructorHelpers.h>
+#include "AtomDestiny/Gameplay/UnitStorage.h"
+#include "AtomDestiny/UI/UnitCardWidget.h"
 
-#include <vector>
+#include "Components/Button.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/ListView.h"
+#include "Components/Widget.h"
 
-UTrainingMainWidget::UTrainingMainWidget(const FObjectInitializer& ObjectInitializer) : UUserWidget(ObjectInitializer)
+namespace
 {
-	const ConstructorHelpers::FClassFinder<UUnitCardWidget> unitCardClassFinder(TEXT("/Game/Blueprint/GUI/Widgets/WBP_UnitCard.WBP_UnitCard_C"));
-	//const TSubclassOf<UUnitCardWidget> unitCardClass = unitCardClassFinder.Class;
-	unitCardClass = unitCardClassFinder.Class;
-}
+    const ESlateVisibility VisibilityBool[] = { ESlateVisibility::Hidden, ESlateVisibility::Visible };
 
-static const std::vector<ESlateVisibility> VisibilityBool = { ESlateVisibility::Hidden, ESlateVisibility::Visible };
+    void SetCanvasSlotAutoSize(UWidget* widget)
+    {
+        if (widget == nullptr)
+        {
+            return;
+        }
+
+        if (UCanvasPanelSlot* slot = Cast<UCanvasPanelSlot>(widget->Slot))
+        {
+            slot->SetAutoSize(true);
+        }
+    }
+}
 
 void UTrainingMainWidget::SetupUnits(const TArray<EADUnitType>& units)
 {
-	auto wdg = CreateWidget<UUnitCardWidget>(this, unitCardClass);
-	wdg->SetTitle("Unit 1");
-	UnitsList->AddItem(wdg);
+    if (UnitsList == nullptr)
+    {
+        return;
+    }
 
-	auto wdg2 = CreateWidget<UUnitCardWidget>(this, unitCardClass);
-	wdg2->SetTitle("Unit 2");
-	UnitsList->AddItem(wdg2);
+    UnitsList->ClearListItems();
 
-	auto wdg3 = CreateWidget<UUnitCardWidget>(this, unitCardClass);
-	wdg3->SetTitle("Unit 3");
-	UnitsList->AddItem(wdg3);
-	
-	//UnitsList->AddItem(CreateWidget<UUnitCardWidget>(this));
-	//UnitsList->AddItem(CreateWidget<UUnitCardWidget>(this));
-	
-	for (const auto& u : units)
-	{
-		//CreateWidget<UButton>(Scroll, );
-		/*UButton *bn = CreateDefaultSubobject<UButton>(UEnum::GetValueAsName(u));
-		Scroll->AddChild(bn);*/
-	}
+    AtomDestiny::UnitStorage& storage = AtomDestiny::UnitStorage::Instance();
+
+    for (const EADUnitType type : units)
+    {
+        UUnitCardItem* item = NewObject<UUnitCardItem>(this);
+        item->type = type;
+        item->title = storage.GetDisplayName(type);
+
+        if (const TOptional<FUnitInfo> info = storage.GetInfo(type); info.IsSet())
+        {
+            item->icon = info->icon;
+        }
+
+        UnitsList->AddItem(item);
+    }
 }
 
 void UTrainingMainWidget::ChangeMode(bool setupArmy)
 {
-	BnSetupArmy->SetVisibility(VisibilityBool[!setupArmy]);
-	BnEndSetupArmy->SetVisibility(VisibilityBool[setupArmy]);
-	UnitsList->SetVisibility(VisibilityBool[setupArmy]);
+    m_flSetupArmy = setupArmy;
+
+    if (BnSetupArmy != nullptr)
+    {
+        BnSetupArmy->SetVisibility(VisibilityBool[!setupArmy]);
+    }
+
+    if (BnEndSetupArmy != nullptr)
+    {
+        BnEndSetupArmy->SetVisibility(VisibilityBool[setupArmy]);
+    }
+
+    if (UnitsList != nullptr)
+    {
+        UnitsList->SetVisibility(VisibilityBool[setupArmy]);
+    }
 }
 
-bool UTrainingMainWidget::Initialize()
+void UTrainingMainWidget::NativePreConstruct()
 {
-	if (!Super::Initialize())
-		return false;
+    Super::NativePreConstruct();
+    ApplyOverlayHitBounds();
+}
 
-	SetupUnits(AtomDestiny::UnitStorage::Instance().GetUnits());
-	
-	return true;
+void UTrainingMainWidget::NativeConstruct()
+{
+    Super::NativeConstruct();
+    ApplyOverlayHitBounds();
+    SetupUnits(AtomDestiny::UnitStorage::Instance().GetUnits());
+}
+
+void UTrainingMainWidget::ApplyOverlayHitBounds()
+{
+    SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+    SetCanvasSlotAutoSize(BnSetupArmy);
+    SetCanvasSlotAutoSize(BnEndSetupArmy);
 }

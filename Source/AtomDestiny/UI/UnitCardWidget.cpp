@@ -1,50 +1,96 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "UI/UnitCardWidget.h"
 
 #include "Blueprint/WidgetTree.h"
-#include "Components/CanvasPanel.h"
-
-/*UUnitCardWidget::UUnitCardWidget(const FObjectInitializer& ObjectInitializer) : UUserWidget(ObjectInitializer)
-{
-	Border = CreateWidget<UBorder>(this, UBorder::StaticClass(), "Border");
-	Button = CreateWidget<UButton>(Border, UButton::StaticClass(), "Button");
-	Text = CreateWidget<UTextBlock>(Button, UTextBlock::StaticClass(), "Text");
-}*/
+#include "Components/Image.h"
+#include "Components/TextBlock.h"
+#include "Components/Border.h"
+#include "Components/ListView.h"
+#include "Engine/Texture2D.h"
+#include "Shader/Preshader2.h"
 
 void UUnitCardWidget::SetTitle(const FString& title)
 {
-//	m_title = title;
-	Text->SetText(FText::FromString(title));
+    m_title = title;
+
+    if (Text != nullptr)
+    {
+        Text->SetText(FText::FromString(title));
+    }
 }
 
-/*bool UUnitCardWidget::Initialize()
+void UUnitCardWidget::SetIcon(const TSoftObjectPtr<UTexture2D>& icon)
 {
-	if (!Super::Initialize())
-		return false;
+    ResolveWidgetReferences();
 
-	//Text->SetText(FText::FromString(m_title));
-	
-	return true;
-}*/
+    if (CardImage == nullptr)
+    {
+        return;
+    }
 
-/*void UUnitCardWidget::NativeConstruct()
+    if (icon.IsNull())
+    {
+        CardImage->SetVisibility(ESlateVisibility::Collapsed);
+        return;
+    }
+
+    UTexture2D* texture = icon.LoadSynchronous();
+    if (texture == nullptr)
+    {
+        CardImage->SetVisibility(ESlateVisibility::Collapsed);
+        return;
+    }
+
+    CardImage->SetBrushFromTexture(texture, true);
+    CardImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void UUnitCardWidget::UpdateAppearance(const bool bIsActive) const
 {
-	Super::NativeConstruct();
+    if (!CardBorder)
+        return;
 
-	if (WidgetTree)
-	{
-		UCanvasPanel* RootWidget = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("Canvas"));
-		// If GetRootWidget() is still null
-		WidgetTree->RootWidget = RootWidget;
+    const FLinearColor BorderColor = bIsActive ? FLinearColor::Yellow : FLinearColor::Gray;
+    CardBorder->SetBrushColor(BorderColor);
+}
 
-		Border = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("Border"));
+void UUnitCardWidget::ResolveWidgetReferences()
+{
+    if (WidgetTree == nullptr || CardImage != nullptr)
+    {
+        return;
+    }
 
-		if (RootWidget)
-			RootWidget->AddChild(Border);
-	
-		Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("Button"));
-		Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Text"));
-	}
-}*/
+    CardImage = Cast<UImage>(WidgetTree->FindWidget(FName("CardImage")));
+}
+
+void UUnitCardWidget::NativePreConstruct()
+{
+    Super::NativePreConstruct();
+    SetTitle(m_title);
+    UpdateAppearance(false);
+}
+
+void UUnitCardWidget::NativeOnItemSelectionChanged(bool bIsSelected)
+{
+    IUserObjectListEntry::NativeOnItemSelectionChanged(bIsSelected);
+
+    UpdateAppearance(bIsSelected);
+}
+
+void UUnitCardWidget::NativeOnListItemObjectSet(UObject* listItemObject)
+{
+    const UUnitCardItem* Item = Cast<UUnitCardItem>(listItemObject);
+    if (Item == nullptr)
+    {
+        return;
+    }
+
+    m_unitType = Item->type;
+    SetTitle(Item->title.ToString());
+    SetIcon(Item->icon);
+}
+
+UListView* UUnitCardWidget::GetOwningListView() const
+{
+    return Cast<UListView>(GetOuter());
+}
