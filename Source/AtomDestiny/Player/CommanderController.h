@@ -5,8 +5,10 @@
 
 #include "CommanderController.generated.h"
 
+class APlacementPointer;
 class UInputAction;
 class UInputMappingContext;
+class UTrainingMainWidget;
 
 ///
 /// Class which contains actions & Movement setup for CommanderPawn
@@ -20,6 +22,8 @@ public:
     ACommanderController();
     
     virtual void SetupInputComponent() override;
+    virtual void BeginPlay() override;
+    virtual void PlayerTick(float DeltaTime) override;
 
     UInputMappingContext* GetPawnMappingContext() const { return m_pawnMappingContext; }
 
@@ -27,6 +31,8 @@ public:
     UInputAction* GetActionLook() const { return m_actionLook; }
     UInputAction* GetActionRoll() const { return m_actionRoll; }
     UInputAction* GetActionReset() const { return m_actionReset; }
+
+    void SetTrainingWidget(UTrainingMainWidget* widget);
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Enable mouse look"))
     bool EnableMouseLook = true;
@@ -53,4 +59,13 @@ protected:
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Action RClick"))
     UInputAction* m_actionRClick;
+
+private:
+    void UpdatePlacementPointer();
+    bool IsGridPointerActive() const;
+
+    UPROPERTY()
+    TObjectPtr<APlacementPointer> m_placementPointer;
+
+    TWeakObjectPtr<UTrainingMainWidget> m_trainingWidget;
 };

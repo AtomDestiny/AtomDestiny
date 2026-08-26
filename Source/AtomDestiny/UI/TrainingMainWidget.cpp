@@ -2,6 +2,7 @@
 
 #include "AtomDestiny/Gameplay/UnitStorage.h"
 #include "AtomDestiny/UI/UnitCardWidget.h"
+#include "Player/CommanderController.h"
 
 #include "Components/Button.h"
 #include "Components/CanvasPanelSlot.h"
@@ -83,6 +84,11 @@ void UTrainingMainWidget::NativeConstruct()
     Super::NativeConstruct();
     ApplyOverlayHitBounds();
     SetupUnits(AtomDestiny::UnitStorage::Instance().GetUnits());
+
+    if (ACommanderController* controller = Cast<ACommanderController>(GetOwningPlayer()))
+    {
+        controller->SetTrainingWidget(this);
+    }
 }
 
 void UTrainingMainWidget::ApplyOverlayHitBounds()

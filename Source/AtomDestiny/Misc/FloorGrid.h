@@ -7,6 +7,8 @@
 #include "ProceduralMeshComponent.h"
 #include "FloorGrid.generated.h"
 
+class UStaticMeshComponent;
+
 enum class ELineAlignment
 {
     XAligned, YAligned
@@ -27,6 +29,25 @@ public:
     UFUNCTION(BlueprintCallable)
     void ConstructMesh();
 
+    /** World location of the center of a grid cell. */
+    UFUNCTION(BlueprintCallable, BlueprintPure)
+    FVector GetCellCenterWorld(int32 cellX, int32 cellY) const;
+
+    /** Snap a world hit location to the nearest in-bounds cell center. */
+    FVector SnapWorldLocationToCellCenter(const FVector& worldLocation, int32* outCellX = nullptr, int32* outCellY = nullptr) const;
+
+    /** Convert world location to cell indices; returns false if outside the grid. */
+    UFUNCTION(BlueprintCallable, BlueprintPure)
+    bool WorldToCell(const FVector& worldLocation, int32& outCellX, int32& outCellY) const;
+
+    UFUNCTION(BlueprintCallable, BlueprintPure)
+    int32 GetCellCountX() const;
+
+    UFUNCTION(BlueprintCallable, BlueprintPure)
+    int32 GetCellCountY() const;
+
+    UProceduralMeshComponent* GetInteractionPlane() const { return m_plane; }
+
     UPROPERTY(EditAnywhere, meta=(DisplayName = "Material"))
     UMaterialInterface* m_material;
 
@@ -46,22 +67,19 @@ public:
     float m_lineWidth = 10;
 
 protected:
-    // Called when the game starts or when spawned
     virtual void BeginPlay() override;
 
     void CreateLine(int idx, FVector basePt, int width, int length, ELineAlignment alg);
 
     void CreatePlane(FVector basePt, int width, int height);
 
-    UFUNCTION(BlueprintCallable)
-    void BeginCursorOver(UPrimitiveComponent* comp);
+    void ConfigureInteractionPlane();
 
 private:
     UStaticMeshComponent* m_root;
 
     UProceduralMeshComponent* m_procMesh;
 
-    //UPROPERTY(EditAnywhere)
     UProceduralMeshComponent* m_plane;
 
     TArray<FVector> m_vertices;
@@ -69,5 +87,4 @@ private:
     TArray<int> m_indices;
 
     TArray<FVector2D> m_UV0;
-
 };

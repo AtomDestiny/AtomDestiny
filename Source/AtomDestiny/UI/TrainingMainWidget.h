@@ -27,6 +27,9 @@ public:
     UFUNCTION(BlueprintCallable)
     void ChangeMode(bool setupArmy);
 
+    UFUNCTION(BlueprintPure, Category = "Training")
+    bool IsSetupArmyMode() const { return m_flSetupArmy; }
+
 protected:
     virtual void NativePreConstruct() override;
     virtual void NativeConstruct() override;

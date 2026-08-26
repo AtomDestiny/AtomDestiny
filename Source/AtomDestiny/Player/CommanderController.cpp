@@ -1,7 +1,8 @@
 #include "CommanderController.h"
 
-//#include "../Plugins/EnhancedInput/Source/EnhancedInput/Public/InputAction.h"
-//#include "../Plugins/EnhancedInput/Source/EnhancedInput/Public/InputMappingContext.h"
+#include "Misc/FloorGrid.h"
+#include "Misc/PlacementPointer.h"
+#include "UI/TrainingMainWidget.h"
 
 #include "InputAction.h"
 #include "InputMappingContext.h"
@@ -93,4 +94,71 @@ void ACommanderController::SetupInputComponent()
 
     mapKey(m_pawnMappingContext, m_actionRoll, EKeys::E, false);
     mapKey(m_pawnMappingContext, m_actionRoll, EKeys::Q, true);
+}
+
+void ACommanderController::BeginPlay()
+{
+    Super::BeginPlay();
+
+    FActorSpawnParameters spawnParams;
+    spawnParams.Owner = this;
+    spawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    m_placementPointer = GetWorld()->SpawnActor<APlacementPointer>(
+        APlacementPointer::StaticClass(),
+        FVector::ZeroVector,
+        FRotator::ZeroRotator,
+        spawnParams);
+
+    if (m_placementPointer != nullptr)
+    {
+        m_placementPointer->HidePointer();
+    }
+}
+
+void ACommanderController::SetTrainingWidget(UTrainingMainWidget* widget)
+{
+    m_trainingWidget = widget;
+}
+
+bool ACommanderController::IsGridPointerActive() const
+{
+    return m_trainingWidget.IsValid() && m_trainingWidget->IsSetupArmyMode();
+}
+
+void ACommanderController::UpdatePlacementPointer()
+{
+    if (m_placementPointer == nullptr)
+    {
+        return;
+    }
+
+    if (!IsGridPointerActive())
+    {
+        m_placementPointer->HidePointer();
+        return;
+    }
+
+    FHitResult hit;
+    if (!GetHitResultUnderCursor(ECC_Visibility, false, hit))
+    {
+        m_placementPointer->HidePointer();
+        return;
+    }
+
+    AFloorGrid* grid = Cast<AFloorGrid>(hit.GetActor());
+    if (grid == nullptr)
+    {
+        m_placementPointer->HidePointer();
+        return;
+    }
+
+    const FVector cellCenter = grid->SnapWorldLocationToCellCenter(hit.Location);
+    m_placementPointer->ShowAt(cellCenter);
+}
+
+void ACommanderController::PlayerTick(float DeltaTime)
+{
+    Super::PlayerTick(DeltaTime);
+    UpdatePlacementPointer();
 }

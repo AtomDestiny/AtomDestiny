@@ -1,9 +1,6 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "Misc/FloorGrid.h"
 
 #include "Components/StaticMeshComponent.h"
-#include "Core/Logger.h"
 
 AFloorGrid::AFloorGrid(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -26,10 +23,98 @@ AFloorGrid::AFloorGrid(const FObjectInitializer& ObjectInitializer) : Super(Obje
     m_indices.Add(3);
 }
 
-// Called when the game starts or when spawned
 void AFloorGrid::BeginPlay()
 {
     Super::BeginPlay();
+    ConfigureInteractionPlane();
+}
+
+int32 AFloorGrid::GetCellCountX() const
+{
+    if (m_cellSize <= 0)
+    {
+        return 0;
+    }
+
+    return FMath::Max(1, FMath::CeilToInt(static_cast<float>(m_sizeX) / m_cellSize));
+}
+
+int32 AFloorGrid::GetCellCountY() const
+{
+    if (m_cellSize <= 0)
+    {
+        return 0;
+    }
+
+    return FMath::Max(1, FMath::CeilToInt(static_cast<float>(m_sizeY) / m_cellSize));
+}
+
+bool AFloorGrid::WorldToCell(const FVector& worldLocation, int32& outCellX, int32& outCellY) const
+{
+    if (m_cellSize <= 0)
+    {
+        return false;
+    }
+
+    const FVector local = GetActorTransform().InverseTransformPosition(worldLocation);
+    if (local.X < 0.f || local.Y < 0.f || local.X > m_sizeX || local.Y > m_sizeY)
+    {
+        return false;
+    }
+
+    outCellX = FMath::FloorToInt(local.X / m_cellSize);
+    outCellY = FMath::FloorToInt(local.Y / m_cellSize);
+
+    const int32 maxCellX = GetCellCountX() - 1;
+    const int32 maxCellY = GetCellCountY() - 1;
+    if (outCellX < 0 || outCellY < 0 || outCellX > maxCellX || outCellY > maxCellY)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+FVector AFloorGrid::GetCellCenterWorld(int32 cellX, int32 cellY) const
+{
+    const FVector localCenter(
+        cellX * m_cellSize + m_cellSize * 0.5f,
+        cellY * m_cellSize + m_cellSize * 0.5f,
+        0.f);
+
+    return GetActorTransform().TransformPosition(localCenter);
+}
+
+FVector AFloorGrid::SnapWorldLocationToCellCenter(const FVector& worldLocation, int32* outCellX, int32* outCellY) const
+{
+    int32 cellX = 0;
+    int32 cellY = 0;
+    if (!WorldToCell(worldLocation, cellX, cellY))
+    {
+        if (outCellX != nullptr)
+        {
+            *outCellX = -1;
+        }
+
+        if (outCellY != nullptr)
+        {
+            *outCellY = -1;
+        }
+
+        return worldLocation;
+    }
+
+    if (outCellX != nullptr)
+    {
+        *outCellX = cellX;
+    }
+
+    if (outCellY != nullptr)
+    {
+        *outCellY = cellY;
+    }
+
+    return GetCellCenterWorld(cellX, cellY);
 }
 
 void AFloorGrid::CreateLine(int idx, FVector basePt, int width, int length, ELineAlignment alg)
@@ -72,17 +157,23 @@ void AFloorGrid::CreatePlane(FVector basePt, int width, int height)
         TArray<FColor>(), TArray<FProcMeshTangent>(), true
     );
 
-    m_plane->OnBeginCursorOver.AddDynamic(this, &AFloorGrid::BeginCursorOver);
-
     m_plane->SetVisibility(false);
+    ConfigureInteractionPlane();
 }
 
-void AFloorGrid::BeginCursorOver(UPrimitiveComponent*)
+void AFloorGrid::ConfigureInteractionPlane()
 {
-    LOG_INFO(TEXT("FloorGrid: Hello!"));
+    if (m_plane == nullptr)
+    {
+        return;
+    }
+
+    m_plane->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+    m_plane->SetCollisionResponseToAllChannels(ECR_Ignore);
+    m_plane->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+    m_plane->SetGenerateOverlapEvents(false);
 }
 
-// Called every frame
 void AFloorGrid::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
@@ -97,7 +188,6 @@ void AFloorGrid::OnConstruction(const FTransform& Transform)
 
 void AFloorGrid::ConstructMesh()
 {
-    /// Grid
     m_procMesh->ClearAllMeshSections();
     int i = 0;
 
@@ -123,11 +213,11 @@ void AFloorGrid::ConstructMesh()
     }
 
     for (int j = 0; j < i; ++j)
+    {
         m_procMesh->SetMaterial(j, m_material);
+    }
 
     m_procMesh->SetCastShadow(false);
-
-    /// Plane
 
     curBase = FVector(0,0,0);
     CreatePlane(curBase, m_sizeY, m_sizeX);
