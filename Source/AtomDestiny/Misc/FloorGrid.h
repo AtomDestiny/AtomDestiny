@@ -5,9 +5,12 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "ProceduralMeshComponent.h"
+#include "AtomDestiny/AtomDestiny.h"
+
 #include "FloorGrid.generated.h"
 
 class UStaticMeshComponent;
+class UMaterialInstanceDynamic;
 
 enum class ELineAlignment
 {
@@ -50,10 +53,19 @@ public:
     UFUNCTION(BlueprintCallable)
     void SetupVisibility(bool visible);
 
+    UFUNCTION(BlueprintCallable, BlueprintPure)
+    EGameSide GetSide() const { return m_side; }
+
     UProceduralMeshComponent* GetInteractionPlane() const { return m_plane; }
 
     UPROPERTY(EditAnywhere, meta=(DisplayName = "Material"))
     UMaterialInterface* m_material;
+
+    UPROPERTY(EditAnywhere, meta=(DisplayName = "Grid color"))
+    FLinearColor m_gridColor = FLinearColor(0.1f, 0.85f, 0.2f, 1.f);
+
+    UPROPERTY(EditAnywhere, meta=(DisplayName = "Side"))
+    EGameSide m_side = EGameSide::Rebels;
 
     UPROPERTY(EditAnywhere, meta=(DisplayName = "X size"))
     int m_sizeX = 1000;
@@ -79,12 +91,17 @@ protected:
 
     void ConfigureInteractionPlane();
 
+    void ApplyGridMaterial();
+
 private:
     UStaticMeshComponent* m_root;
 
     UProceduralMeshComponent* m_procMesh;
 
     UProceduralMeshComponent* m_plane;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UMaterialInstanceDynamic> m_gridMaterialInstance;
 
     TArray<FVector> m_vertices;
 

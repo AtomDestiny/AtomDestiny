@@ -1,6 +1,12 @@
 #include "Misc/FloorGrid.h"
 
 #include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+
+namespace
+{
+    const FName GridColorParameterName(TEXT("Color"));
+}
 
 AFloorGrid::AFloorGrid(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -134,6 +140,28 @@ void AFloorGrid::SetupVisibility(bool visible)
     }
 }
 
+void AFloorGrid::ApplyGridMaterial()
+{
+    if (m_procMesh == nullptr || m_material == nullptr)
+    {
+        return;
+    }
+
+    m_gridMaterialInstance = UMaterialInstanceDynamic::Create(m_material, this);
+    if (m_gridMaterialInstance == nullptr)
+    {
+        return;
+    }
+
+    m_gridMaterialInstance->SetVectorParameterValue(GridColorParameterName, m_gridColor);
+
+    const int32 sectionCount = m_procMesh->GetNumSections();
+    for (int32 sectionIndex = 0; sectionIndex < sectionCount; ++sectionIndex)
+    {
+        m_procMesh->SetMaterial(sectionIndex, m_gridMaterialInstance);
+    }
+}
+
 void AFloorGrid::CreateLine(int idx, FVector basePt, int width, int length, ELineAlignment alg)
 {
     m_vertices.Empty();
@@ -229,10 +257,7 @@ void AFloorGrid::ConstructMesh()
         curBase.Y = y;
     }
 
-    for (int j = 0; j < i; ++j)
-    {
-        m_procMesh->SetMaterial(j, m_material);
-    }
+    ApplyGridMaterial();
 
     m_procMesh->SetCastShadow(false);
 

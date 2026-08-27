@@ -239,7 +239,7 @@ bool ACommanderController::ProjectToGround(const FVector& cellCenter, FVector& o
     return true;
 }
 
-FRotator ACommanderController::ComputeFacingRotation(const FVector& location) const
+FRotator ACommanderController::ComputeFacingRotation(const FVector& location, const EGameSide placementSide) const
 {
     const AAtomDestinyGameStateBase* gameState = GetWorld()->GetGameState<AAtomDestinyGameStateBase>();
     if (gameState == nullptr)
@@ -247,7 +247,7 @@ FRotator ACommanderController::ComputeFacingRotation(const FVector& location) co
         return FRotator::ZeroRotator;
     }
 
-    const TWeakObjectPtr<AActor> enemyDestination = gameState->GetDestination(GetOppositeSide(m_placementSide));
+    const TWeakObjectPtr<AActor> enemyDestination = gameState->GetDestination(GetOppositeSide(placementSide));
     if (!enemyDestination.IsValid())
     {
         return FRotator::ZeroRotator;
@@ -308,6 +308,8 @@ void ACommanderController::TryPlaceUnitAtCursor()
         return;
     }
 
+    const EGameSide placementSide = grid->GetSide();
+
     FVector groundLocation = FVector::ZeroVector;
     if (!ProjectToGround(cellCenter, groundLocation))
     {
@@ -321,7 +323,7 @@ void ACommanderController::TryPlaceUnitAtCursor()
         return;
     }
 
-    const FRotator facingRotation = ComputeFacingRotation(groundLocation);
+    const FRotator facingRotation = ComputeFacingRotation(groundLocation, placementSide);
 
     FTransform spawnTransform(facingRotation, groundLocation);
     APawn* pawn = GetWorld()->SpawnActorDeferred<APawn>(
@@ -338,7 +340,7 @@ void ACommanderController::TryPlaceUnitAtCursor()
 
     if (const TScriptInterface<ILogic> logic = AtomDestiny::Utils::GetInterface<ILogic>(pawn))
     {
-        logic->SetSide(m_placementSide);
+        logic->SetSide(placementSide);
     }
 
     if (UUnitLogic* unitLogic = pawn->FindComponentByClass<UUnitLogic>())

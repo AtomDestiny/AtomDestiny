@@ -45,9 +45,6 @@ public:
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Enable mouse look"))
     bool EnableMouseLook = true;
 
-    UPROPERTY(EditAnywhere, meta = (DisplayName = "Placement side"))
-    EGameSide m_placementSide = EGameSide::Rebels;
-
 protected:
     
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Pawn mapping context"))
@@ -76,7 +73,7 @@ private:
     bool IsGridPointerActive() const;
     bool TryGetGridCellUnderCursor(AFloorGrid*& outGrid, FVector& outCellCenter) const;
     bool ProjectToGround(const FVector& cellCenter, FVector& outGroundLocation) const;
-    FRotator ComputeFacingRotation(const FVector& location) const;
+    FRotator ComputeFacingRotation(const FVector& location, EGameSide placementSide) const;
     void AlignUnitGroundPoint(APawn* pawn, const FVector& groundLocation) const;
 
     UPROPERTY()
