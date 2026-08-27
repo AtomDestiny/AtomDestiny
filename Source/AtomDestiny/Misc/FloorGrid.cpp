@@ -27,6 +27,7 @@ void AFloorGrid::BeginPlay()
 {
     Super::BeginPlay();
     ConfigureInteractionPlane();
+    SetupVisibility(false);
 }
 
 int32 AFloorGrid::GetCellCountX() const
@@ -115,6 +116,22 @@ FVector AFloorGrid::SnapWorldLocationToCellCenter(const FVector& worldLocation, 
     }
 
     return GetCellCenterWorld(cellX, cellY);
+}
+
+void AFloorGrid::SetupVisibility(bool visible)
+{
+    SetActorHiddenInGame(!visible);
+
+    if (m_procMesh != nullptr)
+    {
+        m_procMesh->SetVisibility(visible);
+    }
+
+    if (m_plane != nullptr)
+    {
+        m_plane->SetVisibility(false);
+        m_plane->SetCollisionEnabled(visible ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+    }
 }
 
 void AFloorGrid::CreateLine(int idx, FVector basePt, int width, int length, ELineAlignment alg)

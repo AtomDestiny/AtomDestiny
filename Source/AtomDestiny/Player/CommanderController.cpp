@@ -13,6 +13,7 @@
 #include "GameFramework/Pawn.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
+#include "EngineUtils.h"
 #include "TimerManager.h"
 
 namespace
@@ -51,7 +52,7 @@ static void mapKey(UInputMappingContext* context, UInputAction* action, FKey key
         extTrig->ChordAction = chordAct;
         mapping.Triggers.Add(extTrig);
     }
-    
+
     if (isSwizzle)
     {
         auto* swizzle = NewObject<UInputModifierSwizzleAxis>(outer);
@@ -71,7 +72,7 @@ ACommanderController::ACommanderController() : APlayerController()
 void ACommanderController::SetupInputComponent()
 {
     Super::SetupInputComponent();
-    
+
     m_pawnMappingContext = NewObject<UInputMappingContext>(this);
 
     m_actionMove = NewObject<UInputAction>(this);
@@ -94,7 +95,7 @@ void ACommanderController::SetupInputComponent()
 
     mapKey(m_pawnMappingContext, m_actionLClick, EKeys::LeftMouseButton);
     mapKey(m_pawnMappingContext, m_actionRClick, EKeys::RightMouseButton);
-    
+
     mapKey(m_pawnMappingContext, m_actionReset, EKeys::R);
 
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::SpaceBar);
@@ -147,9 +148,22 @@ void ACommanderController::SetTrainingWidget(UTrainingMainWidget* widget)
 
 void ACommanderController::OnSetupArmyModeChanged(bool setupArmy)
 {
+    if (UWorld* world = GetWorld())
+    {
+        for (TActorIterator<AFloorGrid> it(world); it; ++it)
+        {
+            it->SetupVisibility(setupArmy);
+        }
+    }
+
     if (setupArmy)
     {
         return;
+    }
+
+    if (m_placementPointer != nullptr)
+    {
+        m_placementPointer->HidePointer();
     }
 
     TArray<TWeakObjectPtr<APawn>> unitsToActivate = MoveTemp(m_setupPlacedUnits);

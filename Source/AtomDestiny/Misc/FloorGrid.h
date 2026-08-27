@@ -46,6 +46,10 @@ public:
     UFUNCTION(BlueprintCallable, BlueprintPure)
     int32 GetCellCountY() const;
 
+    /** Show or hide grid visuals and placement collision (Training setup mode). */
+    UFUNCTION(BlueprintCallable)
+    void SetupVisibility(bool visible);
+
     UProceduralMeshComponent* GetInteractionPlane() const { return m_plane; }
 
     UPROPERTY(EditAnywhere, meta=(DisplayName = "Material"))
