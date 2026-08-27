@@ -4,6 +4,8 @@
 
 #include "AtomDestiny/Core/ActorUtils.h"
 #include "AtomDestiny/Core/ActorComponentUtils.h"
+#include "AtomDestiny/Core/ObjectPool/Despawner.h"
+#include "Engine/Engine.h"
 
 using namespace AtomDestiny;
 
@@ -19,16 +21,16 @@ TWeakObjectPtr<AActor> Pool::Spawn(const FVector& position, const FQuat& rotatio
     if (m_inactive.empty())
     {
         const auto world = GEngine->GetCurrentPlayWorld();
-        
+
         FActorSpawnParameters spawnParams;
         spawnParams.Template = m_gameObjectToSpawn.Get();
         spawnParams.Name = FName{ m_gameObjectToSpawn->GetName() + TEXT(" (") + FString::FromInt(m_nextId++) + TEXT(") ") };
 
         const FRotator rotator { rotation };
-        
+
         const auto newObject = world->SpawnActor<AActor>(m_gameObjectToSpawn->GetClass(), position, rotator, spawnParams);
         TWeakObjectPtr<AActor> newObjectPtr{ newObject };
-        
+
         // Adds a PoolMember component so we know what pool we belong to.
         Utils::AddNewComponentToActor<UActorPoolMember>(newObjectPtr)->pool = shared_from_this();
 
@@ -49,15 +51,23 @@ TWeakObjectPtr<AActor> Pool::Spawn(const FVector& position, const FQuat& rotatio
     object->SetActorLocation(position);
     object->SetActorRotation(rotation);
 
+    // Fresh pool instances spawn visible, so SetActorActive(true) alone does not trigger
+    // hidden->visible callbacks (AParticle, ACoroutineActor). Force the transition.
+    Utils::SetActorActive(object, false);
     Utils::SetActorActive(object, true);
-    
+
     return object;
 }
 
 void Pool::Despawn(TWeakObjectPtr<AActor> object)
 {
+    if (UDespawner* despawner = object->FindComponentByClass<UDespawner>())
+    {
+        despawner->ClearDespawnTimer();
+    }
+
     Utils::SetActorActive(object, false);
     object->SetActorLocation(FVector::Zero());
-    
+
     m_inactive.push(std::move(object));
 }

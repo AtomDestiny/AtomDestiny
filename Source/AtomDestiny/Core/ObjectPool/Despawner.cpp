@@ -18,3 +18,11 @@ void UDespawner::Despawn(double time)
     timerManager.ClearTimer(m_timerHandle);
     timerManager.SetTimer(m_timerHandle, despawnHandler, time, noLoop);
 }
+
+void UDespawner::ClearDespawnTimer()
+{
+    if (UWorld* world = GetWorld())
+    {
+        world->GetTimerManager().ClearTimer(m_timerHandle);
+    }
+}

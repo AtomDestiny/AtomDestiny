@@ -26,5 +26,10 @@ void UDestroyBase::BeginPlay()
 
 void UDestroyBase::SpawnExplosion(const FVector& location, const FQuat& rotation)
 {
+    if (!IsValid(m_explosionPrefab))
+    {
+        return;
+    }
+
     AtomDestiny::ObjectPool::Instance().Spawn(m_explosionPrefab, location, rotation);
 }

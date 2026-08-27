@@ -16,19 +16,31 @@ namespace AtomDestiny::Utils
         assert(actor != nullptr);
 
         actor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-        
-        actor->SetActorHiddenInGame(!status);
-        actor->SetActorEnableCollision(status);
-        actor->SetActorTickEnabled(status);
 
-        for (const auto component : actor->GetComponents())
+        if (!status)
         {
-            if (!status)
+            actor->SetActorHiddenInGame(true);
+            actor->SetActorEnableCollision(false);
+            actor->SetActorTickEnabled(false);
+
+            for (const auto component : actor->GetComponents())
             {
                 Details::SetSimulatePhysics(component, false);
+                component->SetActive(false);
             }
-            
-            component->SetActive(status);
+        }
+        else
+        {
+            actor->SetActorEnableCollision(true);
+            actor->SetActorTickEnabled(true);
+
+            for (const auto component : actor->GetComponents())
+            {
+                component->SetActive(true);
+            }
+
+            // Visibility callbacks (AParticle, ACoroutineActor) must run after components are active.
+            actor->SetActorHiddenInGame(false);
         }
     }
 
