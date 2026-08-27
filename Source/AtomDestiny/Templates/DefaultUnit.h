@@ -7,6 +7,7 @@ class USceneComponent;
 class UHealthBarComponent;
 class UUnitMovementComponent;
 class UUnitScrapDestroy;
+class UUnitSideColorDetails;
 
 #include <Runtime/Engine/Classes/GameFramework/Pawn.h>
 
@@ -52,4 +53,8 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit destroy behaviour"))
     TObjectPtr<UUnitScrapDestroy> m_unitDestroy;
+
+    /** Tints detail meshes whose names contain "side_part" (or manual list on the component). */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Side color details"))
+    TObjectPtr<UUnitSideColorDetails> m_sideColorDetails;
 };

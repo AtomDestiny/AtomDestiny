@@ -3,6 +3,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
+#include <AtomDestiny/Gameplay/SideStorage.h>
+
 namespace
 {
     const FName GridColorParameterName(TEXT("Color"));
@@ -32,8 +34,19 @@ AFloorGrid::AFloorGrid(const FObjectInitializer& ObjectInitializer) : Super(Obje
 void AFloorGrid::BeginPlay()
 {
     Super::BeginPlay();
+    SyncGridColorFromSide();
     ConfigureInteractionPlane();
     SetupVisibility(false);
+}
+
+void AFloorGrid::SyncGridColorFromSide()
+{
+    if (!m_useSideTeamColor || m_side == EGameSide::None)
+    {
+        return;
+    }
+
+    m_gridColor = AtomDestiny::SideStorage::Instance().GetTeamColor(m_side);
 }
 
 int32 AFloorGrid::GetCellCountX() const
@@ -228,6 +241,7 @@ void AFloorGrid::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
 
+    SyncGridColorFromSide();
     ConstructMesh();
 }
 

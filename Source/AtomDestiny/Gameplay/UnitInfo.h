@@ -23,6 +23,7 @@ struct FUnitInfo
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit prefab"))
     TSubclassOf<APawn> prefab;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit color"))
+    /** Optional UI/card accent color. Does not affect battlefield team tint. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Card accent color"))
     FColor color = FColor::Blue;
 };

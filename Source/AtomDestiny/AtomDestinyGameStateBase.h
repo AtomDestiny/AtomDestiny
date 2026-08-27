@@ -4,6 +4,7 @@
 
 #include <AtomDestiny/Unit/Unit.h>
 #include <AtomDestiny/Gameplay/GameDestination.h>
+#include <AtomDestiny/Gameplay/SideDefinition.h>
 
 #include <AtomDestiny/Projectile/Projectile.h>
 #include <AtomDestiny/Parameters/Parameters.h>
@@ -38,6 +39,9 @@ public:
     bool IsEnemiesExist(EGameSide side) const;
     const FEnemiesList& GetEnemies(EGameSide side) const;
 
+    const FSideRuntimeState* FindSideRuntimeState(EGameSide side) const;
+    FSideRuntimeState* FindSideRuntimeStateMutable(EGameSide side);
+
     ///
     /// Adds damage from projectile to object with explosion point parameters.
     /// Clients should be able to add damage only through projectile implementation.
@@ -67,9 +71,13 @@ protected:
 
     void InitializeSides();
     void InitializeEnemies();
+    void InitializeSideRuntime();
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Game destination"))
     FGameDestination m_destination;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (DisplayName = "Side runtime state"))
+    TMap<EGameSide, FSideRuntimeState> m_sideRuntimeState;
 
     // represents active units at overall battle
     TMap<EGameSide, FSharedGameStateUnitList> m_activeUnits;

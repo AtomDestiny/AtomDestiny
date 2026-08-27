@@ -61,7 +61,11 @@ public:
     UPROPERTY(EditAnywhere, meta=(DisplayName = "Material"))
     UMaterialInterface* m_material;
 
-    UPROPERTY(EditAnywhere, meta=(DisplayName = "Grid color"))
+    /** When enabled, grid lines use team color from Conflict Sides settings. */
+    UPROPERTY(EditAnywhere, meta=(DisplayName = "Use side team color"))
+    bool m_useSideTeamColor = true;
+
+    UPROPERTY(EditAnywhere, meta=(DisplayName = "Grid color", EditCondition = "!m_useSideTeamColor"))
     FLinearColor m_gridColor = FLinearColor(0.1f, 0.85f, 0.2f, 1.f);
 
     UPROPERTY(EditAnywhere, meta=(DisplayName = "Side"))
@@ -92,6 +96,8 @@ protected:
     void ConfigureInteractionPlane();
 
     void ApplyGridMaterial();
+
+    void SyncGridColorFromSide();
 
 private:
     UStaticMeshComponent* m_root;

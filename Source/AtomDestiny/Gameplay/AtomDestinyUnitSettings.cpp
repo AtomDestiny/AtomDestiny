@@ -14,6 +14,6 @@ FText UAtomDestinyUnitSettings::GetSectionText() const
 FText UAtomDestinyUnitSettings::GetSectionDescription() const
 {
     return NSLOCTEXT("AtomDestiny", "UnitCatalogSectionDesc",
-        "Display names, prefabs and colors for unit cards. Applied at game startup.");
+        "Display names, prefabs and card accent colors for unit cards. Applied at game startup.");
 }
 #endif

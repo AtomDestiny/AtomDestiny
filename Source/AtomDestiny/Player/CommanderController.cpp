@@ -6,6 +6,7 @@
 #include "AtomDestiny/Logic/Logic.h"
 #include "AtomDestiny/Logic/UnitLogic.h"
 #include "AtomDestiny/Unit/UnitState.h"
+#include "AtomDestiny/Unit/UnitSideColorDetails.h"
 #include "Misc/FloorGrid.h"
 #include "Misc/PlacementPointer.h"
 #include "UI/TrainingMainWidget.h"
@@ -350,6 +351,11 @@ void ACommanderController::TryPlaceUnitAtCursor()
 
     pawn->FinishSpawning(spawnTransform);
     AlignUnitGroundPoint(pawn, groundLocation);
+
+    if (UUnitSideColorDetails* sideColorDetails = pawn->FindComponentByClass<UUnitSideColorDetails>())
+    {
+        sideColorDetails->ApplyForSide(placementSide);
+    }
 
     m_setupPlacedUnits.Add(pawn);
 }

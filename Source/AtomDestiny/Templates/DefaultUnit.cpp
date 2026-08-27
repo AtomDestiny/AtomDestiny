@@ -6,6 +6,7 @@
 #include <AtomDestiny/Unit/UnitParameters.h>
 #include <AtomDestiny/Unit/UnitMovementComponent.h>
 #include <AtomDestiny/Unit/UnitScrapDestroy.h>
+#include <AtomDestiny/Unit/UnitSideColorDetails.h>
 #include <AtomDestiny/UI/HealthBarComponent.h>
 
 #include <AtomDestiny/Logic/UnitLogic.h>
@@ -30,6 +31,7 @@ ADefaultUnit::ADefaultUnit(const FObjectInitializer& objectInitializer):
     m_unitLogic = objectInitializer.CreateDefaultSubobject<UUnitLogic>(this, TEXT("UnitLogic"));
     m_unitMovement = objectInitializer.CreateDefaultSubobject<UUnitMovementComponent>(this, TEXT("UnitMovement"));
     m_unitDestroy = objectInitializer.CreateDefaultSubobject<UUnitScrapDestroy>(this, TEXT("UnitScrapDestroy"));
+    m_sideColorDetails = objectInitializer.CreateDefaultSubobject<UUnitSideColorDetails>(this, TEXT("SideColorDetails"));
     
     // setup ground point and default AI controller
     m_unitState->SetGroundPoint(MakeWeakObjectPtr(m_groundPoint.Get()));

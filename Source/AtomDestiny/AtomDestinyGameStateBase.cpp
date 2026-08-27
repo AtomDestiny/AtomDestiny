@@ -12,6 +12,7 @@
 
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
+#include <AtomDestiny/Gameplay/SideStorage.h>
 
 namespace
 {
@@ -58,6 +59,7 @@ AAtomDestinyGameStateBase::AAtomDestinyGameStateBase()
 {
     InitializeSides();
     InitializeEnemies();
+    InitializeSideRuntime();
 }
 
 void AAtomDestinyGameStateBase::AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side)
@@ -110,6 +112,16 @@ bool AAtomDestinyGameStateBase::IsEnemiesExist(EGameSide side) const
 const FEnemiesList& AAtomDestinyGameStateBase::GetEnemies(EGameSide side) const
 {
     return m_enemies[side];
+}
+
+const FSideRuntimeState* AAtomDestinyGameStateBase::FindSideRuntimeState(const EGameSide side) const
+{
+    return m_sideRuntimeState.Find(side);
+}
+
+FSideRuntimeState* AAtomDestinyGameStateBase::FindSideRuntimeStateMutable(const EGameSide side)
+{
+    return m_sideRuntimeState.Find(side);
 }
 
 void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& projectile, EProjectileDamageOptions options)
@@ -229,5 +241,20 @@ void AAtomDestinyGameStateBase::InitializeEnemies()
                 m_enemies[side].Add(m_activeUnits[s]);
             }
         }
+    }
+}
+
+void AAtomDestinyGameStateBase::InitializeSideRuntime()
+{
+    m_sideRuntimeState.Empty();
+
+    for (const auto& [side, list] : m_activeUnits)
+    {
+        if (side == EGameSide::None)
+        {
+            continue;
+        }
+
+        m_sideRuntimeState.Add(side, FSideRuntimeState{});
     }
 }
