@@ -61,7 +61,9 @@ void UUnitLogicBase::BeginPlay()
 {
     Super::BeginPlay();
 
-    // navigation initialization
+    // Register before AI init: deferred grid spawns may not have a controller yet.
+    CreateEvent();
+
     APawn* pawn = CastChecked<APawn>(GetOwner());
     check(pawn->AIControllerClass != nullptr);
 
@@ -88,10 +90,6 @@ void UUnitLogicBase::BeginPlay()
 
     m_animation = AtomDestiny::Utils::GetInterface<IAnimation>(GetOwner());
     m_scanDelay += FMath::RandRange(AtomDestiny::Unit::MinRandomScan, AtomDestiny::Unit::MaxRandomScan);
-
-    // new layer
-    // Utils.SetLayerRecursively(gameObject, LayerMask.NameToLayer(Core.GetLayerNameFromSide(side)));
-    CreateEvent();
 }
 
 void UUnitLogicBase::EndPlay(const EEndPlayReason::Type endPlayReason)

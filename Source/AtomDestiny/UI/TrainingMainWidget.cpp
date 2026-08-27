@@ -51,6 +51,11 @@ void UTrainingMainWidget::SetupUnits(const TArray<EADUnitType>& units)
 
         UnitsList->AddItem(item);
     }
+
+    if (UnitsList->GetNumItems() > 0 && UnitsList->GetSelectedItem() == nullptr)
+    {
+        UnitsList->SetSelectedIndex(0);
+    }
 }
 
 void UTrainingMainWidget::ChangeMode(bool setupArmy)
@@ -70,6 +75,11 @@ void UTrainingMainWidget::ChangeMode(bool setupArmy)
     if (UnitsList != nullptr)
     {
         UnitsList->SetVisibility(VisibilityBool[setupArmy]);
+    }
+
+    if (ACommanderController* controller = Cast<ACommanderController>(GetOwningPlayer()))
+    {
+        controller->OnSetupArmyModeChanged(setupArmy);
     }
 }
 
@@ -96,4 +106,20 @@ void UTrainingMainWidget::ApplyOverlayHitBounds()
     SetVisibility(ESlateVisibility::SelfHitTestInvisible);
     SetCanvasSlotAutoSize(BnSetupArmy);
     SetCanvasSlotAutoSize(BnEndSetupArmy);
+}
+
+EADUnitType UTrainingMainWidget::GetSelectedUnitType() const
+{
+    if (UnitsList == nullptr)
+    {
+        return EADUnitType::None;
+    }
+
+    const UUnitCardItem* item = Cast<UUnitCardItem>(UnitsList->GetSelectedItem());
+    if (item == nullptr)
+    {
+        return EADUnitType::None;
+    }
+
+    return item->type;
 }

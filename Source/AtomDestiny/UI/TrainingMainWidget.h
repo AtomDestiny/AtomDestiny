@@ -30,6 +30,10 @@ public:
     UFUNCTION(BlueprintPure, Category = "Training")
     bool IsSetupArmyMode() const { return m_flSetupArmy; }
 
+    /** Returns unit type from the currently selected card, if any. */
+    UFUNCTION(BlueprintPure, Category = "Training")
+    EADUnitType GetSelectedUnitType() const;
+
 protected:
     virtual void NativePreConstruct() override;
     virtual void NativeConstruct() override;

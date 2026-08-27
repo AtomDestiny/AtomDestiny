@@ -30,6 +30,7 @@ public:
     void OnLookAction(const FInputActionValue& actionValue);
     void OnRollAction(const FInputActionValue& actionValue);
     void OnResetAction(const FInputActionValue&);
+    void OnLeftClickAction(const FInputActionValue&);
     
     // Called to bind functionality to input
     virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;

@@ -4,11 +4,14 @@
 #include <AtomDestiny/AtomDestinyGameStateBase.h>
 #include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/Utils.h>
+#include <AtomDestiny/Navigation/Navigator.h>
+
+#include "GameFramework/FloatingPawnMovement.h"
+#include "GameFramework/Pawn.h"
 
 namespace
 {
     constexpr double MaxScanDistance = std::numeric_limits<double>::max();
-    
 } // namespace
 
 UUnitLogic::UUnitLogic(const FObjectInitializer& objectInitializer):
@@ -41,9 +44,73 @@ void UUnitLogic::SetDestinationByPoint(const FVector& destination)
     m_destinationPoint = destination;
 }
 
+void UUnitLogic::PrepareForSetupPlacement()
+{
+    m_deferLogicUntilReady = true;
+    SetComponentTickEnabled(false);
+}
+
+void UUnitLogic::ActivateAfterSetup()
+{
+    m_deferLogicUntilReady = false;
+
+    APawn* pawn = Cast<APawn>(GetOwner());
+    if (pawn == nullptr)
+    {
+        return;
+    }
+
+    // Grid-spawned units may have missed GameState registration in BeginPlay.
+    CreateEvent();
+
+    if (pawn->Controller == nullptr)
+    {
+        pawn->SpawnDefaultController();
+    }
+
+    ANavigator* navigator = Cast<ANavigator>(pawn->Controller.Get());
+    if (navigator == nullptr)
+    {
+        return;
+    }
+
+    m_navigation = MakeWeakObjectPtr(navigator);
+
+    UFloatingPawnMovement* movement = pawn->FindComponentByClass<UFloatingPawnMovement>();
+    if (movement != nullptr)
+    {
+        m_navigation->SetMovementComponent(movement);
+    }
+
+    m_speed = m_navigation->GetSpeed();
+    if (m_speed <= 0.0 && movement != nullptr)
+    {
+        m_speed = movement->MaxSpeed;
+        m_navigation->SetSpeed(m_speed);
+    }
+
+    m_currentSpeed = m_speed;
+    m_navigation->SetStopDistance(m_defaultStopDistance);
+
+    CreateDestination();
+    SetComponentTickEnabled(true);
+
+    if (m_animation != nullptr
+        && m_navigation->GetRemainingDistance() > m_navigation->GetStopDistance())
+    {
+        m_animation->Walk();
+    }
+}
+
 void UUnitLogic::BeginPlay()
 {
     Super::BeginPlay();
+
+    if (m_deferLogicUntilReady)
+    {
+        SetComponentTickEnabled(false);
+        return;
+    }
     
     CreateDestination();
 }
@@ -51,6 +118,11 @@ void UUnitLogic::BeginPlay()
 void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func)
 {
     Super::TickComponent(deltaTime, tickType, func);
+
+    if (!m_navigation.IsValid())
+    {
+        return;
+    }
 
     CheckTargetDistance();
     CheckNavigation();
@@ -109,14 +181,28 @@ void UUnitLogic::CreateDestination()
         return;
     }
 
-    if (const TWeakObjectPtr<AActor> destination = AtomDestiny::GetGameState(GetOwner())->GetDestination(m_side); destination.Get() && m_behaviour == EUnitBehaviour::MoveToTransform)
+    if (m_mainDestination.IsValid() && m_behaviour == EUnitBehaviour::MoveToTransform)
     {
-        m_mainDestination = destination;
         m_currentDestination = m_mainDestination;
-        
         m_navigation->Move(m_currentDestination->GetActorLocation());
+        return;
     }
-    else if (m_behaviour == EUnitBehaviour::MoveToPoint)
+
+    if (const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
+        gameState.IsValid())
+    {
+        if (const TWeakObjectPtr<AActor> destination = gameState->GetDestination(m_side);
+            destination.IsValid() && m_behaviour == EUnitBehaviour::MoveToTransform)
+        {
+            m_mainDestination = destination;
+            m_currentDestination = m_mainDestination;
+
+            m_navigation->Move(m_currentDestination->GetActorLocation());
+            return;
+        }
+    }
+
+    if (m_behaviour == EUnitBehaviour::MoveToPoint)
     {
         m_navigation->Move(m_destinationPoint);
     }
@@ -156,13 +242,18 @@ void UUnitLogic::CheckNavigation()
 
 void UUnitLogic::SetDefaultDestination()
 {
+    if (!m_navigation.IsValid())
+    {
+        return;
+    }
+
     if (m_behaviour == EUnitBehaviour::MoveToPoint)
     {
         m_navigation->Move(m_destinationPoint);
     }
     else
     {
-        if (m_mainDestination.Get() && m_behaviour == EUnitBehaviour::MoveToTransform)
+        if (m_mainDestination.IsValid() && m_behaviour == EUnitBehaviour::MoveToTransform)
         {
             m_currentDestination = m_mainDestination;
             m_navigation->Move(m_currentDestination->GetActorLocation());
@@ -186,7 +277,12 @@ void UUnitLogic::SetDefaultDestination()
 
 void UUnitLogic::UpdateNavigationTarget()
 {
-    if (m_currentDestination.Get() && m_behaviour == EUnitBehaviour::MoveToTransform)
+    if (!m_navigation.IsValid())
+    {
+        return;
+    }
+
+    if (m_currentDestination.IsValid() && m_behaviour == EUnitBehaviour::MoveToTransform)
     {
         m_navigation->Move(m_currentDestination->GetActorLocation());
     }
@@ -209,15 +305,20 @@ void UUnitLogic::UpdateNavigationTarget()
 
 void UUnitLogic::MoveNearestEnemyIfCan()
 {
+    if (!m_navigation.IsValid() || GetOwner() == nullptr)
+    {
+        return;
+    }
+
     // So we have no destination and should try to search any possible enemy target
     if (const TWeakObjectPtr<AActor> target = FindEnemy(0, std::numeric_limits<double>::max()); target.IsValid())
     {
         m_navigation->Move(target.Get());
-        m_currentDestination = std::move(target);
+        m_currentDestination = target;
     }
     else
     {
-        m_navigation->Move(GetOwner());
+        m_navigation->Move(GetOwner()->GetActorLocation());
     }
 }
 
@@ -327,7 +428,8 @@ TWeakObjectPtr<AActor> UUnitLogic::FindEnemy(double minScanDistance, double scan
 
         for (int unitCount = 0; unitCount < enemyListUnitCount; ++unitCount)
         {
-            if (AActor* target = (*enemies[sideCount])[unitCount].Get(); target != nullptr)
+            if (AActor* target = (*enemies[sideCount])[unitCount].Get();
+                IsValid(target) && target != GetOwner())
             {
                 const double sqrMagnitude = (target->GetActorLocation() - GetOwner()->GetActorLocation()).SquaredLength();
 

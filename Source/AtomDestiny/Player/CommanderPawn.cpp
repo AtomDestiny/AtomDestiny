@@ -6,8 +6,10 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
+#include "Engine/World.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Engine/LocalPlayer.h"
 #include "Core/Logger.h"
 
 
@@ -103,6 +105,14 @@ void ACommanderPawn::OnResetAction(const FInputActionValue&)
     SetActorRotation(m_startRot);
 }
 
+void ACommanderPawn::OnLeftClickAction(const FInputActionValue&)
+{
+    if (ACommanderController* controller = Cast<ACommanderController>(Controller))
+    {
+        controller->TryPlaceUnitAtCursor();
+    }
+}
+
 // Called to bind functionality to input
 void ACommanderPawn::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
 {
@@ -111,18 +121,19 @@ void ACommanderPawn::SetupPlayerInputComponent(UInputComponent* playerInputCompo
     UEnhancedInputComponent* inputComp = Cast<UEnhancedInputComponent>(playerInputComponent);
     const ACommanderController* cmdCtrl = Cast<ACommanderController>(Controller);
 
-    check(inputComp && cmdCtrl)
+    check(inputComp && cmdCtrl);
 
     inputComp->BindAction(cmdCtrl->GetActionMove(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnMoveAction);
     inputComp->BindAction(cmdCtrl->GetActionLook(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnLookAction);
     inputComp->BindAction(cmdCtrl->GetActionRoll(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnRollAction);
     inputComp->BindAction(cmdCtrl->GetActionReset(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnResetAction);
+    inputComp->BindAction(cmdCtrl->GetActionLClick(), ETriggerEvent::Started, this, &ACommanderPawn::OnLeftClickAction);
     
     const ULocalPlayer* localPlayer = cmdCtrl->GetLocalPlayer();
-    check(localPlayer)
+    check(localPlayer);
 
     UEnhancedInputLocalPlayerSubsystem* subSys = localPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-    check(subSys)
+    check(subSys);
 
     subSys->ClearAllMappings();
     subSys->AddMappingContext(cmdCtrl->GetPawnMappingContext(), 0);

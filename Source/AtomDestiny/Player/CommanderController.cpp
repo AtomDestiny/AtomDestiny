@@ -1,11 +1,35 @@
 #include "CommanderController.h"
 
+#include "AtomDestinyGameStateBase.h"
+#include "AtomDestiny/Gameplay/UnitStorage.h"
+#include "AtomDestiny/Core/ActorComponentUtils.h"
+#include "AtomDestiny/Logic/Logic.h"
+#include "AtomDestiny/Logic/UnitLogic.h"
+#include "AtomDestiny/Unit/UnitState.h"
 #include "Misc/FloorGrid.h"
 #include "Misc/PlacementPointer.h"
 #include "UI/TrainingMainWidget.h"
 
+#include "GameFramework/Pawn.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
+#include "TimerManager.h"
+
+namespace
+{
+    EGameSide GetOppositeSide(const EGameSide side)
+    {
+        switch (side)
+        {
+        case EGameSide::Rebels:
+            return EGameSide::Federation;
+        case EGameSide::Federation:
+            return EGameSide::Rebels;
+        default:
+            return EGameSide::None;
+        }
+    }
+}
 
 static void mapKey(UInputMappingContext* context, UInputAction* action, FKey key,
     bool isNegate = false, bool isSwizzle = false, EInputAxisSwizzle swizzleOrder = EInputAxisSwizzle::YXZ,
@@ -121,9 +145,197 @@ void ACommanderController::SetTrainingWidget(UTrainingMainWidget* widget)
     m_trainingWidget = widget;
 }
 
+void ACommanderController::OnSetupArmyModeChanged(bool setupArmy)
+{
+    if (setupArmy)
+    {
+        return;
+    }
+
+    TArray<TWeakObjectPtr<APawn>> unitsToActivate = MoveTemp(m_setupPlacedUnits);
+    m_setupPlacedUnits.Empty();
+
+    if (unitsToActivate.Num() == 0 || GetWorld() == nullptr)
+    {
+        return;
+    }
+
+    GetWorld()->GetTimerManager().SetTimerForNextTick(
+        FTimerDelegate::CreateWeakLambda(this, [unitsToActivate]()
+        {
+            for (const TWeakObjectPtr<APawn>& weakPawn : unitsToActivate)
+            {
+                APawn* pawn = weakPawn.Get();
+                if (pawn == nullptr)
+                {
+                    continue;
+                }
+
+                if (UUnitLogic* logic = pawn->FindComponentByClass<UUnitLogic>())
+                {
+                    logic->ActivateAfterSetup();
+                }
+            }
+        }));
+}
+
 bool ACommanderController::IsGridPointerActive() const
 {
     return m_trainingWidget.IsValid() && m_trainingWidget->IsSetupArmyMode();
+}
+
+bool ACommanderController::TryGetGridCellUnderCursor(AFloorGrid*& outGrid, FVector& outCellCenter) const
+{
+    outGrid = nullptr;
+
+    FHitResult hit;
+    if (!GetHitResultUnderCursor(ECC_Visibility, false, hit))
+    {
+        return false;
+    }
+
+    outGrid = Cast<AFloorGrid>(hit.GetActor());
+    if (outGrid == nullptr)
+    {
+        return false;
+    }
+
+    outCellCenter = outGrid->SnapWorldLocationToCellCenter(hit.Location);
+    return true;
+}
+
+bool ACommanderController::ProjectToGround(const FVector& cellCenter, FVector& outGroundLocation) const
+{
+    const FVector traceStart = cellCenter + FVector(0.f, 0.f, 5000.f);
+    const FVector traceEnd = cellCenter - FVector(0.f, 0.f, 5000.f);
+
+    FHitResult hit;
+    FCollisionQueryParams params(SCENE_QUERY_STAT(UnitPlacementGround), false, GetPawn());
+    if (m_placementPointer != nullptr)
+    {
+        params.AddIgnoredActor(m_placementPointer);
+    }
+
+    if (!GetWorld()->LineTraceSingleByChannel(hit, traceStart, traceEnd, ECC_WorldStatic, params))
+    {
+        return false;
+    }
+
+    outGroundLocation = hit.ImpactPoint;
+    return true;
+}
+
+FRotator ACommanderController::ComputeFacingRotation(const FVector& location) const
+{
+    const AAtomDestinyGameStateBase* gameState = GetWorld()->GetGameState<AAtomDestinyGameStateBase>();
+    if (gameState == nullptr)
+    {
+        return FRotator::ZeroRotator;
+    }
+
+    const TWeakObjectPtr<AActor> enemyDestination = gameState->GetDestination(GetOppositeSide(m_placementSide));
+    if (!enemyDestination.IsValid())
+    {
+        return FRotator::ZeroRotator;
+    }
+
+    FVector direction = enemyDestination->GetActorLocation() - location;
+    direction.Z = 0.f;
+    if (direction.IsNearlyZero())
+    {
+        return FRotator::ZeroRotator;
+    }
+
+    return direction.Rotation();
+}
+
+void ACommanderController::AlignUnitGroundPoint(APawn* pawn, const FVector& groundLocation) const
+{
+    if (pawn == nullptr)
+    {
+        return;
+    }
+
+    const UUnitState* unitState = pawn->FindComponentByClass<UUnitState>();
+    if (unitState == nullptr)
+    {
+        pawn->SetActorLocation(groundLocation);
+        return;
+    }
+
+    const TWeakObjectPtr<USceneComponent> groundPoint = unitState->GetGroundPoint<USceneComponent>();
+    if (!groundPoint.IsValid())
+    {
+        pawn->SetActorLocation(groundLocation);
+        return;
+    }
+
+    const FVector offset = groundLocation - groundPoint->GetComponentLocation();
+    pawn->SetActorLocation(pawn->GetActorLocation() + offset);
+}
+
+void ACommanderController::TryPlaceUnitAtCursor()
+{
+    if (!IsGridPointerActive() || m_trainingWidget == nullptr)
+    {
+        return;
+    }
+
+    const EADUnitType unitType = m_trainingWidget->GetSelectedUnitType();
+    if (unitType == EADUnitType::None)
+    {
+        return;
+    }
+
+    AFloorGrid* grid = nullptr;
+    FVector cellCenter = FVector::ZeroVector;
+    if (!TryGetGridCellUnderCursor(grid, cellCenter))
+    {
+        return;
+    }
+
+    FVector groundLocation = FVector::ZeroVector;
+    if (!ProjectToGround(cellCenter, groundLocation))
+    {
+        return;
+    }
+
+    const AtomDestiny::UnitStorage& storage = AtomDestiny::UnitStorage::Instance();
+    const TOptional<FUnitInfo> unitInfo = storage.GetInfo(unitType);
+    if (!unitInfo.IsSet() || unitInfo->prefab == nullptr)
+    {
+        return;
+    }
+
+    const FRotator facingRotation = ComputeFacingRotation(groundLocation);
+
+    FTransform spawnTransform(facingRotation, groundLocation);
+    APawn* pawn = GetWorld()->SpawnActorDeferred<APawn>(
+        unitInfo->prefab,
+        spawnTransform,
+        this,
+        nullptr,
+        ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+
+    if (pawn == nullptr)
+    {
+        return;
+    }
+
+    if (const TScriptInterface<ILogic> logic = AtomDestiny::Utils::GetInterface<ILogic>(pawn))
+    {
+        logic->SetSide(m_placementSide);
+    }
+
+    if (UUnitLogic* unitLogic = pawn->FindComponentByClass<UUnitLogic>())
+    {
+        unitLogic->PrepareForSetupPlacement();
+    }
+
+    pawn->FinishSpawning(spawnTransform);
+    AlignUnitGroundPoint(pawn, groundLocation);
+
+    m_setupPlacedUnits.Add(pawn);
 }
 
 void ACommanderController::UpdatePlacementPointer()
@@ -139,21 +351,14 @@ void ACommanderController::UpdatePlacementPointer()
         return;
     }
 
-    FHitResult hit;
-    if (!GetHitResultUnderCursor(ECC_Visibility, false, hit))
+    AFloorGrid* grid = nullptr;
+    FVector cellCenter = FVector::ZeroVector;
+    if (!TryGetGridCellUnderCursor(grid, cellCenter))
     {
         m_placementPointer->HidePointer();
         return;
     }
 
-    AFloorGrid* grid = Cast<AFloorGrid>(hit.GetActor());
-    if (grid == nullptr)
-    {
-        m_placementPointer->HidePointer();
-        return;
-    }
-
-    const FVector cellCenter = grid->SnapWorldLocationToCellCenter(hit.Location);
     m_placementPointer->ShowAt(cellCenter);
 }
 

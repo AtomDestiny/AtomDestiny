@@ -26,6 +26,12 @@ public:
     // Sets destination to unit from point
     virtual void SetDestinationByPoint(const FVector& destination) override;
 
+    /** Delay AI/navigation until setup placement is finished (Training map). */
+    void PrepareForSetupPlacement();
+
+    /** Start AI after army setup ends. */
+    void ActivateAfterSetup();
+
 protected:
 
     virtual void BeginPlay() override;
@@ -57,4 +63,6 @@ private:
 
     // searches nearest enemy
     TWeakObjectPtr<AActor> FindEnemy(double minScanDistance, double scanDistance) const;
+
+    bool m_deferLogicUntilReady = false;
 };

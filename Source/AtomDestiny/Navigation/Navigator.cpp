@@ -45,12 +45,21 @@ void ANavigator::SetMovementComponent(UFloatingPawnMovement* component)
 
 void ANavigator::Move(AActor* target)
 {
-    check(target != nullptr)
+    if (!IsValid(target) || !m_pawnMovement.IsValid())
+    {
+        return;
+    }
+
     MoveImpl(target);
 }
 
 void ANavigator::Move(const FVector& point)
 {
+    if (!m_pawnMovement.IsValid())
+    {
+        return;
+    }
+
     MoveImpl(point);
 }
 
@@ -61,11 +70,21 @@ void ANavigator::Stop()
 
 void ANavigator::SetSpeed(double speed)
 {
+    if (!m_pawnMovement.IsValid())
+    {
+        return;
+    }
+
     m_pawnMovement->MaxSpeed = static_cast<float>(speed);
 }
 
 double ANavigator::GetSpeed() const
 {
+    if (!m_pawnMovement.IsValid())
+    {
+        return 0.0;
+    }
+
     return static_cast<double>(m_pawnMovement->GetMaxSpeed()); // Do not remove static_cast operator
 }
 
@@ -81,8 +100,16 @@ double ANavigator::GetStopDistance() const
 
 double ANavigator::GetRemainingDistance() const
 {
+    if (!m_pawnMovement.IsValid())
+    {
+        return 0.0;
+    }
+
     const AActor* owner = m_pawnMovement->GetOwner();
-    check(owner)
+    if (owner == nullptr)
+    {
+        return 0.0;
+    }
     
     if (m_target.IsValid())
     {
