@@ -1,6 +1,7 @@
 #include "UI/TrainingMainWidget.h"
 
 #include "AtomDestiny/Gameplay/UnitStorage.h"
+#include "AtomDestiny/Gameplay/UnitCatalog.h"
 #include "AtomDestiny/UI/UnitCardWidget.h"
 #include "Player/CommanderController.h"
 
@@ -9,6 +10,7 @@
 #include "Components/ListView.h"
 #include "Components/Widget.h"
 #include "Kismet/GameplayStatics.h"
+#include "TimerManager.h"
 
 namespace
 {
@@ -26,6 +28,12 @@ namespace
             slot->SetAutoSize(true);
         }
     }
+}
+
+void UTrainingMainWidget::RefreshUnitCards()
+{
+    AtomDestiny::EnsureUnitCatalogLoaded();
+    SetupUnits(AtomDestiny::UnitStorage::Instance().GetUnits());
 }
 
 void UTrainingMainWidget::SetupUnits(const TArray<EADUnitType>& units)
@@ -96,7 +104,14 @@ void UTrainingMainWidget::NativeConstruct()
 {
     Super::NativeConstruct();
     ApplyOverlayHitBounds();
-    SetupUnits(AtomDestiny::UnitStorage::Instance().GetUnits());
+
+    RefreshUnitCards();
+
+    if (UWorld* world = GetWorld())
+    {
+        world->GetTimerManager().SetTimerForNextTick(
+            FTimerDelegate::CreateUObject(this, &UTrainingMainWidget::RefreshUnitCards));
+    }
 
     if (ACommanderController* controller = Cast<ACommanderController>(GetOwningPlayer()))
     {

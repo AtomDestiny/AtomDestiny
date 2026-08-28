@@ -6,7 +6,7 @@
 #include "Components/Border.h"
 #include "Components/ListView.h"
 #include "Engine/Texture2D.h"
-#include "Shader/Preshader2.h"
+#include "TimerManager.h"
 
 void UUnitCardWidget::SetTitle(const FString& title)
 {
@@ -20,23 +20,55 @@ void UUnitCardWidget::SetTitle(const FString& title)
 
 void UUnitCardWidget::SetIcon(const TSoftObjectPtr<UTexture2D>& icon)
 {
+    m_pendingIcon = icon;
+    m_iconLoadAttempts = 0;
+    ApplyPendingIcon();
+}
+
+void UUnitCardWidget::ApplyPendingIcon()
+{
     ResolveWidgetReferences();
 
     if (CardImage == nullptr)
     {
+        if (m_iconLoadAttempts < 5)
+        {
+            ++m_iconLoadAttempts;
+
+            if (UWorld* world = GetWorld())
+            {
+                world->GetTimerManager().SetTimerForNextTick(
+                    FTimerDelegate::CreateUObject(this, &UUnitCardWidget::ApplyPendingIcon));
+            }
+        }
+
         return;
     }
 
-    if (icon.IsNull())
+    if (m_pendingIcon.IsNull())
     {
         CardImage->SetVisibility(ESlateVisibility::Collapsed);
         return;
     }
 
-    UTexture2D* texture = icon.LoadSynchronous();
+    UTexture2D* texture = m_pendingIcon.LoadSynchronous();
     if (texture == nullptr)
     {
-        CardImage->SetVisibility(ESlateVisibility::Collapsed);
+        if (m_iconLoadAttempts < 5)
+        {
+            ++m_iconLoadAttempts;
+
+            if (UWorld* world = GetWorld())
+            {
+                world->GetTimerManager().SetTimerForNextTick(
+                    FTimerDelegate::CreateUObject(this, &UUnitCardWidget::ApplyPendingIcon));
+            }
+        }
+        else
+        {
+            CardImage->SetVisibility(ESlateVisibility::Collapsed);
+        }
+
         return;
     }
 

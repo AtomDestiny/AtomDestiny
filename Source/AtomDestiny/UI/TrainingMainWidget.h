@@ -25,6 +25,9 @@ public:
     void SetupUnits(const TArray<EADUnitType>& units);
 
     UFUNCTION(BlueprintCallable)
+    void RefreshUnitCards();
+
+    UFUNCTION(BlueprintCallable)
     void ChangeMode(bool setupArmy);
 
     UFUNCTION(BlueprintPure, Category = "Training")

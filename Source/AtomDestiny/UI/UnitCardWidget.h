@@ -56,6 +56,11 @@ protected:
     UPROPERTY()
     EADUnitType m_unitType = EADUnitType::None;
 
+    UPROPERTY()
+    TSoftObjectPtr<UTexture2D> m_pendingIcon;
+
+    uint8 m_iconLoadAttempts = 0;
+
     UPROPERTY(EditAnywhere, meta = (BindWidgetOptional))
     UBorder* CardBorder;
 
@@ -77,5 +82,6 @@ private:
     void UpdateAppearance(const bool bIsActive) const;
 
     void ResolveWidgetReferences();
+    void ApplyPendingIcon();
     UListView* GetOwningListView() const;
 };
