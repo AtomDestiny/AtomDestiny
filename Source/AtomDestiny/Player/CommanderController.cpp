@@ -17,22 +17,6 @@
 #include "EngineUtils.h"
 #include "TimerManager.h"
 
-namespace
-{
-    EGameSide GetOppositeSide(const EGameSide side)
-    {
-        switch (side)
-        {
-        case EGameSide::Rebels:
-            return EGameSide::Federation;
-        case EGameSide::Federation:
-            return EGameSide::Rebels;
-        default:
-            return EGameSide::None;
-        }
-    }
-}
-
 static void mapKey(UInputMappingContext* context, UInputAction* action, FKey key,
     bool isNegate = false, bool isSwizzle = false, EInputAxisSwizzle swizzleOrder = EInputAxisSwizzle::YXZ,
     bool isAddChord = false, UInputAction* chordAct = nullptr)
@@ -248,20 +232,24 @@ FRotator ACommanderController::ComputeFacingRotation(const FVector& location, co
         return FRotator::ZeroRotator;
     }
 
-    const TWeakObjectPtr<AActor> enemyDestination = gameState->GetDestination(GetOppositeSide(placementSide));
-    if (!enemyDestination.IsValid())
+    const AActor* rallyPoint = gameState->GetRallyPoint(placementSide);
+    if (rallyPoint == nullptr)
     {
         return FRotator::ZeroRotator;
     }
 
-    FVector direction = enemyDestination->GetActorLocation() - location;
+    FVector direction = rallyPoint->GetActorLocation() - location;
     direction.Z = 0.f;
     if (direction.IsNearlyZero())
     {
         return FRotator::ZeroRotator;
     }
 
-    return direction.Rotation();
+    FRotator rotation = direction.Rotation();
+    rotation.Yaw = FMath::GridSnap(rotation.Yaw, 90.f);
+    rotation.Pitch = 0.f;
+    rotation.Roll = 0.f;
+    return rotation;
 }
 
 void ACommanderController::AlignUnitGroundPoint(APawn* pawn, const FVector& groundLocation) const
@@ -351,6 +339,7 @@ void ACommanderController::TryPlaceUnitAtCursor()
 
     pawn->FinishSpawning(spawnTransform);
     AlignUnitGroundPoint(pawn, groundLocation);
+    pawn->SetActorRotation(facingRotation);
 
     if (UUnitSideColorDetails* sideColorDetails = pawn->FindComponentByClass<UUnitSideColorDetails>())
     {

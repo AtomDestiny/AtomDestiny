@@ -35,6 +35,9 @@ public:
 
     TWeakObjectPtr<AActor> GetDestination(EGameSide side) const;
 
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AtomDestiny|Side")
+    AActor* GetRallyPoint(EGameSide side) const;
+
     // use this method to prevent crushes for GetEnemies reference
     bool IsEnemiesExist(EGameSide side) const;
     const FEnemiesList& GetEnemies(EGameSide side) const;

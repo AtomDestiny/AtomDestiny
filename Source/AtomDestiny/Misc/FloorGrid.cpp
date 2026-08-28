@@ -49,24 +49,24 @@ void AFloorGrid::SyncGridColorFromSide()
     m_gridColor = AtomDestiny::SideStorage::Instance().GetTeamColor(m_side);
 }
 
+int32 AFloorGrid::GetGridExtentX() const
+{
+    return GetCellCountX() * m_cellSize;
+}
+
+int32 AFloorGrid::GetGridExtentY() const
+{
+    return GetCellCountY() * m_cellSize;
+}
+
 int32 AFloorGrid::GetCellCountX() const
 {
-    if (m_cellSize <= 0)
-    {
-        return 0;
-    }
-
-    return FMath::Max(1, FMath::CeilToInt(static_cast<float>(m_sizeX) / m_cellSize));
+    return FMath::Max(1, m_xCellsCount);
 }
 
 int32 AFloorGrid::GetCellCountY() const
 {
-    if (m_cellSize <= 0)
-    {
-        return 0;
-    }
-
-    return FMath::Max(1, FMath::CeilToInt(static_cast<float>(m_sizeY) / m_cellSize));
+    return FMath::Max(1, m_yCellsCount);
 }
 
 bool AFloorGrid::WorldToCell(const FVector& worldLocation, int32& outCellX, int32& outCellY) const
@@ -76,8 +76,11 @@ bool AFloorGrid::WorldToCell(const FVector& worldLocation, int32& outCellX, int3
         return false;
     }
 
+    const int32 gridExtentX = GetGridExtentX();
+    const int32 gridExtentY = GetGridExtentY();
+
     const FVector local = GetActorTransform().InverseTransformPosition(worldLocation);
-    if (local.X < 0.f || local.Y < 0.f || local.X > m_sizeX || local.Y > m_sizeY)
+    if (local.X < 0.f || local.Y < 0.f || local.X > gridExtentX || local.Y > gridExtentY)
     {
         return false;
     }
@@ -250,11 +253,14 @@ void AFloorGrid::ConstructMesh()
     m_procMesh->ClearAllMeshSections();
     int i = 0;
 
+    const int32 gridExtentX = GetGridExtentX();
+    const int32 gridExtentY = GetGridExtentY();
+
     float x = 0;
     FVector curBase {0,0,0};
-    while (x <= m_sizeX)
+    while (x <= gridExtentX)
     {
-        CreateLine(i, curBase, m_lineWidth, m_sizeY, ELineAlignment::YAligned);
+        CreateLine(i, curBase, m_lineWidth, gridExtentY, ELineAlignment::YAligned);
         ++i;
         x += m_cellSize;
         curBase.X = x;
@@ -263,9 +269,9 @@ void AFloorGrid::ConstructMesh()
     curBase = FVector(0,0,0);
     float y = 0;
 
-    while (y <= m_sizeY)
+    while (y <= gridExtentY)
     {
-        CreateLine(i, curBase, m_lineWidth, m_sizeX, ELineAlignment::XAligned);
+        CreateLine(i, curBase, m_lineWidth, gridExtentX, ELineAlignment::XAligned);
         ++i;
         y += m_cellSize;
         curBase.Y = y;
@@ -276,5 +282,5 @@ void AFloorGrid::ConstructMesh()
     m_procMesh->SetCastShadow(false);
 
     curBase = FVector(0,0,0);
-    CreatePlane(curBase, m_sizeY, m_sizeX);
+    CreatePlane(curBase, gridExtentY, gridExtentX);
 }

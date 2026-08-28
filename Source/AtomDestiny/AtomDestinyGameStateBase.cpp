@@ -12,7 +12,9 @@
 
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
-#include <AtomDestiny/Gameplay/SideStorage.h>
+#include <AtomDestiny/Gameplay/RallyPoint.h>
+
+#include <GameFramework/Actor.h>
 
 namespace
 {
@@ -86,8 +88,18 @@ void AAtomDestinyGameStateBase::RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSi
     unitListPtr->Remove(actor);
 }
 
+AActor* AAtomDestinyGameStateBase::GetRallyPoint(const EGameSide side) const
+{
+    return ARallyPoint::FindForSide(this, side);
+}
+
 TWeakObjectPtr<AActor> AAtomDestinyGameStateBase::GetDestination(EGameSide side) const
 {
+    if (AActor* rallyPoint = GetRallyPoint(side))
+    {
+        return MakeWeakObjectPtr(rallyPoint);
+    }
+
     switch (side)
     {
     case EGameSide::Rebels:

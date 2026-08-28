@@ -71,23 +71,23 @@ public:
     UPROPERTY(EditAnywhere, meta=(DisplayName = "Side"))
     EGameSide m_side = EGameSide::Rebels;
 
-    UPROPERTY(EditAnywhere, meta=(DisplayName = "X size"))
-    int m_sizeX = 1000;
+    UPROPERTY(EditAnywhere, meta=(DisplayName = "X cells count", ClampMin = "1"))
+    int32 m_xCellsCount = 1;
 
-    UPROPERTY(EditAnywhere, meta=(DisplayName = "Y size"))
-    int m_sizeY = 500;
+    UPROPERTY(EditAnywhere, meta=(DisplayName = "Y cells count", ClampMin = "1"))
+    int32 m_yCellsCount = 1;
 
-    UPROPERTY(EditAnywhere, meta=(DisplayName = "CellSize"))
-    int m_cellSize = 1000;
-
-    UPROPERTY(EditAnywhere, meta=(DisplayName = "NumCells"))
-    int m_numCells = 10;
+    UPROPERTY(EditAnywhere, meta=(DisplayName = "CellSize", ClampMin = "1"))
+    int32 m_cellSize = 1000;
 
     UPROPERTY(EditAnywhere, meta=(DisplayName = "LineWidth"))
     float m_lineWidth = 10;
 
 protected:
     virtual void BeginPlay() override;
+
+    int32 GetGridExtentX() const;
+    int32 GetGridExtentY() const;
 
     void CreateLine(int idx, FVector basePt, int width, int length, ELineAlignment alg);
 
