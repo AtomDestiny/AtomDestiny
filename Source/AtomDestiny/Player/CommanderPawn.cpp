@@ -113,6 +113,14 @@ void ACommanderPawn::OnLeftClickAction(const FInputActionValue&)
     }
 }
 
+void ACommanderPawn::OnToggleSetupArmyAction(const FInputActionValue&)
+{
+    if (ACommanderController* controller = Cast<ACommanderController>(Controller))
+    {
+        controller->ToggleSetupArmyMode();
+    }
+}
+
 // Called to bind functionality to input
 void ACommanderPawn::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
 {
@@ -128,6 +136,7 @@ void ACommanderPawn::SetupPlayerInputComponent(UInputComponent* playerInputCompo
     inputComp->BindAction(cmdCtrl->GetActionRoll(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnRollAction);
     inputComp->BindAction(cmdCtrl->GetActionReset(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnResetAction);
     inputComp->BindAction(cmdCtrl->GetActionLClick(), ETriggerEvent::Started, this, &ACommanderPawn::OnLeftClickAction);
+    inputComp->BindAction(cmdCtrl->GetActionToggleSetupArmy(), ETriggerEvent::Started, this, &ACommanderPawn::OnToggleSetupArmyAction);
     
     const ULocalPlayer* localPlayer = cmdCtrl->GetLocalPlayer();
     check(localPlayer);

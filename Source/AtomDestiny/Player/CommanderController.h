@@ -35,10 +35,13 @@ public:
     UInputAction* GetActionRoll() const { return m_actionRoll; }
     UInputAction* GetActionReset() const { return m_actionReset; }
     UInputAction* GetActionLClick() const { return m_actionLClick; }
+    UInputAction* GetActionToggleSetupArmy() const { return m_actionToggleSetupArmy; }
 
     void SetTrainingWidget(UTrainingMainWidget* widget);
 
     void TryPlaceUnitAtCursor();
+
+    void ToggleSetupArmyMode();
 
     void OnSetupArmyModeChanged(bool setupArmy);
 
@@ -64,6 +67,9 @@ protected:
     
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Action LClick"))
     UInputAction* m_actionLClick;
+
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Action toggle setup army"))
+    UInputAction* m_actionToggleSetupArmy;
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Action RClick"))
     UInputAction* m_actionRClick;

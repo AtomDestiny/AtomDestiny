@@ -75,6 +75,9 @@ void ACommanderController::SetupInputComponent()
     m_actionLClick = NewObject<UInputAction>(this);
     m_actionLClick->ValueType = EInputActionValueType::Boolean;
 
+    m_actionToggleSetupArmy = NewObject<UInputAction>(this);
+    m_actionToggleSetupArmy->ValueType = EInputActionValueType::Boolean;
+
     m_actionRClick = NewObject<UInputAction>(this);
     m_actionRClick->ValueType = EInputActionValueType::Boolean;
 
@@ -83,14 +86,16 @@ void ACommanderController::SetupInputComponent()
 
     mapKey(m_pawnMappingContext, m_actionReset, EKeys::R);
 
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::SpaceBar);
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::LeftControl, true);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::E);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::Q, true);
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::D, false, true);
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::A, true, true);
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::W, false, true, EInputAxisSwizzle::ZYX);
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::S, true, true, EInputAxisSwizzle::ZYX);
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::MouseScrollUp, false, true, EInputAxisSwizzle::ZYX);
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::MouseScrollDown, true, true, EInputAxisSwizzle::ZYX);
+
+    mapKey(m_pawnMappingContext, m_actionToggleSetupArmy, EKeys::SpaceBar);
 
     if (EnableMouseLook)
     {
@@ -101,9 +106,6 @@ void ACommanderController::SetupInputComponent()
         mapKey(m_pawnMappingContext, m_actionLook, EKeys::MouseX, false, true,
            EInputAxisSwizzle::YXZ, true, m_actionLClick);
     }
-
-    mapKey(m_pawnMappingContext, m_actionRoll, EKeys::E, false);
-    mapKey(m_pawnMappingContext, m_actionRoll, EKeys::Q, true);
 }
 
 void ACommanderController::BeginPlay()
@@ -129,6 +131,14 @@ void ACommanderController::BeginPlay()
 void ACommanderController::SetTrainingWidget(UTrainingMainWidget* widget)
 {
     m_trainingWidget = widget;
+}
+
+void ACommanderController::ToggleSetupArmyMode()
+{
+    if (m_trainingWidget.IsValid())
+    {
+        m_trainingWidget->ChangeMode(!m_trainingWidget->IsSetupArmyMode());
+    }
 }
 
 void ACommanderController::OnSetupArmyModeChanged(bool setupArmy)

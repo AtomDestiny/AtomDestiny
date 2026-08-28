@@ -8,6 +8,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/ListView.h"
 #include "Components/Widget.h"
+#include "Kismet/GameplayStatics.h"
 
 namespace
 {
@@ -76,6 +77,8 @@ void UTrainingMainWidget::ChangeMode(bool setupArmy)
     {
         UnitsList->SetVisibility(VisibilityBool[setupArmy]);
     }
+
+    UGameplayStatics::SetGamePaused(this, setupArmy);
 
     if (ACommanderController* controller = Cast<ACommanderController>(GetOwningPlayer()))
     {
