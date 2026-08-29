@@ -71,3 +71,24 @@ void Pool::Despawn(TWeakObjectPtr<AActor> object)
 
     m_inactive.push(std::move(object));
 }
+
+void Pool::DestroyAllInstances()
+{
+    while (!m_inactive.empty())
+    {
+        TWeakObjectPtr<AActor> object = m_inactive.top();
+        m_inactive.pop();
+
+        if (!object.IsValid())
+        {
+            continue;
+        }
+
+        if (UDespawner* despawner = object->FindComponentByClass<UDespawner>())
+        {
+            despawner->ClearDespawnTimer();
+        }
+
+        object->Destroy();
+    }
+}

@@ -17,6 +17,9 @@ public:
     void Despawn(double time);
     void ClearDespawnTimer();
 
+protected:
+    virtual void EndPlay(const EEndPlayReason::Type endPlayReason) override;
+
 private:
     FTimerHandle m_timerHandle;
 };

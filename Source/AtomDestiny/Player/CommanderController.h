@@ -35,15 +35,23 @@ public:
     UInputAction* GetActionRoll() const { return m_actionRoll; }
     UInputAction* GetActionReset() const { return m_actionReset; }
     UInputAction* GetActionLClick() const { return m_actionLClick; }
-    UInputAction* GetActionToggleSetupArmy() const { return m_actionToggleSetupArmy; }
+    UInputAction* GetActionEndSetupArmy() const { return m_actionEndSetupArmy; }
 
     void SetTrainingWidget(UTrainingMainWidget* widget);
 
     void TryPlaceUnitAtCursor();
 
-    void ToggleSetupArmyMode();
+    void TryFinishArmySetup();
 
     void OnSetupArmyModeChanged(bool setupArmy);
+
+    bool IsArmySetupActive() const { return m_bArmySetupActive; }
+
+    /** Drop placed unit refs before leaving Training (actors are removed by OpenLevel). */
+    void ClearSetupUnits();
+
+    /** Clears pending despawn timers for all actors on the current map. */
+    void ClearLevelDespawnTimers() const;
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Enable mouse look"))
     bool EnableMouseLook = true;
@@ -68,8 +76,8 @@ protected:
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Action LClick"))
     UInputAction* m_actionLClick;
 
-    UPROPERTY(EditAnywhere, meta = (DisplayName = "Action toggle setup army"))
-    UInputAction* m_actionToggleSetupArmy;
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Action end setup army"))
+    UInputAction* m_actionEndSetupArmy;
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Action RClick"))
     UInputAction* m_actionRClick;
@@ -86,6 +94,8 @@ private:
     TObjectPtr<APlacementPointer> m_placementPointer;
 
     TWeakObjectPtr<UTrainingMainWidget> m_trainingWidget;
+
+    bool m_bArmySetupActive = false;
 
     UPROPERTY()
     TArray<TWeakObjectPtr<APawn>> m_setupPlacedUnits;

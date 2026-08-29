@@ -113,11 +113,11 @@ void ACommanderPawn::OnLeftClickAction(const FInputActionValue&)
     }
 }
 
-void ACommanderPawn::OnToggleSetupArmyAction(const FInputActionValue&)
+void ACommanderPawn::OnEndSetupArmyAction(const FInputActionValue&)
 {
     if (ACommanderController* controller = Cast<ACommanderController>(Controller))
     {
-        controller->ToggleSetupArmyMode();
+        controller->TryFinishArmySetup();
     }
 }
 
@@ -136,7 +136,7 @@ void ACommanderPawn::SetupPlayerInputComponent(UInputComponent* playerInputCompo
     inputComp->BindAction(cmdCtrl->GetActionRoll(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnRollAction);
     inputComp->BindAction(cmdCtrl->GetActionReset(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnResetAction);
     inputComp->BindAction(cmdCtrl->GetActionLClick(), ETriggerEvent::Started, this, &ACommanderPawn::OnLeftClickAction);
-    inputComp->BindAction(cmdCtrl->GetActionToggleSetupArmy(), ETriggerEvent::Started, this, &ACommanderPawn::OnToggleSetupArmyAction);
+    inputComp->BindAction(cmdCtrl->GetActionEndSetupArmy(), ETriggerEvent::Started, this, &ACommanderPawn::OnEndSetupArmyAction);
     
     const ULocalPlayer* localPlayer = cmdCtrl->GetLocalPlayer();
     check(localPlayer);

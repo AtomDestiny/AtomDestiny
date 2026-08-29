@@ -22,7 +22,10 @@ namespace AtomDestiny
         
         // Returns an object to the inactive pool.
         void Despawn(TWeakObjectPtr<AActor> object);
-    
+
+        /** Destroys pooled instances; does not destroy the spawn template actor. */
+        void DestroyAllInstances();
+
     private:
         
         // Counter to append an id to the name of anything instantiated.

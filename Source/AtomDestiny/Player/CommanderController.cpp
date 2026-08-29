@@ -2,6 +2,7 @@
 
 #include "AtomDestinyGameStateBase.h"
 #include "AtomDestiny/Gameplay/UnitStorage.h"
+#include "AtomDestiny/Core/ObjectPool/Despawner.h"
 #include "AtomDestiny/Core/ActorComponentUtils.h"
 #include "AtomDestiny/Logic/Logic.h"
 #include "AtomDestiny/Logic/UnitLogic.h"
@@ -16,6 +17,7 @@
 #include "InputMappingContext.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
+#include "UObject/UObjectIterator.h"
 
 static void mapKey(UInputMappingContext* context, UInputAction* action, FKey key,
     bool isNegate = false, bool isSwizzle = false, EInputAxisSwizzle swizzleOrder = EInputAxisSwizzle::YXZ,
@@ -75,8 +77,8 @@ void ACommanderController::SetupInputComponent()
     m_actionLClick = NewObject<UInputAction>(this);
     m_actionLClick->ValueType = EInputActionValueType::Boolean;
 
-    m_actionToggleSetupArmy = NewObject<UInputAction>(this);
-    m_actionToggleSetupArmy->ValueType = EInputActionValueType::Boolean;
+    m_actionEndSetupArmy = NewObject<UInputAction>(this);
+    m_actionEndSetupArmy->ValueType = EInputActionValueType::Boolean;
 
     m_actionRClick = NewObject<UInputAction>(this);
     m_actionRClick->ValueType = EInputActionValueType::Boolean;
@@ -95,7 +97,7 @@ void ACommanderController::SetupInputComponent()
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::MouseScrollUp, false, true, EInputAxisSwizzle::ZYX);
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::MouseScrollDown, true, true, EInputAxisSwizzle::ZYX);
 
-    mapKey(m_pawnMappingContext, m_actionToggleSetupArmy, EKeys::SpaceBar);
+    mapKey(m_pawnMappingContext, m_actionEndSetupArmy, EKeys::SpaceBar);
 
     if (EnableMouseLook)
     {
@@ -133,16 +135,59 @@ void ACommanderController::SetTrainingWidget(UTrainingMainWidget* widget)
     m_trainingWidget = widget;
 }
 
-void ACommanderController::ToggleSetupArmyMode()
+void ACommanderController::ClearSetupUnits()
 {
-    if (m_trainingWidget.IsValid())
+    for (const TWeakObjectPtr<APawn>& weakPawn : m_setupPlacedUnits)
     {
-        m_trainingWidget->ChangeMode(!m_trainingWidget->IsSetupArmyMode());
+        APawn* pawn = weakPawn.Get();
+        if (pawn == nullptr)
+        {
+            continue;
+        }
+
+        if (UDespawner* despawner = pawn->FindComponentByClass<UDespawner>())
+        {
+            despawner->ClearDespawnTimer();
+        }
     }
+
+    // Do not Destroy() here: OpenLevel unloads the Training map and removes actors.
+    m_setupPlacedUnits.Empty();
+}
+
+void ACommanderController::ClearLevelDespawnTimers() const
+{
+    UWorld* world = GetWorld();
+    if (world == nullptr)
+    {
+        return;
+    }
+
+    for (TObjectIterator<UDespawner> it; it; ++it)
+    {
+        if (it->GetWorld() != world)
+        {
+            continue;
+        }
+
+        it->ClearDespawnTimer();
+    }
+}
+
+void ACommanderController::TryFinishArmySetup()
+{
+    if (!m_bArmySetupActive || !m_trainingWidget.IsValid())
+    {
+        return;
+    }
+
+    m_trainingWidget->EndArmySetup();
 }
 
 void ACommanderController::OnSetupArmyModeChanged(bool setupArmy)
 {
+    m_bArmySetupActive = setupArmy;
+
     if (UWorld* world = GetWorld())
     {
         for (TActorIterator<AFloorGrid> it(world); it; ++it)
@@ -190,7 +235,7 @@ void ACommanderController::OnSetupArmyModeChanged(bool setupArmy)
 
 bool ACommanderController::IsGridPointerActive() const
 {
-    return m_trainingWidget.IsValid() && m_trainingWidget->IsSetupArmyMode();
+    return m_bArmySetupActive;
 }
 
 bool ACommanderController::TryGetGridCellUnderCursor(AFloorGrid*& outGrid, FVector& outCellCenter) const

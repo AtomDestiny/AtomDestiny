@@ -31,7 +31,7 @@ public:
     void OnRollAction(const FInputActionValue& actionValue);
     void OnResetAction(const FInputActionValue&);
     void OnLeftClickAction(const FInputActionValue&);
-    void OnToggleSetupArmyAction(const FInputActionValue&);
+    void OnEndSetupArmyAction(const FInputActionValue&);
     
     // Called to bind functionality to input
     virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;

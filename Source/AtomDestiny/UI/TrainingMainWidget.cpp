@@ -14,8 +14,6 @@
 
 namespace
 {
-    const ESlateVisibility VisibilityBool[] = { ESlateVisibility::Hidden, ESlateVisibility::Visible };
-
     void SetCanvasSlotAutoSize(UWidget* widget)
     {
         if (widget == nullptr)
@@ -67,31 +65,89 @@ void UTrainingMainWidget::SetupUnits(const TArray<EADUnitType>& units)
     }
 }
 
-void UTrainingMainWidget::ChangeMode(bool setupArmy)
+void UTrainingMainWidget::BeginArmySetup()
 {
-    m_flSetupArmy = setupArmy;
+    if (m_bArmySetupActive)
+    {
+        return;
+    }
+
+    m_bArmySetupActive = true;
 
     if (BnSetupArmy != nullptr)
     {
-        BnSetupArmy->SetVisibility(VisibilityBool[!setupArmy]);
+        BnSetupArmy->SetVisibility(ESlateVisibility::Collapsed);
     }
 
-    if (BnEndSetupArmy != nullptr)
+    if (BnStartBattle != nullptr)
     {
-        BnEndSetupArmy->SetVisibility(VisibilityBool[setupArmy]);
+        BnStartBattle->SetVisibility(ESlateVisibility::Visible);
     }
 
     if (UnitsList != nullptr)
     {
-        UnitsList->SetVisibility(VisibilityBool[setupArmy]);
+        UnitsList->SetVisibility(ESlateVisibility::Visible);
     }
 
-    UGameplayStatics::SetGamePaused(this, setupArmy);
+    UGameplayStatics::SetGamePaused(this, true);
 
     if (ACommanderController* controller = Cast<ACommanderController>(GetOwningPlayer()))
     {
-        controller->OnSetupArmyModeChanged(setupArmy);
+        controller->OnSetupArmyModeChanged(true);
     }
+}
+
+void UTrainingMainWidget::EndArmySetup()
+{
+    if (!m_bArmySetupActive)
+    {
+        return;
+    }
+
+    m_bArmySetupActive = false;
+
+    if (BnStartBattle != nullptr)
+    {
+        BnStartBattle->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    if (UnitsList != nullptr)
+    {
+        UnitsList->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    UGameplayStatics::SetGamePaused(this, false);
+
+    if (ACommanderController* controller = Cast<ACommanderController>(GetOwningPlayer()))
+    {
+        controller->OnSetupArmyModeChanged(false);
+    }
+}
+
+void UTrainingMainWidget::OnStartBattleClicked()
+{
+    EndArmySetup();
+}
+
+void UTrainingMainWidget::ReturnToMainMenu()
+{
+    if (ACommanderController* controller = Cast<ACommanderController>(GetOwningPlayer()))
+    {
+        controller->ClearSetupUnits();
+        controller->ClearLevelDespawnTimers();
+    }
+
+    if (m_bArmySetupActive)
+    {
+        UGameplayStatics::SetGamePaused(this, false);
+    }
+
+    UGameplayStatics::OpenLevel(this, m_mainMenuMapName);
+}
+
+void UTrainingMainWidget::OnBackToMenuClicked()
+{
+    ReturnToMainMenu();
 }
 
 void UTrainingMainWidget::NativePreConstruct()
@@ -107,23 +163,51 @@ void UTrainingMainWidget::NativeConstruct()
 
     RefreshUnitCards();
 
+    if (ACommanderController* controller = Cast<ACommanderController>(GetOwningPlayer()))
+    {
+        controller->SetTrainingWidget(this);
+    }
+
+    BeginArmySetup();
+
     if (UWorld* world = GetWorld())
     {
         world->GetTimerManager().SetTimerForNextTick(
             FTimerDelegate::CreateUObject(this, &UTrainingMainWidget::RefreshUnitCards));
     }
 
-    if (ACommanderController* controller = Cast<ACommanderController>(GetOwningPlayer()))
+    if (BnStartBattle != nullptr)
     {
-        controller->SetTrainingWidget(this);
+        BnStartBattle->OnClicked.AddDynamic(this, &UTrainingMainWidget::OnStartBattleClicked);
     }
+
+    if (BnBackToMenu != nullptr)
+    {
+        BnBackToMenu->OnClicked.AddDynamic(this, &UTrainingMainWidget::OnBackToMenuClicked);
+    }
+}
+
+void UTrainingMainWidget::NativeDestruct()
+{
+    if (BnStartBattle != nullptr)
+    {
+        BnStartBattle->OnClicked.RemoveDynamic(this, &UTrainingMainWidget::OnStartBattleClicked);
+    }
+
+    if (BnBackToMenu != nullptr)
+    {
+        BnBackToMenu->OnClicked.RemoveDynamic(this, &UTrainingMainWidget::OnBackToMenuClicked);
+    }
+
+    Super::NativeDestruct();
 }
 
 void UTrainingMainWidget::ApplyOverlayHitBounds()
 {
     SetVisibility(ESlateVisibility::SelfHitTestInvisible);
     SetCanvasSlotAutoSize(BnSetupArmy);
-    SetCanvasSlotAutoSize(BnEndSetupArmy);
+    SetCanvasSlotAutoSize(BnStartBattle);
+    SetCanvasSlotAutoSize(BnBackToMenu);
 }
 
 EADUnitType UTrainingMainWidget::GetSelectedUnitType() const

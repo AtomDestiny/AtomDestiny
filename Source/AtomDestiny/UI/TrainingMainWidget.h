@@ -18,9 +18,6 @@ class ATOMDESTINY_API UTrainingMainWidget : public UUserWidget
     GENERATED_BODY()
 
 public:
-    UPROPERTY(EditAnywhere, meta = (DisplayName = "SetupArmyFlag"))
-    bool m_flSetupArmy = false;
-
     UFUNCTION(BlueprintCallable)
     void SetupUnits(const TArray<EADUnitType>& units);
 
@@ -28,28 +25,50 @@ public:
     void RefreshUnitCards();
 
     UFUNCTION(BlueprintCallable)
-    void ChangeMode(bool setupArmy);
+    void BeginArmySetup();
+
+    /** Ends setup and starts the battle. Cannot return to setup until the map is reloaded. */
+    UFUNCTION(BlueprintCallable)
+    void EndArmySetup();
 
     UFUNCTION(BlueprintPure, Category = "Training")
-    bool IsSetupArmyMode() const { return m_flSetupArmy; }
+    bool IsArmySetupActive() const { return m_bArmySetupActive; }
 
     /** Returns unit type from the currently selected card, if any. */
     UFUNCTION(BlueprintPure, Category = "Training")
     EADUnitType GetSelectedUnitType() const;
 
+    UFUNCTION(BlueprintCallable, Category = "Training")
+    void ReturnToMainMenu();
+
 protected:
     virtual void NativePreConstruct() override;
     virtual void NativeConstruct() override;
+    virtual void NativeDestruct() override;
+
+    UPROPERTY(EditAnywhere, meta = (BindWidgetOptional))
+    UButton* BnBackToMenu;
 
     UPROPERTY(EditAnywhere, meta = (BindWidget))
     UButton* BnSetupArmy;
 
     UPROPERTY(EditAnywhere, meta = (BindWidget))
-    UButton* BnEndSetupArmy;
+    UButton* BnStartBattle;
 
     UPROPERTY(EditAnywhere, meta = (BindWidget))
     UListView* UnitsList;
 
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Main menu map"))
+    FName m_mainMenuMapName = FName(TEXT("MainMenuMap"));
+
 private:
+    UFUNCTION()
+    void OnBackToMenuClicked();
+
+    UFUNCTION()
+    void OnStartBattleClicked();
+
     void ApplyOverlayHitBounds();
+
+    bool m_bArmySetupActive = false;
 };
