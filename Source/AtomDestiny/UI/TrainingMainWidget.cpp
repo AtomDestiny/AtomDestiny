@@ -133,6 +133,11 @@ void UTrainingMainWidget::ReturnToMainMenu()
 {
     if (ACommanderController* controller = Cast<ACommanderController>(GetOwningPlayer()))
     {
+        if (!m_bArmySetupActive)
+        {
+            controller->PersistTacticsLayoutForNextVisit();
+        }
+
         controller->ClearSetupUnits();
         controller->ClearLevelDespawnTimers();
     }

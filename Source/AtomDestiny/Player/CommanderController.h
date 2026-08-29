@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "AtomDestiny/AtomDestiny.h"
+#include "AtomDestiny/Gameplay/TacticsLayoutElement.h"
 
 #include "CommanderController.generated.h"
 
@@ -53,6 +54,9 @@ public:
     /** Clears pending despawn timers for all actors on the current map. */
     void ClearLevelDespawnTimers() const;
 
+    /** Writes the current layout to GameInstance before leaving Training (after battle). */
+    void PersistTacticsLayoutForNextVisit();
+
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Enable mouse look"))
     bool EnableMouseLook = true;
 
@@ -90,6 +94,16 @@ private:
     FRotator ComputeFacingRotation(const FVector& location, EGameSide placementSide) const;
     void AlignUnitGroundPoint(APawn* pawn, const FVector& groundLocation) const;
 
+    APawn* SpawnTrainingUnitAt(
+        EADUnitType unitType,
+        EGameSide placementSide,
+        const FVector& groundLocation,
+        const FRotator& facingRotation);
+
+    void SaveTacticsLayoutToGameInstance() const;
+
+    void TryRestoreTacticsLayout();
+
     UPROPERTY()
     TObjectPtr<APlacementPointer> m_placementPointer;
 
@@ -99,4 +113,10 @@ private:
 
     UPROPERTY()
     TArray<TWeakObjectPtr<APawn>> m_setupPlacedUnits;
+
+    TArray<FTacticsLayoutElement> m_tacticsLayout;
+
+    bool m_bTacticsLayoutRestored = false;
+
+    uint8 m_restoreLayoutAttempts = 0;
 };

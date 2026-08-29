@@ -1,6 +1,8 @@
 #include "CommanderController.h"
 
 #include "AtomDestinyGameStateBase.h"
+#include "AtomDestiny/Gameplay/AtomDestinyGameInstance.h"
+#include "AtomDestiny/Gameplay/UnitCatalog.h"
 #include "AtomDestiny/Gameplay/UnitStorage.h"
 #include "AtomDestiny/Core/ObjectPool/Despawner.h"
 #include "AtomDestiny/Core/ActorComponentUtils.h"
@@ -128,6 +130,8 @@ void ACommanderController::BeginPlay()
     {
         m_placementPointer->HidePointer();
     }
+
+    TryRestoreTacticsLayout();
 }
 
 void ACommanderController::SetTrainingWidget(UTrainingMainWidget* widget)
@@ -200,6 +204,8 @@ void ACommanderController::OnSetupArmyModeChanged(bool setupArmy)
     {
         return;
     }
+
+    SaveTacticsLayoutToGameInstance();
 
     if (m_placementPointer != nullptr)
     {
@@ -332,6 +338,138 @@ void ACommanderController::AlignUnitGroundPoint(APawn* pawn, const FVector& grou
     pawn->SetActorLocation(pawn->GetActorLocation() + offset);
 }
 
+APawn* ACommanderController::SpawnTrainingUnitAt(
+    const EADUnitType unitType,
+    const EGameSide placementSide,
+    const FVector& groundLocation,
+    const FRotator& facingRotation)
+{
+    if (unitType == EADUnitType::None || GetWorld() == nullptr)
+    {
+        return nullptr;
+    }
+
+    const AtomDestiny::UnitStorage& storage = AtomDestiny::UnitStorage::Instance();
+    const TOptional<FUnitInfo> unitInfo = storage.GetInfo(unitType);
+    if (!unitInfo.IsSet() || unitInfo->prefab == nullptr)
+    {
+        return nullptr;
+    }
+
+    FTransform spawnTransform(facingRotation, groundLocation);
+    APawn* pawn = GetWorld()->SpawnActorDeferred<APawn>(
+        unitInfo->prefab,
+        spawnTransform,
+        this,
+        nullptr,
+        ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+
+    if (pawn == nullptr)
+    {
+        return nullptr;
+    }
+
+    if (const TScriptInterface<ILogic> logic = AtomDestiny::Utils::GetInterface<ILogic>(pawn))
+    {
+        logic->SetSide(placementSide);
+    }
+
+    if (UUnitLogic* unitLogic = pawn->FindComponentByClass<UUnitLogic>())
+    {
+        unitLogic->PrepareForSetupPlacement();
+    }
+
+    pawn->FinishSpawning(spawnTransform);
+    AlignUnitGroundPoint(pawn, groundLocation);
+    pawn->SetActorRotation(facingRotation);
+
+    if (UUnitSideColorDetails* sideColorDetails = pawn->FindComponentByClass<UUnitSideColorDetails>())
+    {
+        sideColorDetails->ApplyForSide(placementSide);
+    }
+
+    m_setupPlacedUnits.Add(pawn);
+    return pawn;
+}
+
+void ACommanderController::SaveTacticsLayoutToGameInstance() const
+{
+    if (UAtomDestinyGameInstance* gameInstance = Cast<UAtomDestinyGameInstance>(GetGameInstance()))
+    {
+        gameInstance->SaveTacticsLayout(m_tacticsLayout);
+    }
+}
+
+void ACommanderController::PersistTacticsLayoutForNextVisit()
+{
+    if (m_tacticsLayout.Num() > 0)
+    {
+        SaveTacticsLayoutToGameInstance();
+    }
+}
+
+void ACommanderController::TryRestoreTacticsLayout()
+{
+    if (m_bTacticsLayoutRestored)
+    {
+        return;
+    }
+
+    // Player already placed units this visit — do not spawn saved layout on top.
+    if (m_setupPlacedUnits.Num() > 0 || m_tacticsLayout.Num() > 0)
+    {
+        m_bTacticsLayoutRestored = true;
+        return;
+    }
+
+    UWorld* world = GetWorld();
+    if (world == nullptr)
+    {
+        return;
+    }
+
+    AtomDestiny::EnsureUnitCatalogLoaded();
+
+    if (world->GetGameState<AAtomDestinyGameStateBase>() == nullptr)
+    {
+        if (m_restoreLayoutAttempts < 10)
+        {
+            ++m_restoreLayoutAttempts;
+            world->GetTimerManager().SetTimerForNextTick(
+                FTimerDelegate::CreateWeakLambda(this, [this]()
+                {
+                    TryRestoreTacticsLayout();
+                }));
+        }
+        else
+        {
+            m_bTacticsLayoutRestored = true;
+        }
+
+        return;
+    }
+
+    m_bTacticsLayoutRestored = true;
+
+    UAtomDestinyGameInstance* gameInstance = Cast<UAtomDestinyGameInstance>(GetGameInstance());
+    if (gameInstance == nullptr || !gameInstance->HasSavedTacticsLayout())
+    {
+        return;
+    }
+
+    m_tacticsLayout = gameInstance->GetTacticsLayout();
+
+    for (const FTacticsLayoutElement& element : m_tacticsLayout)
+    {
+        if (element.unitType == EADUnitType::None)
+        {
+            continue;
+        }
+
+        SpawnTrainingUnitAt(element.unitType, element.side, element.location, element.rotation);
+    }
+}
+
 void ACommanderController::TryPlaceUnitAtCursor()
 {
     if (!IsGridPointerActive() || m_trainingWidget == nullptr)
@@ -360,48 +498,20 @@ void ACommanderController::TryPlaceUnitAtCursor()
         return;
     }
 
-    const AtomDestiny::UnitStorage& storage = AtomDestiny::UnitStorage::Instance();
-    const TOptional<FUnitInfo> unitInfo = storage.GetInfo(unitType);
-    if (!unitInfo.IsSet() || unitInfo->prefab == nullptr)
-    {
-        return;
-    }
-
     const FRotator facingRotation = ComputeFacingRotation(groundLocation, placementSide);
 
-    FTransform spawnTransform(facingRotation, groundLocation);
-    APawn* pawn = GetWorld()->SpawnActorDeferred<APawn>(
-        unitInfo->prefab,
-        spawnTransform,
-        this,
-        nullptr,
-        ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
-
+    APawn* pawn = SpawnTrainingUnitAt(unitType, placementSide, groundLocation, facingRotation);
     if (pawn == nullptr)
     {
         return;
     }
 
-    if (const TScriptInterface<ILogic> logic = AtomDestiny::Utils::GetInterface<ILogic>(pawn))
-    {
-        logic->SetSide(placementSide);
-    }
-
-    if (UUnitLogic* unitLogic = pawn->FindComponentByClass<UUnitLogic>())
-    {
-        unitLogic->PrepareForSetupPlacement();
-    }
-
-    pawn->FinishSpawning(spawnTransform);
-    AlignUnitGroundPoint(pawn, groundLocation);
-    pawn->SetActorRotation(facingRotation);
-
-    if (UUnitSideColorDetails* sideColorDetails = pawn->FindComponentByClass<UUnitSideColorDetails>())
-    {
-        sideColorDetails->ApplyForSide(placementSide);
-    }
-
-    m_setupPlacedUnits.Add(pawn);
+    FTacticsLayoutElement element;
+    element.unitType = unitType;
+    element.side = placementSide;
+    element.location = groundLocation;
+    element.rotation = facingRotation;
+    m_tacticsLayout.Add(element);
 }
 
 void ACommanderController::UpdatePlacementPointer()

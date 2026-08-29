@@ -21,3 +21,8 @@ void UAtomDestinyGameInstance::Init()
         AtomDestiny::SideStorage::Instance().Add(std::move(sides));
     }
 }
+
+void UAtomDestinyGameInstance::SaveTacticsLayout(const TArray<FTacticsLayoutElement>& layout)
+{
+    m_tacticsLayout = layout;
+}
