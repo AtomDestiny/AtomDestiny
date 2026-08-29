@@ -109,6 +109,14 @@ void ACommanderPawn::OnLeftClickAction(const FInputActionValue&)
     }
 }
 
+void ACommanderPawn::OnRightClickAction(const FInputActionValue&)
+{
+    if (ACommanderController* controller = Cast<ACommanderController>(Controller))
+    {
+        controller->TryRemoveHoveredSetupUnit();
+    }
+}
+
 void ACommanderPawn::OnEndSetupArmyAction(const FInputActionValue&)
 {
     if (ACommanderController* controller = Cast<ACommanderController>(Controller))
@@ -132,6 +140,7 @@ void ACommanderPawn::SetupPlayerInputComponent(UInputComponent* playerInputCompo
     inputComp->BindAction(cmdCtrl->GetActionRoll(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnRollAction);
     inputComp->BindAction(cmdCtrl->GetActionReset(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnResetAction);
     inputComp->BindAction(cmdCtrl->GetActionLClick(), ETriggerEvent::Started, this, &ACommanderPawn::OnLeftClickAction);
+    inputComp->BindAction(cmdCtrl->GetActionRClick(), ETriggerEvent::Started, this, &ACommanderPawn::OnRightClickAction);
     inputComp->BindAction(cmdCtrl->GetActionEndSetupArmy(), ETriggerEvent::Started, this, &ACommanderPawn::OnEndSetupArmyAction);
 
     const ULocalPlayer* localPlayer = cmdCtrl->GetLocalPlayer();

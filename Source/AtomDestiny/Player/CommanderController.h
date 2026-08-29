@@ -36,11 +36,14 @@ public:
     UInputAction* GetActionRoll() const { return m_actionRoll; }
     UInputAction* GetActionReset() const { return m_actionReset; }
     UInputAction* GetActionLClick() const { return m_actionLClick; }
+    UInputAction* GetActionRClick() const { return m_actionRClick; }
     UInputAction* GetActionEndSetupArmy() const { return m_actionEndSetupArmy; }
 
     void SetTrainingWidget(UTrainingMainWidget* widget);
 
     void TryPlaceUnitAtCursor();
+
+    void TryRemoveHoveredSetupUnit();
 
     void TryFinishArmySetup();
 
@@ -91,6 +94,13 @@ protected:
 
 private:
     void UpdatePlacementPointer();
+    void UpdateSetupUnitHover();
+    void ClearSetupUnitHover();
+    bool IsSetupPlacedUnit(const APawn* pawn) const;
+    APawn* FindSetupUnitUnderCursor() const;
+    void RemoveSetupUnit(APawn* pawn);
+    void SetSetupUnitHighlighted(APawn* pawn, bool bHighlighted) const;
+
     bool IsGridPointerActive() const;
     bool TryGetGridCellUnderCursor(AFloorGrid*& outGrid, FVector& outCellCenter) const;
     bool ProjectToGround(const FVector& cellCenter, FVector& outGroundLocation) const;
@@ -118,6 +128,8 @@ private:
     TArray<TWeakObjectPtr<APawn>> m_setupPlacedUnits;
 
     TArray<FTacticsLayoutElement> m_tacticsLayout;
+
+    TWeakObjectPtr<APawn> m_hoveredSetupUnit;
 
     bool m_bTacticsLayoutRestored = false;
 

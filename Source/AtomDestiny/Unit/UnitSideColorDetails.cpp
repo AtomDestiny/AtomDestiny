@@ -18,6 +18,15 @@ namespace
 
         return haystack.ToLower().Contains(needle.ToLower());
     }
+
+    FLinearColor BrightenColor(const FLinearColor& color, const float multiplier)
+    {
+        return FLinearColor(
+            FMath::Min(color.R * multiplier, 1.f),
+            FMath::Min(color.G * multiplier, 1.f),
+            FMath::Min(color.B * multiplier, 1.f),
+            color.A);
+    }
 }
 
 void UUnitSideColorDetails::BeginPlay()
@@ -37,19 +46,20 @@ void UUnitSideColorDetails::ApplyForSide(const EGameSide side)
         return;
     }
 
-    TArray<UActorComponent*> detailComponents;
-    CollectDetailComponents(detailComponents);
-    if (detailComponents.IsEmpty())
+    m_baseTeamColor = AtomDestiny::SideStorage::Instance().GetTeamColor(side);
+    m_bHighlighted = false;
+    ApplyDisplayColor();
+}
+
+void UUnitSideColorDetails::SetHighlighted(const bool bHighlighted)
+{
+    if (m_bHighlighted == bHighlighted)
     {
         return;
     }
 
-    const FLinearColor teamColor = AtomDestiny::SideStorage::Instance().GetTeamColor(side);
-
-    for (UActorComponent* component : detailComponents)
-    {
-        ApplyColorToComponent(component, teamColor);
-    }
+    m_bHighlighted = bHighlighted;
+    ApplyDisplayColor();
 }
 
 void UUnitSideColorDetails::CollectDetailComponents(TArray<UActorComponent*>& outComponents) const
@@ -95,26 +105,40 @@ void UUnitSideColorDetails::CollectDetailComponents(TArray<UActorComponent*>& ou
     }
 }
 
-void UUnitSideColorDetails::ApplyColorToComponent(UActorComponent* component, const FLinearColor& color) const
+void UUnitSideColorDetails::ApplyDisplayColor()
 {
-    UPrimitiveComponent* primitive = Cast<UPrimitiveComponent>(component);
-    if (primitive == nullptr)
+    TArray<UActorComponent*> detailComponents;
+    CollectDetailComponents(detailComponents);
+    if (detailComponents.IsEmpty())
     {
         return;
     }
 
-    const int32 materialCount = primitive->GetNumMaterials();
-    for (int32 materialIndex = 0; materialIndex < materialCount; ++materialIndex)
+    const FLinearColor displayColor = m_bHighlighted
+        ? BrightenColor(m_baseTeamColor, HighlightMultiplier)
+        : m_baseTeamColor;
+
+    for (UActorComponent* component : detailComponents)
     {
-        UMaterialInterface* sourceMaterial = primitive->GetMaterial(materialIndex);
-        if (sourceMaterial == nullptr)
+        UPrimitiveComponent* primitive = Cast<UPrimitiveComponent>(component);
+        if (primitive == nullptr)
         {
             continue;
         }
 
-        if (UMaterialInstanceDynamic* dynamicMaterial = primitive->CreateDynamicMaterialInstance(materialIndex, sourceMaterial))
+        const int32 materialCount = primitive->GetNumMaterials();
+        for (int32 materialIndex = 0; materialIndex < materialCount; ++materialIndex)
         {
-            dynamicMaterial->SetVectorParameterValue(m_colorParameterName, color);
+            UMaterialInterface* sourceMaterial = primitive->GetMaterial(materialIndex);
+            if (sourceMaterial == nullptr)
+            {
+                continue;
+            }
+
+            if (UMaterialInstanceDynamic* dynamicMaterial = primitive->CreateDynamicMaterialInstance(materialIndex, sourceMaterial))
+            {
+                dynamicMaterial->SetVectorParameterValue(m_colorParameterName, displayColor);
+            }
         }
     }
 }

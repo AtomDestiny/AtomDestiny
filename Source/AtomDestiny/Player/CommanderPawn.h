@@ -31,6 +31,7 @@ public:
     void OnRollAction(const FInputActionValue& actionValue);
     void OnResetAction(const FInputActionValue&);
     void OnLeftClickAction(const FInputActionValue&);
+    void OnRightClickAction(const FInputActionValue&);
     void OnEndSetupArmyAction(const FInputActionValue&);
 
     void ApplyTopCameraView();

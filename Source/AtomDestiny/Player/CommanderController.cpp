@@ -141,6 +141,8 @@ void ACommanderController::SetTrainingWidget(UTrainingMainWidget* widget)
 
 void ACommanderController::ClearSetupUnits()
 {
+    ClearSetupUnitHover();
+
     for (const TWeakObjectPtr<APawn>& weakPawn : m_setupPlacedUnits)
     {
         APawn* pawn = weakPawn.Get();
@@ -182,6 +184,7 @@ void ACommanderController::ClearAllSetupUnits()
         pawn->Destroy();
     }
 
+    ClearSetupUnitHover();
     m_setupPlacedUnits.Empty();
     m_tacticsLayout.Empty();
 }
@@ -231,6 +234,8 @@ void ACommanderController::OnSetupArmyModeChanged(bool setupArmy)
     {
         return;
     }
+
+    ClearSetupUnitHover();
 
     SaveTacticsLayoutToGameInstance();
 
@@ -541,6 +546,160 @@ void ACommanderController::TryPlaceUnitAtCursor()
     m_tacticsLayout.Add(element);
 }
 
+void ACommanderController::TryRemoveHoveredSetupUnit()
+{
+    if (!IsGridPointerActive())
+    {
+        return;
+    }
+
+    APawn* pawn = m_hoveredSetupUnit.Get();
+    if (pawn == nullptr)
+    {
+        pawn = FindSetupUnitUnderCursor();
+    }
+
+    if (pawn == nullptr)
+    {
+        return;
+    }
+
+    RemoveSetupUnit(pawn);
+}
+
+bool ACommanderController::IsSetupPlacedUnit(const APawn* pawn) const
+{
+    if (pawn == nullptr)
+    {
+        return false;
+    }
+
+    for (const TWeakObjectPtr<APawn>& weakPawn : m_setupPlacedUnits)
+    {
+        if (weakPawn.Get() == pawn)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+APawn* ACommanderController::FindSetupUnitUnderCursor() const
+{
+    FHitResult hit;
+
+    if (GetHitResultUnderCursor(ECC_Pawn, false, hit))
+    {
+        if (APawn* pawn = Cast<APawn>(hit.GetActor()); IsSetupPlacedUnit(pawn))
+        {
+            return pawn;
+        }
+    }
+
+    if (GetHitResultUnderCursor(ECC_Visibility, false, hit))
+    {
+        if (APawn* pawn = Cast<APawn>(hit.GetActor()); IsSetupPlacedUnit(pawn))
+        {
+            return pawn;
+        }
+    }
+
+    return nullptr;
+}
+
+void ACommanderController::SetSetupUnitHighlighted(APawn* pawn, const bool bHighlighted) const
+{
+    if (pawn == nullptr)
+    {
+        return;
+    }
+
+    if (UUnitSideColorDetails* sideColorDetails = pawn->FindComponentByClass<UUnitSideColorDetails>())
+    {
+        sideColorDetails->SetHighlighted(bHighlighted);
+    }
+}
+
+void ACommanderController::ClearSetupUnitHover()
+{
+    if (APawn* hoveredPawn = m_hoveredSetupUnit.Get())
+    {
+        SetSetupUnitHighlighted(hoveredPawn, false);
+    }
+
+    m_hoveredSetupUnit.Reset();
+}
+
+void ACommanderController::UpdateSetupUnitHover()
+{
+    if (!IsGridPointerActive())
+    {
+        ClearSetupUnitHover();
+        return;
+    }
+
+    APawn* hoveredPawn = FindSetupUnitUnderCursor();
+    if (m_hoveredSetupUnit.Get() == hoveredPawn)
+    {
+        return;
+    }
+
+    if (APawn* previousPawn = m_hoveredSetupUnit.Get())
+    {
+        SetSetupUnitHighlighted(previousPawn, false);
+    }
+
+    m_hoveredSetupUnit = hoveredPawn;
+
+    if (hoveredPawn != nullptr)
+    {
+        SetSetupUnitHighlighted(hoveredPawn, true);
+    }
+}
+
+void ACommanderController::RemoveSetupUnit(APawn* pawn)
+{
+    if (pawn == nullptr)
+    {
+        return;
+    }
+
+    int32 unitIndex = INDEX_NONE;
+    for (int32 index = 0; index < m_setupPlacedUnits.Num(); ++index)
+    {
+        if (m_setupPlacedUnits[index].Get() == pawn)
+        {
+            unitIndex = index;
+            break;
+        }
+    }
+
+    if (unitIndex == INDEX_NONE)
+    {
+        return;
+    }
+
+    if (m_hoveredSetupUnit.Get() == pawn)
+    {
+        m_hoveredSetupUnit.Reset();
+    }
+
+    if (UDespawner* despawner = pawn->FindComponentByClass<UDespawner>())
+    {
+        despawner->ClearDespawnTimer();
+    }
+
+    SetSetupUnitHighlighted(pawn, false);
+    pawn->Destroy();
+
+    m_setupPlacedUnits.RemoveAt(unitIndex);
+    if (m_tacticsLayout.IsValidIndex(unitIndex))
+    {
+        m_tacticsLayout.RemoveAt(unitIndex);
+    }
+}
+
 void ACommanderController::UpdatePlacementPointer()
 {
     if (m_placementPointer == nullptr)
@@ -568,5 +727,6 @@ void ACommanderController::UpdatePlacementPointer()
 void ACommanderController::PlayerTick(float DeltaTime)
 {
     Super::PlayerTick(DeltaTime);
+    UpdateSetupUnitHover();
     UpdatePlacementPointer();
 }

@@ -21,6 +21,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "AtomDestiny|Side")
     void ApplyForSide(EGameSide side);
 
+    UFUNCTION(BlueprintCallable, Category = "AtomDestiny|Side")
+    void SetHighlighted(bool bHighlighted);
+
 protected:
     virtual void BeginPlay() override;
 
@@ -38,5 +41,10 @@ protected:
 
 private:
     void CollectDetailComponents(TArray<UActorComponent*>& outComponents) const;
-    void ApplyColorToComponent(UActorComponent* component, const FLinearColor& color) const;
+    void ApplyDisplayColor();
+
+    FLinearColor m_baseTeamColor = FLinearColor::White;
+    bool m_bHighlighted = false;
+
+    static constexpr float HighlightMultiplier = 1.85f;
 };
