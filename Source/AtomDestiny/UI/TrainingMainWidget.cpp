@@ -74,14 +74,14 @@ void UTrainingMainWidget::BeginArmySetup()
 
     m_bArmySetupActive = true;
 
-    if (BnSetupArmy != nullptr)
-    {
-        BnSetupArmy->SetVisibility(ESlateVisibility::Collapsed);
-    }
-
     if (BnStartBattle != nullptr)
     {
         BnStartBattle->SetVisibility(ESlateVisibility::Visible);
+    }
+
+    if (BnClearAll != nullptr)
+    {
+        BnClearAll->SetVisibility(ESlateVisibility::Visible);
     }
 
     if (UnitsList != nullptr)
@@ -109,6 +109,11 @@ void UTrainingMainWidget::EndArmySetup()
     if (BnStartBattle != nullptr)
     {
         BnStartBattle->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    if (BnClearAll != nullptr)
+    {
+        BnClearAll->SetVisibility(ESlateVisibility::Collapsed);
     }
 
     if (UnitsList != nullptr)
@@ -155,6 +160,19 @@ void UTrainingMainWidget::OnBackToMenuClicked()
     ReturnToMainMenu();
 }
 
+void UTrainingMainWidget::OnClearAllClicked()
+{
+    if (!m_bArmySetupActive)
+    {
+        return;
+    }
+
+    if (ACommanderController* controller = Cast<ACommanderController>(GetOwningPlayer()))
+    {
+        controller->ClearAllSetupUnits();
+    }
+}
+
 void UTrainingMainWidget::NativePreConstruct()
 {
     Super::NativePreConstruct();
@@ -190,6 +208,11 @@ void UTrainingMainWidget::NativeConstruct()
     {
         BnBackToMenu->OnClicked.AddDynamic(this, &UTrainingMainWidget::OnBackToMenuClicked);
     }
+
+    if (BnClearAll != nullptr)
+    {
+        BnClearAll->OnClicked.AddDynamic(this, &UTrainingMainWidget::OnClearAllClicked);
+    }
 }
 
 void UTrainingMainWidget::NativeDestruct()
@@ -204,14 +227,19 @@ void UTrainingMainWidget::NativeDestruct()
         BnBackToMenu->OnClicked.RemoveDynamic(this, &UTrainingMainWidget::OnBackToMenuClicked);
     }
 
+    if (BnClearAll != nullptr)
+    {
+        BnClearAll->OnClicked.RemoveDynamic(this, &UTrainingMainWidget::OnClearAllClicked);
+    }
+
     Super::NativeDestruct();
 }
 
 void UTrainingMainWidget::ApplyOverlayHitBounds()
 {
     SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-    SetCanvasSlotAutoSize(BnSetupArmy);
     SetCanvasSlotAutoSize(BnStartBattle);
+    SetCanvasSlotAutoSize(BnClearAll);
     SetCanvasSlotAutoSize(BnBackToMenu);
 }
 

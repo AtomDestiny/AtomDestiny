@@ -49,8 +49,8 @@ protected:
     UPROPERTY(EditAnywhere, meta = (BindWidgetOptional))
     UButton* BnBackToMenu;
 
-    UPROPERTY(EditAnywhere, meta = (BindWidget))
-    UButton* BnSetupArmy;
+    UPROPERTY(EditAnywhere, meta = (BindWidgetOptional))
+    UButton* BnClearAll;
 
     UPROPERTY(EditAnywhere, meta = (BindWidget))
     UButton* BnStartBattle;
@@ -67,6 +67,9 @@ private:
 
     UFUNCTION()
     void OnStartBattleClicked();
+
+    UFUNCTION()
+    void OnClearAllClicked();
 
     void ApplyOverlayHitBounds();
 

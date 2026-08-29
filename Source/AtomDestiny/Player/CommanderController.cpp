@@ -159,6 +159,33 @@ void ACommanderController::ClearSetupUnits()
     m_setupPlacedUnits.Empty();
 }
 
+void ACommanderController::ClearAllSetupUnits()
+{
+    if (!m_bArmySetupActive)
+    {
+        return;
+    }
+
+    for (const TWeakObjectPtr<APawn>& weakPawn : m_setupPlacedUnits)
+    {
+        APawn* pawn = weakPawn.Get();
+        if (pawn == nullptr)
+        {
+            continue;
+        }
+
+        if (UDespawner* despawner = pawn->FindComponentByClass<UDespawner>())
+        {
+            despawner->ClearDespawnTimer();
+        }
+
+        pawn->Destroy();
+    }
+
+    m_setupPlacedUnits.Empty();
+    m_tacticsLayout.Empty();
+}
+
 void ACommanderController::ClearLevelDespawnTimers() const
 {
     UWorld* world = GetWorld();

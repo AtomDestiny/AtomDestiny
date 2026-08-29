@@ -51,6 +51,9 @@ public:
     /** Drop placed unit refs before leaving Training (actors are removed by OpenLevel). */
     void ClearSetupUnits();
 
+    /** Destroy all units placed during setup and clear the session layout. */
+    void ClearAllSetupUnits();
+
     /** Clears pending despawn timers for all actors on the current map. */
     void ClearLevelDespawnTimers() const;
 
