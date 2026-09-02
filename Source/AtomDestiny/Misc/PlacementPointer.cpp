@@ -23,7 +23,7 @@ void APlacementPointer::BeginPlay()
     if (m_pointerMesh.IsNull())
     {
         m_pointerMesh = TSoftObjectPtr<UStaticMesh>(
-            FSoftObjectPath(TEXT("/Game/Models/Other/Pointer3D/Mesh/ArrowsPointer3D.ArrowsPointer3D")));
+            FSoftObjectPath(TEXT("/Game/Models/Other/Pointer3D/Mesh/SM_ArrowsPointer3D.SM_ArrowsPointer3D")));
     }
 
     if (m_pointerMaterial.IsNull())

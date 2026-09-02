@@ -32,7 +32,7 @@ public:
 
 /**
  * List entry card used to pick a unit for placement.
- * Visual layout lives in WBP_UnitCard; C++ only fills data.
+ * Visual layout lives in W_UnitCard; C++ only fills data.
  */
 UCLASS(Blueprintable)
 class ATOMDESTINY_API UUnitCardWidget : public UUserWidget, public IUserObjectListEntry
