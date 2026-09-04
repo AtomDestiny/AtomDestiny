@@ -1,7 +1,8 @@
 ﻿#include "UnitBasicDestroy.h"
 
-#include <AtomDestiny/Core/ObjectPool/ActorPool.h>
-#include <AtomDestiny/Core/Logger.h>
+#include "AtomDestiny/Core/ObjectPool/ActorPool.h"
+#include "AtomDestiny/Core/Logger.h"
+#include "AtomDestiny/Templates/DefaultUnit.h"
 
 UUnitBasicDestroy::UUnitBasicDestroy(const FObjectInitializer& objectInitializer):
     UDestroyBase(objectInitializer)
@@ -15,7 +16,7 @@ void UUnitBasicDestroy::Destroy()
         LOG_ERROR(TEXT("Unit has a destroy status already"));
         return;
     }
-    
+
     if (!IsValid(m_explosionPrefab))
     {
         LOG_WARNING(TEXT("Unit basic destroy has invalid explosion prefab, so no explosion would be spawned"));
@@ -23,6 +24,11 @@ void UUnitBasicDestroy::Destroy()
     else
     {
         SpawnExplosion(GetOwner()->GetTransform().GetLocation(), FQuat::Identity);
+    }
+
+    if (ADefaultUnit* unit = Cast<ADefaultUnit>(GetOwner()))
+    {
+        unit->OnReleasedToPool();
     }
 
     Super::Destroy();

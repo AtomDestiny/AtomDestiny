@@ -3,6 +3,7 @@
 #include <limits>
 
 #include "AtomDestiny/AtomDestinyGameStateBase.h"
+#include "AtomDestiny/Behaviour/Destroyable.h"
 #include "AtomDestiny/Core/Logger.h"
 #include "AtomDestiny/Core/Utils.h"
 #include "AtomDestiny/Navigation/Navigator.h"
@@ -16,6 +17,32 @@
 namespace
 {
     constexpr double MaxScanDistance = std::numeric_limits<double>::max();
+
+    bool IsLiveEnemyTarget(const AActor* target, const AActor* self)
+    {
+        if (!IsValid(target) || target == self || target->IsHidden())
+        {
+            return false;
+        }
+
+        if (const TScriptInterface<IDestroyable> destroyable = AtomDestiny::Utils::GetInterface<IDestroyable>(target);
+            destroyable != nullptr && destroyable->IsDestroyed())
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool IsTrackedEnemyTarget(const AActor* target, const AActor* self, const AActor* mainDestination)
+    {
+        if (target == nullptr || target == mainDestination)
+        {
+            return false;
+        }
+
+        return IsLiveEnemyTarget(target, self);
+    }
 }
 
 UUnitLogic::UUnitLogic(const FObjectInitializer& objectInitializer):
@@ -259,6 +286,16 @@ void UUnitLogic::CreateDestination()
 
 void UUnitLogic::CheckNavigation()
 {
+    if (m_currentDestination.IsValid()
+        && !IsTrackedEnemyTarget(m_currentDestination.Get(), GetOwner(), m_mainDestination.Get()))
+    {
+        m_currentDestination = nullptr;
+        m_isTargetFound = false;
+        m_isAttacking = false;
+        SetDefaultDestination();
+        return;
+    }
+
     if (!m_currentDestination.IsValid())
     {
         SetDefaultDestination();
@@ -461,7 +498,7 @@ TWeakObjectPtr<AActor> UUnitLogic::FindEnemy(double minScanDistance, double scan
         for (int unitCount = 0; unitCount < enemyListUnitCount; ++unitCount)
         {
             if (AActor* target = (*enemies[sideCount])[unitCount].Get();
-                IsValid(target) && target != GetOwner())
+                IsLiveEnemyTarget(target, GetOwner()))
             {
                 if (const TScriptInterface<ILogic> targetLogic = AtomDestiny::Utils::GetInterface<ILogic>(target);
                     targetLogic != nullptr && targetLogic->GetSide() == m_side)
