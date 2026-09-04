@@ -93,29 +93,6 @@ AActor* AAtomDestinyGameStateBase::GetRallyPoint(const EGameSide side) const
     return ARallyPoint::FindForSide(this, side);
 }
 
-TWeakObjectPtr<AActor> AAtomDestinyGameStateBase::GetDestination(EGameSide side) const
-{
-    if (AActor* rallyPoint = GetRallyPoint(side))
-    {
-        return MakeWeakObjectPtr(rallyPoint);
-    }
-
-    switch (side)
-    {
-    case EGameSide::Rebels:
-        return m_destination.playerDestination;
-
-    case EGameSide::Federation:
-        return m_destination.enemyDestination;
-
-    case EGameSide::Neutral:
-        return m_destination.neutralDestination;
-
-    default:
-        return nullptr;
-    }
-}
-
 bool AAtomDestinyGameStateBase::IsEnemiesExist(EGameSide side) const
 {
     return m_enemies.Contains(side);

@@ -11,7 +11,15 @@ class UUnitSideColorDetails;
 
 #include <Runtime/Engine/Classes/GameFramework/Pawn.h>
 
+#include "AtomDestiny/AtomDestiny.h"
 #include "DefaultUnit.generated.h"
+
+UENUM(BlueprintType)
+enum class EUnitPoolAcquireMode : uint8
+{
+    SetupPlacement,
+    Battle
+};
 
 ///
 /// Represents default unit with basic components.
@@ -23,25 +31,41 @@ UCLASS(BlueprintType, Blueprintable, meta=(ShortTooltip="Default unit with basic
 class ADefaultUnit : public APawn
 {
     GENERATED_BODY()
-    
+
 public:
     explicit ADefaultUnit(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     virtual void BeginPlay() override;
-    
+
+    virtual void PostInitializeComponents() override;
+
+    // Called after ObjectPool::Spawn; configures side, setup mode, and pool reuse state
+    void OnAcquiredFromPool(EGameSide side, EUnitPoolAcquireMode mode);
+
+    // Called before ObjectPool::Despawn; unregisters the unit and stops runtime systems
+    void OnReleasedToPool();
+
+    // True between pool SpawnActor and OnAcquiredFromPool (BeginPlay must defer AI like deferred spawn)
+    bool IsPoolAcquirePending() const { return m_bPoolAcquirePending; }
+
+    UUnitLogic* ResolveUnitLogic() const;
+
 protected:
+    bool m_bPoolAcquirePending = true;
+    bool m_bReleasedToPoolOnce = false;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Box collider"))
     TObjectPtr<USceneComponent> m_boxComponent;
-    
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ground point"))
     TObjectPtr<USceneComponent> m_groundPoint;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Health bar"))
     TObjectPtr<UHealthBarComponent> m_healthBar;
-    
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit state"))
     TObjectPtr<UUnitState> m_unitState;
-    
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit logic"))
     TObjectPtr<UUnitLogic> m_unitLogic;
 
@@ -54,7 +78,7 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit destroy behaviour"))
     TObjectPtr<UUnitScrapDestroy> m_unitDestroy;
 
-    /** Tints detail meshes whose names contain "side_part" (or manual list on the component). */
+    // Tints detail meshes whose names contain "side_part" (or manual list on the component)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Side color details"))
     TObjectPtr<UUnitSideColorDetails> m_sideColorDetails;
 };

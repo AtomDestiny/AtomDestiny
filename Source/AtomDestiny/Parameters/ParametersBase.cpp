@@ -64,6 +64,20 @@ void UParametersBase::SetHealthBarWidget(TWeakObjectPtr<UHealthBar> widget)
     m_healthBarWidget = widget;
 }
 
+void UParametersBase::ResetForPoolReuse()
+{
+    m_currentHealth = m_maxHealth;
+    m_currentMaxHealth = m_maxHealth;
+    m_currentDefence = m_defence;
+    m_isDead = false;
+
+    if (m_healthBarWidget.IsValid())
+    {
+        m_healthBarWidget->SetHealthPercent(1.f);
+        m_healthBarWidget->SetHealthVisible(!m_hideBar && m_currentHealth != m_currentMaxHealth);
+    }
+}
+
 void UParametersBase::InitializeComponent()
 {
     m_currentHealth = m_maxHealth;
@@ -163,9 +177,9 @@ void UParametersBase::RecalculateParameter(EObjectParameters parameter)
                 m_currentHealth = m_currentMaxHealth;
             else
                 m_currentHealth *= (m_maxHealth < m_currentMaxHealth ? m_currentMaxHealth / m_maxHealth : m_maxHealth / m_currentMaxHealth);
-        }
 
-        break;
+            break;
+        }
 
     case EObjectParameters::Health:
         {

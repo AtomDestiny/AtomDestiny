@@ -21,10 +21,10 @@ UCLASS()
 class ATOMDESTINY_API ACommanderController : public APlayerController
 {
     GENERATED_BODY()
-    
+
 public:
     ACommanderController();
-    
+
     virtual void SetupInputComponent() override;
     virtual void BeginPlay() override;
     virtual void PlayerTick(float DeltaTime) override;
@@ -41,48 +41,49 @@ public:
 
     void SetTrainingWidget(UTrainingMainWidget* widget);
 
+    // Actions during setup
     void TryPlaceUnitAtCursor();
-
     void TryRemoveHoveredSetupUnit();
-
-    void TryFinishArmySetup();
+    void TryFinishArmySetup() const;
 
     void OnSetupArmyModeChanged(bool setupArmy);
 
     bool IsArmySetupActive() const { return m_bArmySetupActive; }
 
-    /** Drop placed unit refs before leaving Training (actors are removed by OpenLevel). */
+    // Debug function showing a destination point
+    void TryDebugSelectUnitAtCursor();
+
+    // Drop placed unit refs before leaving Training (actors are removed by OpenLevel)
     void ClearSetupUnits();
 
-    /** Destroy all units placed during setup and clear the session layout. */
+    // Destroy all units placed during setup and clear the session layout
     void ClearAllSetupUnits();
 
-    /** Clears pending despawn timers for all actors on the current map. */
+    // Clears pending despawn timers for all actors on the current map
     void ClearLevelDespawnTimers() const;
 
-    /** Writes the current layout to GameInstance before leaving Training (after battle). */
-    void PersistTacticsLayoutForNextVisit();
+    // Writes the current layout to GameInstance before leaving Training (after battle)
+    void PersistTacticsLayoutForNextVisit() const;
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Enable mouse look"))
     bool EnableMouseLook = true;
 
 protected:
-    
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Pawn mapping context"))
     UInputMappingContext* m_pawnMappingContext;
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Action move"))
     UInputAction* m_actionMove;
 
-    UPROPERTY(EditAnywhere, meta = (DisplayName = "Action rotate"))
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Action look"))
     UInputAction* m_actionLook;
 
-    UPROPERTY(EditAnywhere, meta = (DisplayName = "Action rotate"))
+    UPROPERTY(EditAnywhere, meta = (DisplayName = "Action rotate roll"))
     UInputAction* m_actionRoll;
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Action reset"))
     UInputAction* m_actionReset;
-    
+
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Action LClick"))
     UInputAction* m_actionLClick;
 
@@ -93,19 +94,21 @@ protected:
     UInputAction* m_actionRClick;
 
 private:
-    void UpdatePlacementPointer();
+    static void SetSetupUnitHighlighted(APawn* pawn, bool bHighlighted);
+    static void AlignUnitGroundPoint(APawn* pawn, const FVector& groundLocation);
+
+    void UpdatePlacementPointer() const;
     void UpdateSetupUnitHover();
     void ClearSetupUnitHover();
+    APawn* FindBattleUnitUnderCursor() const;
     bool IsSetupPlacedUnit(const APawn* pawn) const;
     APawn* FindSetupUnitUnderCursor() const;
     void RemoveSetupUnit(APawn* pawn);
-    void SetSetupUnitHighlighted(APawn* pawn, bool bHighlighted) const;
 
     bool IsGridPointerActive() const;
     bool TryGetGridCellUnderCursor(AFloorGrid*& outGrid, FVector& outCellCenter) const;
     bool ProjectToGround(const FVector& cellCenter, FVector& outGroundLocation) const;
     FRotator ComputeFacingRotation(const FVector& location, EGameSide placementSide) const;
-    void AlignUnitGroundPoint(APawn* pawn, const FVector& groundLocation) const;
 
     APawn* SpawnTrainingUnitAt(
         EADUnitType unitType,
@@ -116,6 +119,10 @@ private:
     void SaveTacticsLayoutToGameInstance() const;
 
     void TryRestoreTacticsLayout();
+
+    // Debug destination functions
+    void SetDebugSelectedUnit(APawn* pawn);
+    void DrawDebugSelectedUnitDestination() const;
 
     UPROPERTY()
     TObjectPtr<APlacementPointer> m_placementPointer;
@@ -130,6 +137,8 @@ private:
     TArray<FTacticsLayoutElement> m_tacticsLayout;
 
     TWeakObjectPtr<APawn> m_hoveredSetupUnit;
+
+    TWeakObjectPtr<APawn> m_debugSelectedUnit;
 
     bool m_bTacticsLayoutRestored = false;
 

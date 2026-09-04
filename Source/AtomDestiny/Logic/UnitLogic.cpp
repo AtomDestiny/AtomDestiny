@@ -1,10 +1,14 @@
 ﻿#include "UnitLogic.h"
 
 #include <limits>
-#include <AtomDestiny/AtomDestinyGameStateBase.h>
-#include <AtomDestiny/Core/Logger.h>
-#include <AtomDestiny/Core/Utils.h>
-#include <AtomDestiny/Navigation/Navigator.h>
+
+#include "AtomDestiny/AtomDestinyGameStateBase.h"
+#include "AtomDestiny/Core/Logger.h"
+#include "AtomDestiny/Core/Utils.h"
+#include "AtomDestiny/Navigation/Navigator.h"
+
+#include "Core/ActorComponentUtils.h"
+#include "Templates/DefaultUnit.h"
 
 #include "GameFramework/FloatingPawnMovement.h"
 #include "GameFramework/Pawn.h"
@@ -12,7 +16,7 @@
 namespace
 {
     constexpr double MaxScanDistance = std::numeric_limits<double>::max();
-} // namespace
+}
 
 UUnitLogic::UUnitLogic(const FObjectInitializer& objectInitializer):
     UUnitLogicBase(objectInitializer)
@@ -29,7 +33,7 @@ void UUnitLogic::SetDestination(AActor* destination)
 {
     m_currentDestination = nullptr;
     m_canScan = true;
-    
+
     m_behaviour = destination != nullptr ? EUnitBehaviour::MoveToTransform : EUnitBehaviour::Standing;
     m_mainDestination = destination != nullptr ? MakeWeakObjectPtr(destination) : nullptr;
 }
@@ -39,7 +43,7 @@ void UUnitLogic::SetDestinationByPoint(const FVector& destination)
     m_currentDestination = nullptr;
     m_mainDestination = nullptr;
     m_canScan = true;
-    
+
     m_behaviour = EUnitBehaviour::MoveToPoint;
     m_destinationPoint = destination;
 }
@@ -50,37 +54,41 @@ void UUnitLogic::PrepareForSetupPlacement()
     SetComponentTickEnabled(false);
 }
 
+void UUnitLogic::ResetForPoolReuse()
+{
+    Super::ResetForPoolReuse();
+    m_deferLogicUntilReady = false;
+}
+
 void UUnitLogic::ActivateAfterSetup()
 {
     m_deferLogicUntilReady = false;
 
-    APawn* pawn = Cast<APawn>(GetOwner());
+    const auto pawn = Cast<APawn>(GetOwner());
     if (pawn == nullptr)
-    {
         return;
-    }
 
-    // Grid-spawned units may have missed GameState registration in BeginPlay.
-    CreateEvent();
+    ReregisterWithGameState();
 
     if (pawn->Controller == nullptr)
-    {
         pawn->SpawnDefaultController();
-    }
 
     ANavigator* navigator = Cast<ANavigator>(pawn->Controller.Get());
     if (navigator == nullptr)
-    {
         return;
-    }
+
+    if (navigator->GetPawn() == nullptr)
+        navigator->Possess(pawn);
 
     m_navigation = MakeWeakObjectPtr(navigator);
 
-    UFloatingPawnMovement* movement = pawn->FindComponentByClass<UFloatingPawnMovement>();
+    const auto movement = pawn->FindComponentByClass<UFloatingPawnMovement>();
     if (movement != nullptr)
-    {
         m_navigation->SetMovementComponent(movement);
-    }
+
+    m_navigation->AttachToActor(pawn, FAttachmentTransformRules::KeepRelativeTransform);
+    m_navigation->SetPawn(pawn);
+    m_navigation->Move(pawn->GetActorLocation());
 
     m_speed = m_navigation->GetSpeed();
     if (m_speed <= 0.0 && movement != nullptr)
@@ -92,11 +100,49 @@ void UUnitLogic::ActivateAfterSetup()
     m_currentSpeed = m_speed;
     m_navigation->SetStopDistance(m_defaultStopDistance);
 
-    CreateDestination();
-    SetComponentTickEnabled(true);
+    if (m_animation == nullptr)
+    {
+        m_animation = AtomDestiny::Utils::GetInterface<IAnimation>(GetOwner());
+        m_scanDelay += FMath::RandRange(AtomDestiny::Unit::MinRandomScan, AtomDestiny::Unit::MaxRandomScan);
+    }
 
-    if (m_animation != nullptr
-        && m_navigation->GetRemainingDistance() > m_navigation->GetStopDistance())
+    m_currentDestination = nullptr;
+    m_isTargetFound = false;
+    m_isAttacking = false;
+    m_canScan = true;
+
+    if (const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
+        gameState.IsValid())
+    {
+        if (const auto rallyPoint = gameState->GetRallyPoint(m_side))
+        {
+            SetDestination(rallyPoint);
+            LOG_INFO(
+                TEXT("ARallyPoint set as destination for Unit '%s' (side %s)."),
+                *pawn->GetName(),
+                *AtomDestiny::GameSide::ToString(m_side)
+            );
+        }
+        else
+        {
+            LOG_WARNING(
+                TEXT("Unit '%s' (side %s): no ARallyPoint found on the map. Check Side on placed rally flags."),
+                *pawn->GetName(),
+                *AtomDestiny::GameSide::ToString(m_side)
+            );
+
+            m_behaviour = EUnitBehaviour::Standing;
+        }
+    }
+    else
+    {
+        m_behaviour = EUnitBehaviour::MoveToTransform;
+    }
+
+    CreateDestination();
+    SetTickEnabled(true);
+
+    if (m_animation != nullptr && m_navigation->GetRemainingDistance() > m_navigation->GetStopDistance())
     {
         m_animation->Walk();
     }
@@ -104,6 +150,16 @@ void UUnitLogic::ActivateAfterSetup()
 
 void UUnitLogic::BeginPlay()
 {
+    // Pool SpawnActor runs BeginPlay before OnAcquiredFromPool; match deferred-spawn setup order.
+    if (const ADefaultUnit* unit = Cast<ADefaultUnit>(GetOwner()))
+    {
+        if (unit->IsPoolAcquirePending())
+        {
+            m_deferLogicUntilReady = true;
+            m_bSkipBeginPlayGameStateRegistration = true;
+        }
+    }
+
     Super::BeginPlay();
 
     if (m_deferLogicUntilReady)
@@ -111,7 +167,7 @@ void UUnitLogic::BeginPlay()
         SetComponentTickEnabled(false);
         return;
     }
-    
+
     CreateDestination();
 }
 
@@ -120,32 +176,22 @@ void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorCompo
     Super::TickComponent(deltaTime, tickType, func);
 
     if (!m_navigation.IsValid())
-    {
         return;
-    }
 
     CheckTargetDistance();
     CheckNavigation();
     CheckScanDelay(deltaTime);
 
     if (!m_isAttacking && m_canScan)
-    {
         ScanEnemy();
-    }
 
     if (m_isTargetFound && !m_isAttacking)
-    {
         UpdateNavigationTarget();
-    }
 
     if (m_isTargetFound)
-    {
         TryToAttack(deltaTime);
-    }
     else
-    {
         SetDefaultDestination();
-    }
 }
 
 void UUnitLogic::CheckTargetDistance()
@@ -154,12 +200,10 @@ void UUnitLogic::CheckTargetDistance()
     {
         const double scanLengthSquared = m_scanDistance * m_scanDistance;
         const FVector targetVector = m_currentDestination->GetActorLocation() - GetOwner()->GetActorLocation();
-        
+
         if (targetVector.SquaredLength() <= (scanLengthSquared + m_tryAttackDelta))
-        {
             return;
-        }
-        
+
         m_isAttacking = false;
         m_isTargetFound = false;
         m_currentDestination = nullptr;
@@ -167,9 +211,7 @@ void UUnitLogic::CheckTargetDistance()
         for (const TScriptInterface<IWeapon>& weapon : m_weapons)
         {
             if (weapon != nullptr)
-            {
                 weapon->SetTarget(nullptr);
-            }
         }
     }
 }
@@ -177,9 +219,7 @@ void UUnitLogic::CheckTargetDistance()
 void UUnitLogic::CreateDestination()
 {
     if (!m_navigation.IsValid())
-    {
         return;
-    }
 
     if (m_mainDestination.IsValid() && m_behaviour == EUnitBehaviour::MoveToTransform)
     {
@@ -191,10 +231,10 @@ void UUnitLogic::CreateDestination()
     if (const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
         gameState.IsValid())
     {
-        if (const TWeakObjectPtr<AActor> destination = gameState->GetDestination(m_side);
-            destination.IsValid() && m_behaviour == EUnitBehaviour::MoveToTransform)
+        if (AActor* rallyPoint = gameState->GetRallyPoint(m_side);
+            rallyPoint != nullptr && m_behaviour == EUnitBehaviour::MoveToTransform)
         {
-            m_mainDestination = destination;
+            m_mainDestination = MakeWeakObjectPtr(rallyPoint);
             m_currentDestination = m_mainDestination;
 
             m_navigation->Move(m_currentDestination->GetActorLocation());
@@ -232,7 +272,7 @@ void UUnitLogic::CheckNavigation()
         {
             weapon.GetInterface()->SetTarget(nullptr);
         }
-        
+
         SetDefaultDestination();
 
         m_isTargetFound = false;
@@ -275,12 +315,10 @@ void UUnitLogic::SetDefaultDestination()
     }
 }
 
-void UUnitLogic::UpdateNavigationTarget()
+void UUnitLogic::UpdateNavigationTarget() const
 {
     if (!m_navigation.IsValid())
-    {
         return;
-    }
 
     if (m_currentDestination.IsValid() && m_behaviour == EUnitBehaviour::MoveToTransform)
     {
@@ -298,9 +336,7 @@ void UUnitLogic::UpdateNavigationTarget()
     m_navigation->SetStopDistance(m_defaultStopDistance);
 
     if (m_animation != nullptr)
-    {
         m_animation->Walk();
-    }
 }
 
 void UUnitLogic::MoveNearestEnemyIfCan()
@@ -336,18 +372,18 @@ void UUnitLogic::ScanEnemy()
 void UUnitLogic::TryToAttack(float deltaTime)
 {
     m_isAttacking = false;
-        
+
     if (m_currentDestination != nullptr)
     {
         const FVector targetVector = m_currentDestination->GetActorLocation() - GetOwner()->GetActorLocation();
-        
+
         for (TScriptInterface<IWeapon>& weapon : m_weapons)
-        {      
+        {
             weapon->SetTarget(m_currentDestination.Get());
-        
+
             auto weaponSqrDist = weapon->GetAttackRange();
             weaponSqrDist *= weaponSqrDist;
-        
+
             if (targetVector.SquaredLength() <= weaponSqrDist + m_tryAttackDelta)
             {
                 if (weapon->IsSeeTarget())
@@ -362,7 +398,7 @@ void UUnitLogic::TryToAttack(float deltaTime)
 void UUnitLogic::Aim(const TScriptInterface<IWeapon>& weapon, float deltaTime)
 {
     m_isAttacking = true;
-        
+
     if (weapon->IsRotated())
     {
         CheckBehaviour(weapon);
@@ -376,9 +412,9 @@ void UUnitLogic::Aim(const TScriptInterface<IWeapon>& weapon, float deltaTime)
         {
             m_animation->Idle();
         }
-        
+
         RotateToTarget(deltaTime);
-        
+
         if (m_isRotatedOnTarget)
         {
             CheckBehaviour(weapon);
@@ -391,16 +427,14 @@ void UUnitLogic::Aim(const TScriptInterface<IWeapon>& weapon, float deltaTime)
     }
 }
 
-void UUnitLogic::CheckBehaviour(const TScriptInterface<IWeapon>& weapon)
+void UUnitLogic::CheckBehaviour(const TScriptInterface<IWeapon>& weapon) const
 {
     if (weapon->IsShouldStop())
     {
         m_navigation->Stop();
-        
+
         if (m_animation != nullptr)
-        {
             m_animation->Attack();
-        }
     }
 }
 
@@ -410,14 +444,12 @@ TWeakObjectPtr<AActor> UUnitLogic::FindEnemy(double minScanDistance, double scan
     const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
 
     if (!gameState.IsValid() || !gameState->IsEnemiesExist(m_side) || gameState->GetEnemies(m_side).IsEmpty())
-    {
         return nullptr;
-    }
-        
+
     const FEnemiesList& enemies = gameState->GetEnemies(m_side);
     double minDist = ::MaxScanDistance;
     AActor* enemy = nullptr;
-    
+
     const double sqrScanDistance = scanDistance * scanDistance;
     const double sqrMinScanDistance = minScanDistance * minScanDistance;
     const size_t enemyListSideCount = static_cast<size_t>(enemies.Num());
@@ -431,6 +463,12 @@ TWeakObjectPtr<AActor> UUnitLogic::FindEnemy(double minScanDistance, double scan
             if (AActor* target = (*enemies[sideCount])[unitCount].Get();
                 IsValid(target) && target != GetOwner())
             {
+                if (const TScriptInterface<ILogic> targetLogic = AtomDestiny::Utils::GetInterface<ILogic>(target);
+                    targetLogic != nullptr && targetLogic->GetSide() == m_side)
+                {
+                    continue;
+                }
+
                 const double sqrMagnitude = (target->GetActorLocation() - GetOwner()->GetActorLocation()).SquaredLength();
 
                 if ((sqrScanDistance >= sqrMagnitude) && (sqrMinScanDistance <= sqrMagnitude))

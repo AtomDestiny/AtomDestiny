@@ -3,7 +3,7 @@
 #include <Components/ActorComponent.h>
 #include <Engine/EngineTypes.h>
 
-#include <AtomDestiny/AtomDestiny.h>
+#include "AtomDestiny/AtomDestiny.h"
 
 #include "UnitSideColorDetails.generated.h"
 
@@ -41,7 +41,7 @@ protected:
 
 private:
     void CollectDetailComponents(TArray<UActorComponent*>& outComponents) const;
-    void ApplyDisplayColor();
+    void ApplyDisplayColor() const;
 
     FLinearColor m_baseTeamColor = FLinearColor::White;
     bool m_bHighlighted = false;

@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Components/WidgetComponent.h"
+#include <CoreMinimal.h>
+#include <Components/WidgetComponent.h>
 #include "HealthBarComponent.generated.h"
 
-/**
- * ActorComponent for containing a HealthBar Widget
- */
+///
+///ActorComponent for containing a HealthBar Widget
+///
 UCLASS()
 class ATOMDESTINY_API UHealthBarComponent : public UWidgetComponent
 {
@@ -16,5 +16,8 @@ class ATOMDESTINY_API UHealthBarComponent : public UWidgetComponent
 
 public:
     explicit UHealthBarComponent(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+
+    virtual void Activate(bool bReset = false) override;
+    virtual void Deactivate() override;
     virtual void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction) override;
 };

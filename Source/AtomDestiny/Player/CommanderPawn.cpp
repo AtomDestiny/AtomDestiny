@@ -105,7 +105,14 @@ void ACommanderPawn::OnLeftClickAction(const FInputActionValue&)
 {
     if (ACommanderController* controller = Cast<ACommanderController>(Controller))
     {
-        controller->TryPlaceUnitAtCursor();
+        if (controller->IsArmySetupActive())
+        {
+            controller->TryPlaceUnitAtCursor();
+        }
+        else
+        {
+            controller->TryDebugSelectUnitAtCursor();
+        }
     }
 }
 
