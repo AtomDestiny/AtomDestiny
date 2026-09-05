@@ -1,10 +1,13 @@
 #include "UnitScrapDestroy.h"
 
-#include <AtomDestiny/Core/ObjectPool/ActorPool.h>
-#include <AtomDestiny/Core/ActorComponentUtils.h>
-#include <AtomDestiny/Core/Logger.h>
+#include "AtomDestiny/Core/ObjectPool/ActorPool.h"
+#include "AtomDestiny/Core/ActorComponentUtils.h"
+#include "AtomDestiny/Core/Logger.h"
+#include "AtomDestiny/Templates/DefaultUnit.h"
 
-#include "Misc/ScrapConstruction.h"
+#include "AtomDestiny/Misc/ScrapConstruction.h"
+
+#include <Components/StaticMeshComponent.h>
 
 UUnitScrapDestroy::UUnitScrapDestroy(const FObjectInitializer& objectInitializer):
     UDestroyBase(objectInitializer)
@@ -20,12 +23,22 @@ void UUnitScrapDestroy::BeginPlay()
 
 void UUnitScrapDestroy::Destroy()
 {
-    Super::Destroy();
-    SpawnExplosion(GetOwner()->GetActorLocation(), FQuat::Identity);
-    
+    if (m_destroyed)
+    {
+        return;
+    }
+
     const FVector actorLocation = GetOwner()->GetActorLocation();
     const FQuat actorRotation = GetOwner()->GetActorQuat();
-    
+
+    if (ADefaultUnit* unit = Cast<ADefaultUnit>(GetOwner()))
+    {
+        unit->OnReleasedToPool();
+    }
+
+    Super::Destroy();
+    SpawnExplosion(actorLocation, FQuat::Identity);
+
     AtomDestiny::ObjectPool::Instance().Despawn(GetOwner());
 
     if (!IsValid(m_scrapPrefab))
@@ -33,10 +46,10 @@ void UUnitScrapDestroy::Destroy()
         LOG_ERROR(TEXT("Scrap prefab is empty"));
         return;
     }
-    
+
     const TWeakObjectPtr<AActor> scrap = AtomDestiny::ObjectPool::Instance().Spawn(m_scrapPrefab.GetDefaultObject(), actorLocation, actorRotation);
     const TArray<UStaticMeshComponent*> components = AtomDestiny::Utils::GetComponents<UStaticMeshComponent>(scrap.Get());
-    
+
     for (const auto component : components)
     {
         const double power = FMath::FRandRange(m_minExplosionPower, m_maxExplosionPower);
@@ -49,6 +62,6 @@ void UUnitScrapDestroy::Destroy()
     {
         construction->Construct();
     }
-    
+
     AtomDestiny::ObjectPool::Instance().Despawn(scrap, m_partsDestroyTime);
 }

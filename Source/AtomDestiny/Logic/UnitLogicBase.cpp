@@ -2,9 +2,13 @@
 
 #include <algorithm>
 
+#include <AtomDestiny/AtomDestinyGameStateBase.h>
 #include <AtomDestiny/Core/MathUtils.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/Logger.h>
+
+#include "GameFramework/Controller.h"
+#include "GameFramework/Pawn.h"
 
 UUnitLogicBase::UUnitLogicBase(const FObjectInitializer& objectInitializer):
     UADObject(objectInitializer)
@@ -61,7 +65,11 @@ void UUnitLogicBase::BeginPlay()
 {
     Super::BeginPlay();
 
-    // navigation initialization
+    if (!m_bSkipBeginPlayGameStateRegistration)
+    {
+        CreateEvent();
+    }
+
     APawn* pawn = CastChecked<APawn>(GetOwner());
     check(pawn->AIControllerClass != nullptr);
 
@@ -77,8 +85,8 @@ void UUnitLogicBase::BeginPlay()
     }
     else
     {
-        SetTickEnabled(false);
-        LOG_ERROR(TEXT("Pawn AIControllerClass should be an ANavigator or derived from. Tick disabled"));
+        // Controller spawns later in ActivateAfterSetup; do not clear bCanEverTick.
+        SetComponentTickEnabled(false);
         return;
     }
 
@@ -88,10 +96,6 @@ void UUnitLogicBase::BeginPlay()
 
     m_animation = AtomDestiny::Utils::GetInterface<IAnimation>(GetOwner());
     m_scanDelay += FMath::RandRange(AtomDestiny::Unit::MinRandomScan, AtomDestiny::Unit::MaxRandomScan);
-
-    // new layer
-    // Utils.SetLayerRecursively(gameObject, LayerMask.NameToLayer(Core.GetLayerNameFromSide(side)));
-    CreateEvent();
 }
 
 void UUnitLogicBase::EndPlay(const EEndPlayReason::Type endPlayReason)
@@ -203,4 +207,86 @@ void UUnitLogicBase::CreateEvent() const
 void UUnitLogicBase::DestroyEvent() const
 {
     unitDestroyed.Broadcast(GetOwner(), m_side, m_unitType);
+}
+
+void UUnitLogicBase::ResetForPoolReuse()
+{
+    m_mainDestination = nullptr;
+    m_currentDestination = nullptr;
+    m_navigation = nullptr;
+    m_isTargetFound = false;
+    m_isAttacking = false;
+    m_isRotatedOnTarget = false;
+    m_canScan = true;
+    m_scanDelayCounter = 0;
+    m_behaviour = EUnitBehaviour::MoveToTransform;
+    m_destinationPoint = FVector::ZeroVector;
+    SetComponentTickEnabled(false);
+}
+
+void UUnitLogicBase::NotifyPoolReleased() const
+{
+    DestroyEvent();
+
+    APawn* pawn = Cast<APawn>(GetOwner());
+    if (pawn == nullptr)
+    {
+        return;
+    }
+
+    if (AController* controller = pawn->Controller.Get())
+    {
+        controller->Destroy();
+    }
+}
+
+void UUnitLogicBase::ReregisterWithGameState() const
+{
+    if (const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
+        gameState.IsValid())
+    {
+        const TWeakObjectPtr<AActor> actor = MakeWeakObjectPtr(GetOwner());
+        gameState->RemoveUnit(actor, EGameSide::Rebels);
+        gameState->RemoveUnit(actor, EGameSide::Federation);
+        gameState->RemoveUnit(actor, EGameSide::Neutral);
+    }
+
+    CreateEvent();
+}
+
+bool UUnitLogicBase::TryGetNavigationGoalLocation(FVector& outWorldLocation) const
+{
+    if (m_currentDestination.IsValid())
+    {
+        outWorldLocation = m_currentDestination->GetActorLocation();
+        return true;
+    }
+
+    if (m_behaviour == EUnitBehaviour::MoveToPoint)
+    {
+        outWorldLocation = m_destinationPoint;
+        return true;
+    }
+
+    if (m_mainDestination.IsValid())
+    {
+        outWorldLocation = m_mainDestination->GetActorLocation();
+        return true;
+    }
+
+    if (m_behaviour == EUnitBehaviour::MoveToTransform)
+    {
+        if (const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
+            gameState.IsValid())
+        {
+            if (const AActor* rallyPoint = gameState->GetRallyPoint(m_side);
+                rallyPoint != nullptr)
+            {
+                outWorldLocation = rallyPoint->GetActorLocation();
+                return true;
+            }
+        }
+    }
+
+    return false;
 }

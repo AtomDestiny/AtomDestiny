@@ -1,10 +1,72 @@
 #include "CommanderController.h"
 
-//#include "../Plugins/EnhancedInput/Source/EnhancedInput/Public/InputAction.h"
-//#include "../Plugins/EnhancedInput/Source/EnhancedInput/Public/InputMappingContext.h"
+#include "AtomDestinyGameStateBase.h"
+#include "Gameplay/AtomDestinyGameInstance.h"
+#include "Gameplay/UnitCatalog.h"
+#include "Gameplay/UnitStorage.h"
+#include "Core/ObjectPool/Despawner.h"
+#include "Core/ObjectPool/ActorPool.h"
+#include "Core/ActorComponentUtils.h"
+#include "Logic/Logic.h"
+#include "Logic/UnitLogic.h"
+#include "Unit/UnitState.h"
+#include "Unit/UnitSideColorDetails.h"
+#include "Misc/FloorGrid.h"
+#include "Misc/PlacementPointer.h"
+#include "Templates/DefaultUnit.h"
+#include "UI/TrainingMainWidget.h"
 
-#include "InputAction.h"
-#include "InputMappingContext.h"
+#include <GameFramework/Pawn.h>
+#include <InputAction.h>
+#include <InputMappingContext.h>
+#include <EngineUtils.h>
+#include <TimerManager.h>
+#include <UObject/UObjectIterator.h>
+#include <DrawDebugHelpers.h>
+#include <HAL/IConsoleManager.h>
+
+namespace
+{
+    TAutoConsoleVariable<int32> CVarDebugUnitDestination(
+        TEXT("ad.DebugUnitDestination"),
+        0,
+        TEXT("Draw navigation goal for the selected unit (0=off, 1=on). Select a unit with LMB after battle starts."),
+        ECVF_Cheat);
+
+    bool IsCVarDebugUnitDestinationUnchecked()
+    {
+        return CVarDebugUnitDestination.GetValueOnGameThread() == 0;
+    }
+
+    FVector GetUnitDebugOrigin(const APawn* pawn)
+    {
+        if (pawn == nullptr)
+            return FVector::ZeroVector;
+
+        if (const auto unitState = pawn->FindComponentByClass<UUnitState>())
+            return unitState->GetGroundPoint<FVector>();
+
+        return pawn->GetActorLocation();
+    }
+
+    void ReleaseTrainingUnitToPool(APawn* pawn)
+    {
+        if (pawn == nullptr)
+            return;
+
+        if (ADefaultUnit* unit = Cast<ADefaultUnit>(pawn))
+        {
+            unit->OnReleasedToPool();
+            AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(pawn));
+            return;
+        }
+
+        if (const auto despawner = pawn->FindComponentByClass<UDespawner>())
+            despawner->ClearDespawnTimer();
+
+        pawn->Destroy();
+    }
+} // namespace
 
 static void mapKey(UInputMappingContext* context, UInputAction* action, FKey key,
     bool isNegate = false, bool isSwizzle = false, EInputAxisSwizzle swizzleOrder = EInputAxisSwizzle::YXZ,
@@ -26,13 +88,21 @@ static void mapKey(UInputMappingContext* context, UInputAction* action, FKey key
         extTrig->ChordAction = chordAct;
         mapping.Triggers.Add(extTrig);
     }
-    
+
     if (isSwizzle)
     {
         auto* swizzle = NewObject<UInputModifierSwizzleAxis>(outer);
         swizzle->Order = swizzleOrder;
         mapping.Modifiers.Add(swizzle);
     }
+}
+
+ACommanderController::ACommanderController() : APlayerController()
+{
+    bEnableMouseOverEvents = true;
+    bEnableClickEvents = true;
+    bShowMouseCursor = true;
+    bShouldPerformFullTickWhenPaused = true;
 }
 
 void ACommanderController::SetupInputComponent()
@@ -56,16 +126,19 @@ void ACommanderController::SetupInputComponent()
     m_actionLClick = NewObject<UInputAction>(this);
     m_actionLClick->ValueType = EInputActionValueType::Boolean;
 
+    m_actionEndSetupArmy = NewObject<UInputAction>(this);
+    m_actionEndSetupArmy->ValueType = EInputActionValueType::Boolean;
+
     m_actionRClick = NewObject<UInputAction>(this);
     m_actionRClick->ValueType = EInputActionValueType::Boolean;
 
     mapKey(m_pawnMappingContext, m_actionLClick, EKeys::LeftMouseButton);
     mapKey(m_pawnMappingContext, m_actionRClick, EKeys::RightMouseButton);
-    
+
     mapKey(m_pawnMappingContext, m_actionReset, EKeys::R);
 
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::SpaceBar);
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::LeftControl, true);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::E);
+    mapKey(m_pawnMappingContext, m_actionMove, EKeys::Q, true);
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::D, false, true);
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::A, true, true);
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::W, false, true, EInputAxisSwizzle::ZYX);
@@ -73,16 +146,608 @@ void ACommanderController::SetupInputComponent()
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::MouseScrollUp, false, true, EInputAxisSwizzle::ZYX);
     mapKey(m_pawnMappingContext, m_actionMove, EKeys::MouseScrollDown, true, true, EInputAxisSwizzle::ZYX);
 
+    mapKey(m_pawnMappingContext, m_actionEndSetupArmy, EKeys::SpaceBar);
+
     if (EnableMouseLook)
     {
-        //mapKey(m_pawnMappingContext, m_actionLook, EKeys::MouseY);
         mapKey(m_pawnMappingContext, m_actionLook, EKeys::MouseY,
             false, false, EInputAxisSwizzle::YXZ, true, m_actionLClick);
-        //mapKey(m_pawnMappingContext, m_actionLook, EKeys::MouseX, false, true);
         mapKey(m_pawnMappingContext, m_actionLook, EKeys::MouseX, false, true,
-           EInputAxisSwizzle::YXZ, true, m_actionLClick);
+            EInputAxisSwizzle::YXZ, true, m_actionLClick);
+    }
+}
+
+void ACommanderController::BeginPlay()
+{
+    Super::BeginPlay();
+
+    FActorSpawnParameters spawnParams;
+    spawnParams.Owner = this;
+    spawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    m_placementPointer = GetWorld()->SpawnActor<APlacementPointer>(
+        APlacementPointer::StaticClass(),
+        FVector::ZeroVector,
+        FRotator::ZeroRotator,
+        spawnParams);
+
+    if (m_placementPointer != nullptr)
+        m_placementPointer->HidePointer();
+
+    TryRestoreTacticsLayout();
+}
+
+void ACommanderController::SetTrainingWidget(UTrainingMainWidget* widget)
+{
+    m_trainingWidget = widget;
+}
+
+void ACommanderController::ClearSetupUnits()
+{
+    ClearSetupUnitHover();
+
+    for (const TWeakObjectPtr<APawn>& weakPawn : m_setupPlacedUnits)
+    {
+        APawn* pawn = weakPawn.Get();
+        if (pawn == nullptr)
+            continue;
+
+        if (const auto despawner = pawn->FindComponentByClass<UDespawner>())
+            despawner->ClearDespawnTimer();
     }
 
-    mapKey(m_pawnMappingContext, m_actionRoll, EKeys::E, false);
-    mapKey(m_pawnMappingContext, m_actionRoll, EKeys::Q, true);
+    // Do not Destroy() here: OpenLevel unloads the Training map and removes actors.
+    m_setupPlacedUnits.Empty();
+}
+
+void ACommanderController::ClearAllSetupUnits()
+{
+    if (!m_bArmySetupActive)
+        return;
+
+    for (const TWeakObjectPtr<APawn>& weakPawn : m_setupPlacedUnits)
+    {
+        if (APawn* pawn = weakPawn.Get(); pawn != nullptr)
+            ReleaseTrainingUnitToPool(pawn);
+    }
+
+    ClearSetupUnitHover();
+    m_setupPlacedUnits.Empty();
+    m_tacticsLayout.Empty();
+}
+
+void ACommanderController::ClearLevelDespawnTimers() const
+{
+    const auto world = GetWorld();
+    if (world == nullptr)
+        return;
+
+    // TODO: use your own object manager instead of TObjectIterator if facing with the performance issues
+    for (TObjectIterator<UDespawner> it; it; ++it)
+    {
+        if (it->GetWorld() == world)
+            it->ClearDespawnTimer();
+    }
+}
+
+void ACommanderController::TryFinishArmySetup() const
+{
+    if (!m_bArmySetupActive || !m_trainingWidget.IsValid())
+        return;
+
+    m_trainingWidget->EndArmySetup();
+}
+
+void ACommanderController::OnSetupArmyModeChanged(bool setupArmy)
+{
+    m_bArmySetupActive = setupArmy;
+
+    if (UWorld* world = GetWorld())
+    {
+        for (TActorIterator<AFloorGrid> it(world); it; ++it)
+        {
+            it->SetupVisibility(setupArmy);
+        }
+    }
+
+    if (setupArmy)
+        return;
+
+    ClearSetupUnitHover();
+
+    SaveTacticsLayoutToGameInstance();
+
+    if (m_placementPointer != nullptr)
+        m_placementPointer->HidePointer();
+
+    TArray<TWeakObjectPtr<APawn>> unitsToActivate = MoveTemp(m_setupPlacedUnits);
+    m_setupPlacedUnits.Empty();
+
+    if (unitsToActivate.Num() == 0 || GetWorld() == nullptr)
+        return;
+
+    GetWorld()->GetTimerManager().SetTimerForNextTick(
+        FTimerDelegate::CreateWeakLambda(this, [unitsToActivate]()
+        {
+            for (const TWeakObjectPtr<APawn>& weakPawn : unitsToActivate)
+            {
+                APawn* pawn = weakPawn.Get();
+                if (pawn == nullptr)
+                    continue;
+
+                if (UUnitLogic* logic = pawn->FindComponentByClass<UUnitLogic>())
+                    logic->ActivateAfterSetup();
+            }
+        }));
+}
+
+bool ACommanderController::IsGridPointerActive() const
+{
+    return m_bArmySetupActive;
+}
+
+bool ACommanderController::TryGetGridCellUnderCursor(AFloorGrid*& outGrid, FVector& outCellCenter) const
+{
+    outGrid = nullptr;
+
+    FHitResult hit;
+    if (!GetHitResultUnderCursor(ECC_Visibility, false, hit))
+        return false;
+
+    outGrid = Cast<AFloorGrid>(hit.GetActor());
+    if (outGrid == nullptr)
+        return false;
+
+    outCellCenter = outGrid->SnapWorldLocationToCellCenter(hit.Location);
+    return true;
+}
+
+bool ACommanderController::ProjectToGround(const FVector& cellCenter, FVector& outGroundLocation) const
+{
+    const FVector traceStart = cellCenter + FVector(0.f, 0.f, 5000.f);
+    const FVector traceEnd = cellCenter - FVector(0.f, 0.f, 5000.f);
+
+    FHitResult hit;
+    FCollisionQueryParams params(SCENE_QUERY_STAT(UnitPlacementGround), false, GetPawn());
+    if (m_placementPointer != nullptr)
+        params.AddIgnoredActor(m_placementPointer);
+
+    if (!GetWorld()->LineTraceSingleByChannel(hit, traceStart, traceEnd, ECC_WorldStatic, params))
+        return false;
+
+    outGroundLocation = hit.ImpactPoint;
+    return true;
+}
+
+FRotator ACommanderController::ComputeFacingRotation(const FVector& location, const EGameSide placementSide) const
+{
+    const AAtomDestinyGameStateBase* gameState = GetWorld()->GetGameState<AAtomDestinyGameStateBase>();
+    if (gameState == nullptr)
+        return FRotator::ZeroRotator;
+
+    const AActor* rallyPoint = gameState->GetRallyPoint(placementSide);
+    if (rallyPoint == nullptr)
+        return FRotator::ZeroRotator;
+
+    FVector direction = rallyPoint->GetActorLocation() - location;
+    direction.Z = 0.f;
+    if (direction.IsNearlyZero())
+        return FRotator::ZeroRotator;
+
+    FRotator rotation = direction.Rotation();
+    rotation.Yaw = FMath::GridSnap(rotation.Yaw, 90.f);
+    rotation.Pitch = 0.f;
+    rotation.Roll = 0.f;
+    return rotation;
+}
+
+void ACommanderController::AlignUnitGroundPoint(APawn* pawn, const FVector& groundLocation)
+{
+    if (pawn == nullptr)
+        return;
+
+    const UUnitState* unitState = pawn->FindComponentByClass<UUnitState>();
+    if (unitState == nullptr)
+    {
+        pawn->SetActorLocation(groundLocation);
+        return;
+    }
+
+    const TWeakObjectPtr<USceneComponent> groundPoint = unitState->GetGroundPoint<USceneComponent>();
+    if (!groundPoint.IsValid())
+    {
+        pawn->SetActorLocation(groundLocation);
+        return;
+    }
+
+    const FVector offset = groundLocation - groundPoint->GetComponentLocation();
+    pawn->SetActorLocation(pawn->GetActorLocation() + offset);
+}
+
+APawn* ACommanderController::SpawnTrainingUnitAt(
+    const EADUnitType unitType,
+    const EGameSide placementSide,
+    const FVector& groundLocation,
+    const FRotator& facingRotation)
+{
+    if (unitType == EADUnitType::None || GetWorld() == nullptr)
+        return nullptr;
+
+    const AtomDestiny::UnitStorage& storage = AtomDestiny::UnitStorage::Instance();
+    const TOptional<FUnitInfo> unitInfo = storage.GetInfo(unitType);
+    if (!unitInfo.IsSet() || unitInfo->prefab == nullptr)
+        return nullptr;
+
+    TWeakObjectPtr<AActor> spawnedActor = AtomDestiny::ObjectPool::Instance().Spawn(
+        unitInfo->prefab,
+        groundLocation,
+        facingRotation.Quaternion());
+
+    const auto pawn = Cast<APawn>(spawnedActor.Get());
+    if (pawn == nullptr)
+        return nullptr;
+
+    if (const auto unit = Cast<ADefaultUnit>(pawn))
+    {
+        unit->OnAcquiredFromPool(placementSide, EUnitPoolAcquireMode::SetupPlacement);
+    }
+    else
+    {
+        if (const TScriptInterface<ILogic> logic = AtomDestiny::Utils::GetInterface<ILogic>(pawn))
+            logic->SetSide(placementSide);
+
+        if (const auto unitLogic = pawn->FindComponentByClass<UUnitLogic>())
+            unitLogic->PrepareForSetupPlacement();
+
+        if (const auto sideColorDetails = pawn->FindComponentByClass<UUnitSideColorDetails>())
+            sideColorDetails->ApplyForSide(placementSide);
+    }
+
+    AlignUnitGroundPoint(pawn, groundLocation);
+    pawn->SetActorRotation(facingRotation);
+
+    m_setupPlacedUnits.Add(pawn);
+    return pawn;
+}
+
+void ACommanderController::SaveTacticsLayoutToGameInstance() const
+{
+    if (UAtomDestinyGameInstance* gameInstance = Cast<UAtomDestinyGameInstance>(GetGameInstance()))
+        gameInstance->SaveTacticsLayout(m_tacticsLayout);
+}
+
+void ACommanderController::PersistTacticsLayoutForNextVisit() const
+{
+    if (m_tacticsLayout.Num() > 0)
+        SaveTacticsLayoutToGameInstance();
+}
+
+void ACommanderController::TryRestoreTacticsLayout()
+{
+    if (m_bTacticsLayoutRestored)
+        return;
+
+    // Player already placed units this visit — do not spawn saved layout on top.
+    if (m_setupPlacedUnits.Num() > 0 || m_tacticsLayout.Num() > 0)
+    {
+        m_bTacticsLayoutRestored = true;
+        return;
+    }
+
+    const auto world = GetWorld();
+    if (world == nullptr)
+        return;
+
+    AtomDestiny::EnsureUnitCatalogLoaded();
+
+    if (world->GetGameState<AAtomDestinyGameStateBase>() == nullptr)
+    {
+        if (m_restoreLayoutAttempts < 10)
+        {
+            ++m_restoreLayoutAttempts;
+            world->GetTimerManager().SetTimerForNextTick(
+                FTimerDelegate::CreateWeakLambda(this, [this]()
+                {
+                    TryRestoreTacticsLayout();
+                })
+            );
+        }
+        else
+        {
+            m_bTacticsLayoutRestored = true;
+        }
+
+        return;
+    }
+
+    m_bTacticsLayoutRestored = true;
+
+    UAtomDestinyGameInstance* gameInstance = Cast<UAtomDestinyGameInstance>(GetGameInstance());
+    if (gameInstance == nullptr || !gameInstance->HasSavedTacticsLayout())
+        return;
+
+    m_tacticsLayout = gameInstance->GetTacticsLayout();
+
+    for (const FTacticsLayoutElement& element : m_tacticsLayout)
+    {
+        if (element.unitType == EADUnitType::None)
+            continue;
+
+        SpawnTrainingUnitAt(element.unitType, element.side, element.location, element.rotation);
+    }
+}
+
+void ACommanderController::TryPlaceUnitAtCursor()
+{
+    if (!IsGridPointerActive() || m_trainingWidget == nullptr)
+        return;
+
+    const EADUnitType unitType = m_trainingWidget->GetSelectedUnitType();
+    if (unitType == EADUnitType::None)
+        return;
+
+    AFloorGrid* grid = nullptr;
+    FVector cellCenter = FVector::ZeroVector;
+    if (!TryGetGridCellUnderCursor(grid, cellCenter))
+        return;
+
+    const EGameSide placementSide = grid->GetSide();
+
+    FVector groundLocation = FVector::ZeroVector;
+    if (!ProjectToGround(cellCenter, groundLocation))
+        return;
+
+    const FRotator facingRotation = ComputeFacingRotation(groundLocation, placementSide);
+
+    const auto pawn = SpawnTrainingUnitAt(unitType, placementSide, groundLocation, facingRotation);
+    if (pawn == nullptr)
+        return;
+
+    FTacticsLayoutElement element;
+    element.unitType = unitType;
+    element.side = placementSide;
+    element.location = groundLocation;
+    element.rotation = facingRotation;
+    m_tacticsLayout.Add(element);
+}
+
+void ACommanderController::TryRemoveHoveredSetupUnit()
+{
+    if (!IsGridPointerActive())
+        return;
+
+    APawn* pawn = m_hoveredSetupUnit.Get();
+    if (pawn == nullptr)
+        pawn = FindSetupUnitUnderCursor();
+
+    if (pawn == nullptr)
+        return;
+
+    RemoveSetupUnit(pawn);
+}
+
+bool ACommanderController::IsSetupPlacedUnit(const APawn* pawn) const
+{
+    if (pawn == nullptr)
+        return false;
+
+    // Using the built-in algorithm optimized for TArray
+    const int32 index = m_setupPlacedUnits.IndexOfByPredicate(
+        [&](const TWeakObjectPtr<APawn>& weakPawn) { return weakPawn.Get() == pawn; });
+
+    // if pawn is found then return True
+    return index != INDEX_NONE;
+}
+
+APawn* ACommanderController::FindSetupUnitUnderCursor() const
+{
+    FHitResult hit;
+
+    if (GetHitResultUnderCursor(ECC_Pawn, false, hit))
+    {
+        if (const auto pawn = Cast<APawn>(hit.GetActor()); IsSetupPlacedUnit(pawn))
+            return pawn;
+    }
+
+    if (GetHitResultUnderCursor(ECC_Visibility, false, hit))
+    {
+        if (const auto pawn = Cast<APawn>(hit.GetActor()); IsSetupPlacedUnit(pawn))
+            return pawn;
+    }
+
+    return nullptr;
+}
+
+void ACommanderController::SetSetupUnitHighlighted(APawn* pawn, const bool bHighlighted)
+{
+    if (pawn == nullptr)
+        return;
+
+    if (const auto sideColorDetails = pawn->FindComponentByClass<UUnitSideColorDetails>())
+        sideColorDetails->SetHighlighted(bHighlighted);
+}
+
+void ACommanderController::ClearSetupUnitHover()
+{
+    if (const auto hoveredPawn = m_hoveredSetupUnit.Get())
+        SetSetupUnitHighlighted(hoveredPawn, false);
+
+    m_hoveredSetupUnit.Reset();
+}
+
+void ACommanderController::UpdateSetupUnitHover()
+{
+    if (!IsGridPointerActive())
+    {
+        ClearSetupUnitHover();
+        return;
+    }
+
+    APawn* hoveredPawn = FindSetupUnitUnderCursor();
+    if (m_hoveredSetupUnit.Get() == hoveredPawn)
+        return;
+
+    if (APawn* previousPawn = m_hoveredSetupUnit.Get())
+        SetSetupUnitHighlighted(previousPawn, false);
+
+    m_hoveredSetupUnit = hoveredPawn;
+
+    if (hoveredPawn != nullptr)
+        SetSetupUnitHighlighted(hoveredPawn, true);
+}
+
+void ACommanderController::RemoveSetupUnit(APawn* pawn)
+{
+    if (pawn == nullptr)
+        return;
+
+    int32 unitIndex = INDEX_NONE;
+    for (int32 index = 0; index < m_setupPlacedUnits.Num(); ++index)
+    {
+        if (m_setupPlacedUnits[index].Get() == pawn)
+        {
+            unitIndex = index;
+            break;
+        }
+    }
+
+    if (unitIndex == INDEX_NONE)
+        return;
+
+    if (m_hoveredSetupUnit.Get() == pawn)
+        m_hoveredSetupUnit.Reset();
+
+    SetSetupUnitHighlighted(pawn, false);
+    ReleaseTrainingUnitToPool(pawn);
+
+    m_setupPlacedUnits.RemoveAt(unitIndex);
+    if (m_tacticsLayout.IsValidIndex(unitIndex))
+        m_tacticsLayout.RemoveAt(unitIndex);
+}
+
+void ACommanderController::UpdatePlacementPointer() const
+{
+    if (m_placementPointer == nullptr)
+        return;
+
+    if (!IsGridPointerActive())
+    {
+        m_placementPointer->HidePointer();
+        return;
+    }
+
+    AFloorGrid* grid = nullptr;
+    FVector cellCenter = FVector::ZeroVector;
+    if (!TryGetGridCellUnderCursor(grid, cellCenter))
+    {
+        m_placementPointer->HidePointer();
+        return;
+    }
+
+    m_placementPointer->ShowAt(cellCenter);
+}
+
+void ACommanderController::PlayerTick(float DeltaTime)
+{
+    Super::PlayerTick(DeltaTime);
+    UpdateSetupUnitHover();
+    UpdatePlacementPointer();
+    DrawDebugSelectedUnitDestination();
+}
+
+APawn* ACommanderController::FindBattleUnitUnderCursor() const
+{
+    FHitResult hit;
+
+    if (GetHitResultUnderCursor(ECC_Pawn, false, hit))
+    {
+        if (APawn* pawn = Cast<APawn>(hit.GetActor()))
+        {
+            if (pawn->FindComponentByClass<UUnitLogic>() != nullptr)
+                return pawn;
+        }
+    }
+
+    if (GetHitResultUnderCursor(ECC_Visibility, false, hit))
+    {
+        if (APawn* pawn = Cast<APawn>(hit.GetActor()))
+        {
+            if (pawn->FindComponentByClass<UUnitLogic>() != nullptr)
+                return pawn;
+        }
+    }
+
+    return nullptr;
+}
+
+void ACommanderController::SetDebugSelectedUnit(APawn* pawn)
+{
+    if (IsCVarDebugUnitDestinationUnchecked() || m_debugSelectedUnit.Get() == pawn)
+        return;
+
+    if (APawn* previousPawn = m_debugSelectedUnit.Get())
+        SetSetupUnitHighlighted(previousPawn, false);
+
+    m_debugSelectedUnit = pawn;
+
+    if (pawn != nullptr)
+        SetSetupUnitHighlighted(pawn, true);
+}
+
+void ACommanderController::TryDebugSelectUnitAtCursor()
+{
+    if (IsArmySetupActive())
+        return;
+
+    SetDebugSelectedUnit(FindBattleUnitUnderCursor());
+}
+
+void ACommanderController::DrawDebugSelectedUnitDestination() const
+{
+    if (IsCVarDebugUnitDestinationUnchecked())
+        return;
+
+    const APawn* pawn = m_debugSelectedUnit.Get();
+    if (pawn == nullptr)
+        return;
+
+    const UUnitLogic* logic = pawn->FindComponentByClass<UUnitLogic>();
+    if (logic == nullptr)
+        return;
+
+    FVector destinationLocation = FVector::ZeroVector;
+    if (!logic->TryGetNavigationGoalLocation(destinationLocation))
+        return;
+
+    const UWorld* world = GetWorld();
+    if (world == nullptr)
+        return;
+
+    const FVector origin = GetUnitDebugOrigin(pawn);
+    constexpr float lineThickness = 4.f;
+    constexpr float sphereRadius = 80.f;
+    constexpr int32 sphereSegments = 16;
+    const FColor lineColor = FColor::Cyan;
+    const FColor sphereColor = FColor::Yellow;
+
+    DrawDebugLine(
+        world,
+        origin,
+        destinationLocation,
+        lineColor,
+        false,
+        -1.f,
+        SDPG_Foreground,
+        lineThickness);
+
+    DrawDebugSphere(
+        world,
+        destinationLocation,
+        sphereRadius,
+        sphereSegments,
+        sphereColor,
+        false,
+        -1.f,
+        SDPG_Foreground,
+        lineThickness);
 }

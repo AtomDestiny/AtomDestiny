@@ -30,12 +30,17 @@ public:
     void OnLookAction(const FInputActionValue& actionValue);
     void OnRollAction(const FInputActionValue& actionValue);
     void OnResetAction(const FInputActionValue&);
-    
+    void OnLeftClickAction(const FInputActionValue&);
+    void OnRightClickAction(const FInputActionValue&);
+    void OnEndSetupArmyAction(const FInputActionValue&);
+
+    void ApplyTopCameraView();
+
     // Called to bind functionality to input
     virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
 
 protected:
-    
+
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Sphere"))
     class USphereComponent* m_sphere;
 

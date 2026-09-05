@@ -31,6 +31,7 @@ namespace AtomDestiny
 
         bool Contains(const EADUnitType type) const;
         TOptional<FUnitInfo> GetInfo(const EADUnitType type) const;
+        FText GetDisplayName(EADUnitType type) const;
 
         TArray<EADUnitType> GetUnits() const; // copy specially, you should not use this method frequently
         
@@ -72,6 +73,24 @@ namespace AtomDestiny
         }
 
         return NullOpt;
+    }
+
+    inline FText UnitStorage::GetDisplayName(EADUnitType type) const
+    {
+        if (const TOptional<FUnitInfo> info = GetInfo(type); info.IsSet() && !info->name.IsEmpty())
+        {
+            return info->name;
+        }
+
+        switch (type)
+        {
+        case EADUnitType::Shooter:
+            return NSLOCTEXT("AtomDestiny", "UnitTypeShooter", "Shooter");
+        case EADUnitType::Lancer:
+            return NSLOCTEXT("AtomDestiny", "UnitTypeLancer", "Lancer");
+        default:
+            return FText::GetEmpty();
+        }
     }
 
     inline TArray<EADUnitType> UnitStorage::GetUnits() const

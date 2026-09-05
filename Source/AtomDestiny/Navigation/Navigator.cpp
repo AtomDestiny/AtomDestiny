@@ -2,8 +2,8 @@
 
 #include <Runtime/AIModule/Classes/Navigation/CrowdFollowingComponent.h>
 
-#include <AtomDestiny/Core/Logger.h>
-#include <AtomDestiny/Core/TypeTraits.h>
+#include "AtomDestiny/Core/Logger.h"
+#include "AtomDestiny/Core/TypeTraits.h"
 
 using namespace AtomDestiny::Concepts;
 
@@ -32,7 +32,7 @@ ANavigator::ANavigator(const FObjectInitializer& objectInitializer)
     : AAIController(objectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>(TEXT("CrowdPathFollowingComponent")))
 {
     bStartAILogicOnPossess = true;
-    
+
     PrimaryActorTick.bCanEverTick = true;
     PrimaryActorTick.bStartWithTickEnabled = true;
 }
@@ -45,12 +45,17 @@ void ANavigator::SetMovementComponent(UFloatingPawnMovement* component)
 
 void ANavigator::Move(AActor* target)
 {
-    check(target != nullptr)
+    if (!IsValid(target) || !m_pawnMovement.IsValid())
+        return;
+
     MoveImpl(target);
 }
 
 void ANavigator::Move(const FVector& point)
 {
+    if (!m_pawnMovement.IsValid())
+        return;
+
     MoveImpl(point);
 }
 
@@ -59,13 +64,19 @@ void ANavigator::Stop()
     AAIController::StopMovement();
 }
 
-void ANavigator::SetSpeed(double speed)
+void ANavigator::SetSpeed(double speed) const
 {
+    if (!m_pawnMovement.IsValid())
+        return;
+
     m_pawnMovement->MaxSpeed = static_cast<float>(speed);
 }
 
 double ANavigator::GetSpeed() const
 {
+    if (!m_pawnMovement.IsValid())
+        return 0.0;
+
     return static_cast<double>(m_pawnMovement->GetMaxSpeed()); // Do not remove static_cast operator
 }
 
@@ -81,9 +92,13 @@ double ANavigator::GetStopDistance() const
 
 double ANavigator::GetRemainingDistance() const
 {
+    if (!m_pawnMovement.IsValid())
+        return 0.0;
+
     const AActor* owner = m_pawnMovement->GetOwner();
-    check(owner)
-    
+    if (owner == nullptr)
+        return 0.0;
+
     if (m_target.IsValid())
     {
         return (m_target->GetActorLocation() - owner->GetActorLocation()).Length();
@@ -109,9 +124,7 @@ template <NavigatorMovable T>
 void ANavigator::MoveImpl(const T& target)
 {
     if (!CheckMoveRequest(target))
-    {
         return;
-    }
 
     if (const EPathFollowingRequestResult::Type result = MoveAction(target); result == EPathFollowingRequestResult::Type::Failed)
     {

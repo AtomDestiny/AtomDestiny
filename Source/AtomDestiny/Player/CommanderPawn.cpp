@@ -6,8 +6,10 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
+#include "Engine/World.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Engine/LocalPlayer.h"
 #include "Core/Logger.h"
 
 
@@ -17,7 +19,7 @@ ACommanderPawn::ACommanderPawn()
     // Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
     //PrimaryActorTick.bCanEverTick = true;
     m_mouseEnabled = true;
-    
+
     m_sphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
     SetRootComponent(m_sphere);
 
@@ -32,7 +34,7 @@ ACommanderPawn::ACommanderPawn()
 
     m_camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
     m_camera->SetupAttachment(m_springArm, USpringArmComponent::SocketName);
-    
+
     m_movement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("Movement"));
 
     m_moveScale = 0.7f;
@@ -54,6 +56,11 @@ ACommanderPawn::ACommanderPawn()
 void ACommanderPawn::BeginPlay()
 {
     Super::BeginPlay();
+
+    if (const UWorld* world = GetWorld(); world != nullptr && world->GetMapName().Contains(TEXT("Training")))
+    {
+        ApplyTopCameraView();
+    }
 }
 
 void ACommanderPawn::OnMoveAction(const FInputActionValue& actionValue)
@@ -64,19 +71,6 @@ void ACommanderPawn::OnMoveAction(const FInputActionValue& actionValue)
     /// ***  TODO: Limit pawn moving ***
     vec = GetActorRotation().RotateVector(vec);
     AddMovementInput(vec, m_moveScale);
-
-    
-   // if (UKismetMathLibrary::IsPointInBox_Box(vec, worldBox))
-   //     AddMovementInput(vec, m_moveScale);
-   /* else
-    {
-        auto&& loc = ClampVector(GetActorLocation(),
-            FVector(-m_absHorizDist, -m_absHorizDist, m_minHeight),
-            FVector(m_absHorizDist, m_absHorizDist, m_maxHeight)
-        );
-
-        SetActorLocation(loc);
-    }*/
 }
 
 void ACommanderPawn::OnLookAction(const FInputActionValue& actionValue)
@@ -87,8 +81,7 @@ void ACommanderPawn::OnLookAction(const FInputActionValue& actionValue)
         0);
 
     rot *= GetWorld()->GetDeltaSeconds() * m_rotateScale;
-    //rot.Pitch = FMath::ClampAngle(rot.Pitch, -89.9f, 89.9f);
-    
+
     AddActorLocalRotation(rot);
 }
 
@@ -97,10 +90,46 @@ void ACommanderPawn::OnRollAction(const FInputActionValue& actionValue)
     AddActorLocalRotation(FRotator(0,0, actionValue[0]));
 }
 
-void ACommanderPawn::OnResetAction(const FInputActionValue&)
+void ACommanderPawn::ApplyTopCameraView()
 {
     SetActorLocation(m_startPos);
     SetActorRotation(m_startRot);
+}
+
+void ACommanderPawn::OnResetAction(const FInputActionValue&)
+{
+    ApplyTopCameraView();
+}
+
+void ACommanderPawn::OnLeftClickAction(const FInputActionValue&)
+{
+    if (ACommanderController* controller = Cast<ACommanderController>(Controller))
+    {
+        if (controller->IsArmySetupActive())
+        {
+            controller->TryPlaceUnitAtCursor();
+        }
+        else
+        {
+            controller->TryDebugSelectUnitAtCursor();
+        }
+    }
+}
+
+void ACommanderPawn::OnRightClickAction(const FInputActionValue&)
+{
+    if (ACommanderController* controller = Cast<ACommanderController>(Controller))
+    {
+        controller->TryRemoveHoveredSetupUnit();
+    }
+}
+
+void ACommanderPawn::OnEndSetupArmyAction(const FInputActionValue&)
+{
+    if (ACommanderController* controller = Cast<ACommanderController>(Controller))
+    {
+        controller->TryFinishArmySetup();
+    }
 }
 
 // Called to bind functionality to input
@@ -111,18 +140,21 @@ void ACommanderPawn::SetupPlayerInputComponent(UInputComponent* playerInputCompo
     UEnhancedInputComponent* inputComp = Cast<UEnhancedInputComponent>(playerInputComponent);
     const ACommanderController* cmdCtrl = Cast<ACommanderController>(Controller);
 
-    check(inputComp && cmdCtrl)
+    check(inputComp && cmdCtrl);
 
     inputComp->BindAction(cmdCtrl->GetActionMove(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnMoveAction);
     inputComp->BindAction(cmdCtrl->GetActionLook(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnLookAction);
     inputComp->BindAction(cmdCtrl->GetActionRoll(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnRollAction);
     inputComp->BindAction(cmdCtrl->GetActionReset(), ETriggerEvent::Triggered, this, &ACommanderPawn::OnResetAction);
-    
+    inputComp->BindAction(cmdCtrl->GetActionLClick(), ETriggerEvent::Started, this, &ACommanderPawn::OnLeftClickAction);
+    inputComp->BindAction(cmdCtrl->GetActionRClick(), ETriggerEvent::Started, this, &ACommanderPawn::OnRightClickAction);
+    inputComp->BindAction(cmdCtrl->GetActionEndSetupArmy(), ETriggerEvent::Started, this, &ACommanderPawn::OnEndSetupArmyAction);
+
     const ULocalPlayer* localPlayer = cmdCtrl->GetLocalPlayer();
-    check(localPlayer)
+    check(localPlayer);
 
     UEnhancedInputLocalPlayerSubsystem* subSys = localPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-    check(subSys)
+    check(subSys);
 
     subSys->ClearAllMappings();
     subSys->AddMappingContext(cmdCtrl->GetPawnMappingContext(), 0);

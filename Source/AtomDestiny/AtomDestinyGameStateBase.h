@@ -3,7 +3,7 @@
 #include <AtomDestiny/AtomDestiny.h>
 
 #include <AtomDestiny/Unit/Unit.h>
-#include <AtomDestiny/Gameplay/GameDestination.h>
+#include <AtomDestiny/Gameplay/SideDefinition.h>
 
 #include <AtomDestiny/Projectile/Projectile.h>
 #include <AtomDestiny/Parameters/Parameters.h>
@@ -32,11 +32,15 @@ public:
     void AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
     void RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
 
-    TWeakObjectPtr<AActor> GetDestination(EGameSide side) const;
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AtomDestiny|Side")
+    AActor* GetRallyPoint(EGameSide side) const;
 
     // use this method to prevent crushes for GetEnemies reference
     bool IsEnemiesExist(EGameSide side) const;
     const FEnemiesList& GetEnemies(EGameSide side) const;
+
+    const FSideRuntimeState* FindSideRuntimeState(EGameSide side) const;
+    FSideRuntimeState* FindSideRuntimeStateMutable(EGameSide side);
 
     ///
     /// Adds damage from projectile to object with explosion point parameters.
@@ -67,9 +71,10 @@ protected:
 
     void InitializeSides();
     void InitializeEnemies();
+    void InitializeSideRuntime();
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Game destination"))
-    FGameDestination m_destination;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (DisplayName = "Side runtime state"))
+    TMap<EGameSide, FSideRuntimeState> m_sideRuntimeState;
 
     // represents active units at overall battle
     TMap<EGameSide, FSharedGameStateUnitList> m_activeUnits;
