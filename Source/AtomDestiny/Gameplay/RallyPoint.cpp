@@ -130,7 +130,7 @@ ARallyPoint::ARallyPoint(const FObjectInitializer& objectInitializer):
         FSoftObjectPath(TEXT("/Game/Models/Other/Flag/Mesh/Flag.Flag")));
 
     m_flagMaterial = TSoftObjectPtr<UMaterialInterface>(
-        FSoftObjectPath(TEXT("/Game/Models/Other/Flag/Mesh/M_Flag.M_Flag")));
+        FSoftObjectPath(TEXT("/Game/Models/Other/Flag/Material/M_Flag.M_Flag")));
 
     static ConstructorHelpers::FObjectFinder<UStaticMesh> defaultFlagMesh(
         TEXT("/Game/Models/Other/Flag/Mesh/Flag.Flag"));
@@ -141,7 +141,7 @@ ARallyPoint::ARallyPoint(const FObjectInitializer& objectInitializer):
     }
 
     static ConstructorHelpers::FObjectFinder<UMaterialInterface> defaultFlagMaterial(
-        TEXT("/Game/Models/Other/Flag/Mesh/M_Flag.M_Flag"));
+        TEXT("/Game/Models/Other/Flag/Material/M_Flag.M_Flag"));
 
     if (defaultFlagMaterial.Succeeded())
     {

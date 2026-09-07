@@ -21,9 +21,6 @@ namespace AtomDestiny
             return;
         }
 
-        if (storage.GetUnits().Num() != catalog.Num())
-        {
-            storage.Add(TMap<EADUnitType, FUnitInfo>(catalog));
-        }
+        storage.Add(TMap<EADUnitType, FUnitInfo>(catalog));
     }
 }

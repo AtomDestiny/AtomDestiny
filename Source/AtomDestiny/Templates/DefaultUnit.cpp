@@ -68,7 +68,7 @@ void ADefaultUnit::OnAcquiredFromPool(const EGameSide side, const EUnitPoolAcqui
 {
     UUnitLogic* unitLogic = ResolveUnitLogic();
 
-    if (m_bReleasedToPoolOnce)
+    if (m_releasedToPoolOnce)
     {
         if (unitLogic != nullptr)
             unitLogic->ResetForPoolReuse();
@@ -92,13 +92,13 @@ void ADefaultUnit::OnAcquiredFromPool(const EGameSide side, const EUnitPoolAcqui
     if (m_sideColorDetails != nullptr)
         m_sideColorDetails->ApplyForSide(side);
 
-    m_bPoolAcquirePending = false;
+    m_poolAcquirePending = false;
 }
 
 void ADefaultUnit::OnReleasedToPool()
 {
-    m_bReleasedToPoolOnce = true;
-    m_bPoolAcquirePending = true;
+    m_releasedToPoolOnce = true;
+    m_poolAcquirePending = true;
 
     if (UUnitLogic* unitLogic = ResolveUnitLogic())
     {

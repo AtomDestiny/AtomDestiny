@@ -12,18 +12,12 @@ class UUnitSideColorDetails;
 #include <Runtime/Engine/Classes/GameFramework/Pawn.h>
 
 #include "AtomDestiny/AtomDestiny.h"
+#include "AtomDestiny/Core/ObjectPool/UnitPoolAcquireMode.h"
 #include "DefaultUnit.generated.h"
-
-UENUM(BlueprintType)
-enum class EUnitPoolAcquireMode : uint8
-{
-    SetupPlacement,
-    Battle
-};
 
 ///
 /// Represents default unit with basic components.
-/// It consists of Box collider, Unit parameters (heath and defence),
+/// It consists of Box collider, Unit parameters (heath and defense),
 /// Unit state (massive API to unit info and control), Ground point, Movement component and
 /// Unit logic (AI control component).
 ///
@@ -35,9 +29,8 @@ class ADefaultUnit : public APawn
 public:
     explicit ADefaultUnit(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
-    virtual void BeginPlay() override;
-
-    virtual void PostInitializeComponents() override;
+    void BeginPlay() override;
+    void PostInitializeComponents() override;
 
     // Called after ObjectPool::Spawn; configures side, setup mode, and pool reuse state
     void OnAcquiredFromPool(EGameSide side, EUnitPoolAcquireMode mode);
@@ -46,13 +39,13 @@ public:
     void OnReleasedToPool();
 
     // True between pool SpawnActor and OnAcquiredFromPool (BeginPlay must defer AI like deferred spawn)
-    bool IsPoolAcquirePending() const { return m_bPoolAcquirePending; }
+    bool IsPoolAcquirePending() const { return m_poolAcquirePending; }
 
     UUnitLogic* ResolveUnitLogic() const;
 
 protected:
-    bool m_bPoolAcquirePending = true;
-    bool m_bReleasedToPoolOnce = false;
+    bool m_poolAcquirePending = true;
+    bool m_releasedToPoolOnce = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Box collider"))
     TObjectPtr<USceneComponent> m_boxComponent;

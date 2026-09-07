@@ -27,15 +27,11 @@
 
 namespace
 {
-    TAutoConsoleVariable<int32> CVarDebugUnitDestination(
-        TEXT("ad.DebugUnitDestination"),
-        0,
-        TEXT("Draw navigation goal for the selected unit (0=off, 1=on). Select a unit with LMB after battle starts."),
-        ECVF_Cheat);
+    const TAutoConsoleVariable<int32> VarDebugUnitDestination(TEXT("ad.DebugUnitDestination"), 0, TEXT("Draw navigation goal for the selected unit (0=off, 1=on). Select a unit with LMB after battle starts."), ECVF_Cheat);
 
-    bool IsCVarDebugUnitDestinationUnchecked()
+    bool IsVarDebugUnitDestinationUnchecked()
     {
-        return CVarDebugUnitDestination.GetValueOnGameThread() == 0;
+        return VarDebugUnitDestination.GetValueOnGameThread() == 0;
     }
 
     FVector GetUnitDebugOrigin(const APawn* pawn)
@@ -66,38 +62,37 @@ namespace
 
         pawn->Destroy();
     }
+
+    void MapKey(UInputMappingContext* context, const UInputAction* action, const FKey& key, bool isNegate = false, bool isSwizzle = false,
+        EInputAxisSwizzle swizzleOrder = EInputAxisSwizzle::YXZ, bool isAddChord = false, UInputAction* chordAct = nullptr)
+    {
+        auto& mapping = context->MapKey(action, key);
+        UObject* outer = context->GetOuter();
+
+        if (isNegate)
+        {
+            auto* negate = NewObject<UInputModifierNegate>(outer);
+            mapping.Modifiers.Add(negate);
+        }
+
+        if (isAddChord)
+        {
+            auto *extTrig = NewObject<UInputTriggerChordAction>(outer);
+            extTrig->ChordAction = chordAct;
+            mapping.Triggers.Add(extTrig);
+        }
+
+        if (isSwizzle)
+        {
+            auto* swizzle = NewObject<UInputModifierSwizzleAxis>(outer);
+            swizzle->Order = swizzleOrder;
+            mapping.Modifiers.Add(swizzle);
+        }
+    }
 } // namespace
 
-static void mapKey(UInputMappingContext* context, UInputAction* action, FKey key,
-    bool isNegate = false, bool isSwizzle = false, EInputAxisSwizzle swizzleOrder = EInputAxisSwizzle::YXZ,
-    bool isAddChord = false, UInputAction* chordAct = nullptr)
-{
-    auto& mapping = context->MapKey(action, key);
-
-    UObject* outer = context->GetOuter();
-
-    if (isNegate)
-    {
-        auto* negate = NewObject<UInputModifierNegate>(outer);
-        mapping.Modifiers.Add(negate);
-    }
-
-    if (isAddChord)
-    {
-        auto *extTrig = NewObject<UInputTriggerChordAction>(outer);
-        extTrig->ChordAction = chordAct;
-        mapping.Triggers.Add(extTrig);
-    }
-
-    if (isSwizzle)
-    {
-        auto* swizzle = NewObject<UInputModifierSwizzleAxis>(outer);
-        swizzle->Order = swizzleOrder;
-        mapping.Modifiers.Add(swizzle);
-    }
-}
-
-ACommanderController::ACommanderController() : APlayerController()
+ACommanderController::ACommanderController(const FObjectInitializer& objectInitializer)
+    : Super(objectInitializer)
 {
     bEnableMouseOverEvents = true;
     bEnableClickEvents = true;
@@ -132,27 +127,27 @@ void ACommanderController::SetupInputComponent()
     m_actionRClick = NewObject<UInputAction>(this);
     m_actionRClick->ValueType = EInputActionValueType::Boolean;
 
-    mapKey(m_pawnMappingContext, m_actionLClick, EKeys::LeftMouseButton);
-    mapKey(m_pawnMappingContext, m_actionRClick, EKeys::RightMouseButton);
+    MapKey(m_pawnMappingContext, m_actionLClick, EKeys::LeftMouseButton);
+    MapKey(m_pawnMappingContext, m_actionRClick, EKeys::RightMouseButton);
 
-    mapKey(m_pawnMappingContext, m_actionReset, EKeys::R);
+    MapKey(m_pawnMappingContext, m_actionReset, EKeys::R);
 
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::E);
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::Q, true);
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::D, false, true);
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::A, true, true);
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::W, false, true, EInputAxisSwizzle::ZYX);
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::S, true, true, EInputAxisSwizzle::ZYX);
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::MouseScrollUp, false, true, EInputAxisSwizzle::ZYX);
-    mapKey(m_pawnMappingContext, m_actionMove, EKeys::MouseScrollDown, true, true, EInputAxisSwizzle::ZYX);
+    MapKey(m_pawnMappingContext, m_actionMove, EKeys::E);
+    MapKey(m_pawnMappingContext, m_actionMove, EKeys::Q, true);
+    MapKey(m_pawnMappingContext, m_actionMove, EKeys::D, false, true);
+    MapKey(m_pawnMappingContext, m_actionMove, EKeys::A, true, true);
+    MapKey(m_pawnMappingContext, m_actionMove, EKeys::W, false, true, EInputAxisSwizzle::ZYX);
+    MapKey(m_pawnMappingContext, m_actionMove, EKeys::S, true, true, EInputAxisSwizzle::ZYX);
+    MapKey(m_pawnMappingContext, m_actionMove, EKeys::MouseScrollUp, false, true, EInputAxisSwizzle::ZYX);
+    MapKey(m_pawnMappingContext, m_actionMove, EKeys::MouseScrollDown, true, true, EInputAxisSwizzle::ZYX);
 
-    mapKey(m_pawnMappingContext, m_actionEndSetupArmy, EKeys::SpaceBar);
+    MapKey(m_pawnMappingContext, m_actionEndSetupArmy, EKeys::SpaceBar);
 
-    if (EnableMouseLook)
+    if (enableMouseLook)
     {
-        mapKey(m_pawnMappingContext, m_actionLook, EKeys::MouseY,
+        MapKey(m_pawnMappingContext, m_actionLook, EKeys::MouseY,
             false, false, EInputAxisSwizzle::YXZ, true, m_actionLClick);
-        mapKey(m_pawnMappingContext, m_actionLook, EKeys::MouseX, false, true,
+        MapKey(m_pawnMappingContext, m_actionLook, EKeys::MouseX, false, true,
             EInputAxisSwizzle::YXZ, true, m_actionLClick);
     }
 }
@@ -165,11 +160,7 @@ void ACommanderController::BeginPlay()
     spawnParams.Owner = this;
     spawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-    m_placementPointer = GetWorld()->SpawnActor<APlacementPointer>(
-        APlacementPointer::StaticClass(),
-        FVector::ZeroVector,
-        FRotator::ZeroRotator,
-        spawnParams);
+    m_placementPointer = GetWorld()->SpawnActor<APlacementPointer>(APlacementPointer::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, spawnParams);
 
     if (m_placementPointer != nullptr)
         m_placementPointer->HidePointer();
@@ -186,9 +177,9 @@ void ACommanderController::ClearSetupUnits()
 {
     ClearSetupUnitHover();
 
-    for (const TWeakObjectPtr<APawn>& weakPawn : m_setupPlacedUnits)
+    for (const auto& [p, layout] : m_setupPlacedUnits)
     {
-        APawn* pawn = weakPawn.Get();
+        const APawn* pawn = p.Get();
         if (pawn == nullptr)
             continue;
 
@@ -202,23 +193,23 @@ void ACommanderController::ClearSetupUnits()
 
 void ACommanderController::ClearAllSetupUnits()
 {
-    if (!m_bArmySetupActive)
+    if (!m_armySetupActive)
         return;
 
-    for (const TWeakObjectPtr<APawn>& weakPawn : m_setupPlacedUnits)
+    for (const auto& [p, layout] : m_setupPlacedUnits)
     {
-        if (APawn* pawn = weakPawn.Get(); pawn != nullptr)
+        if (APawn* pawn = p.Get(); pawn != nullptr)
             ReleaseTrainingUnitToPool(pawn);
     }
 
     ClearSetupUnitHover();
     m_setupPlacedUnits.Empty();
-    m_tacticsLayout.Empty();
 }
 
 void ACommanderController::ClearLevelDespawnTimers() const
 {
     const auto world = GetWorld();
+
     if (world == nullptr)
         return;
 
@@ -232,7 +223,7 @@ void ACommanderController::ClearLevelDespawnTimers() const
 
 void ACommanderController::TryFinishArmySetup() const
 {
-    if (!m_bArmySetupActive || !m_trainingWidget.IsValid())
+    if (!m_armySetupActive || !m_trainingWidget.IsValid())
         return;
 
     m_trainingWidget->EndArmySetup();
@@ -240,7 +231,7 @@ void ACommanderController::TryFinishArmySetup() const
 
 void ACommanderController::OnSetupArmyModeChanged(bool setupArmy)
 {
-    m_bArmySetupActive = setupArmy;
+    m_armySetupActive = setupArmy;
 
     if (UWorld* world = GetWorld())
     {
@@ -260,7 +251,12 @@ void ACommanderController::OnSetupArmyModeChanged(bool setupArmy)
     if (m_placementPointer != nullptr)
         m_placementPointer->HidePointer();
 
-    TArray<TWeakObjectPtr<APawn>> unitsToActivate = MoveTemp(m_setupPlacedUnits);
+    TArray<TWeakObjectPtr<APawn>> unitsToActivate;
+    unitsToActivate.Reserve(m_setupPlacedUnits.Num());
+    for (const FSetupPlacedUnitEntry& entry : m_setupPlacedUnits)
+    {
+        unitsToActivate.Add(entry.pawn);
+    }
     m_setupPlacedUnits.Empty();
 
     if (unitsToActivate.Num() == 0 || GetWorld() == nullptr)
@@ -283,7 +279,7 @@ void ACommanderController::OnSetupArmyModeChanged(bool setupArmy)
 
 bool ACommanderController::IsGridPointerActive() const
 {
-    return m_bArmySetupActive;
+    return m_armySetupActive;
 }
 
 bool ACommanderController::TryGetGridCellUnderCursor(AFloorGrid*& outGrid, FVector& outCellCenter) const
@@ -378,10 +374,7 @@ APawn* ACommanderController::SpawnTrainingUnitAt(
     if (!unitInfo.IsSet() || unitInfo->prefab == nullptr)
         return nullptr;
 
-    TWeakObjectPtr<AActor> spawnedActor = AtomDestiny::ObjectPool::Instance().Spawn(
-        unitInfo->prefab,
-        groundLocation,
-        facingRotation.Quaternion());
+    TWeakObjectPtr<AActor> spawnedActor = AtomDestiny::ObjectPool::Instance().Spawn(unitInfo->prefab, groundLocation, facingRotation.Quaternion());
 
     const auto pawn = Cast<APawn>(spawnedActor.Get());
     if (pawn == nullptr)
@@ -406,31 +399,52 @@ APawn* ACommanderController::SpawnTrainingUnitAt(
     AlignUnitGroundPoint(pawn, groundLocation);
     pawn->SetActorRotation(facingRotation);
 
-    m_setupPlacedUnits.Add(pawn);
+    FSetupPlacedUnitEntry entry;
+    entry.pawn = pawn;
+    entry.layout.unitType = unitType;
+    entry.layout.side = placementSide;
+    entry.layout.location = groundLocation;
+    entry.layout.rotation = facingRotation;
+
+    m_setupPlacedUnits.Add(entry);
+
     return pawn;
+}
+
+TArray<FTacticsLayoutElement> ACommanderController::BuildTacticsLayoutSnapshot() const
+{
+    TArray<FTacticsLayoutElement> snapshot;
+    snapshot.Reserve(m_setupPlacedUnits.Num());
+
+    for (const auto& [pawn, layout] : m_setupPlacedUnits)
+    {
+        snapshot.Add(layout);
+    }
+
+    return snapshot;
 }
 
 void ACommanderController::SaveTacticsLayoutToGameInstance() const
 {
     if (UAtomDestinyGameInstance* gameInstance = Cast<UAtomDestinyGameInstance>(GetGameInstance()))
-        gameInstance->SaveTacticsLayout(m_tacticsLayout);
+        gameInstance->SaveTacticsLayout(BuildTacticsLayoutSnapshot());
 }
 
 void ACommanderController::PersistTacticsLayoutForNextVisit() const
 {
-    if (m_tacticsLayout.Num() > 0)
+    if (m_setupPlacedUnits.Num() > 0)
         SaveTacticsLayoutToGameInstance();
 }
 
 void ACommanderController::TryRestoreTacticsLayout()
 {
-    if (m_bTacticsLayoutRestored)
+    if (m_tacticsLayoutRestored)
         return;
 
     // Player already placed units this visit — do not spawn saved layout on top.
-    if (m_setupPlacedUnits.Num() > 0 || m_tacticsLayout.Num() > 0)
+    if (m_setupPlacedUnits.Num() > 0)
     {
-        m_bTacticsLayoutRestored = true;
+        m_tacticsLayoutRestored = true;
         return;
     }
 
@@ -454,21 +468,21 @@ void ACommanderController::TryRestoreTacticsLayout()
         }
         else
         {
-            m_bTacticsLayoutRestored = true;
+            m_tacticsLayoutRestored = true;
         }
 
         return;
     }
 
-    m_bTacticsLayoutRestored = true;
+    m_tacticsLayoutRestored = true;
 
     UAtomDestinyGameInstance* gameInstance = Cast<UAtomDestinyGameInstance>(GetGameInstance());
     if (gameInstance == nullptr || !gameInstance->HasSavedTacticsLayout())
         return;
 
-    m_tacticsLayout = gameInstance->GetTacticsLayout();
+    const TArray<FTacticsLayoutElement> savedLayout = gameInstance->GetTacticsLayout();
 
-    for (const FTacticsLayoutElement& element : m_tacticsLayout)
+    for (const FTacticsLayoutElement& element : savedLayout)
     {
         if (element.unitType == EADUnitType::None)
             continue;
@@ -499,16 +513,7 @@ void ACommanderController::TryPlaceUnitAtCursor()
 
     const FRotator facingRotation = ComputeFacingRotation(groundLocation, placementSide);
 
-    const auto pawn = SpawnTrainingUnitAt(unitType, placementSide, groundLocation, facingRotation);
-    if (pawn == nullptr)
-        return;
-
-    FTacticsLayoutElement element;
-    element.unitType = unitType;
-    element.side = placementSide;
-    element.location = groundLocation;
-    element.rotation = facingRotation;
-    m_tacticsLayout.Add(element);
+    SpawnTrainingUnitAt(unitType, placementSide, groundLocation, facingRotation);
 }
 
 void ACommanderController::TryRemoveHoveredSetupUnit()
@@ -531,12 +536,8 @@ bool ACommanderController::IsSetupPlacedUnit(const APawn* pawn) const
     if (pawn == nullptr)
         return false;
 
-    // Using the built-in algorithm optimized for TArray
-    const int32 index = m_setupPlacedUnits.IndexOfByPredicate(
-        [&](const TWeakObjectPtr<APawn>& weakPawn) { return weakPawn.Get() == pawn; });
-
-    // if pawn is found then return True
-    return index != INDEX_NONE;
+    return m_setupPlacedUnits.ContainsByPredicate(
+        [pawn](const FSetupPlacedUnitEntry& entry) { return entry.pawn.Get() == pawn; });
 }
 
 APawn* ACommanderController::FindSetupUnitUnderCursor() const
@@ -558,7 +559,7 @@ APawn* ACommanderController::FindSetupUnitUnderCursor() const
     return nullptr;
 }
 
-void ACommanderController::SetSetupUnitHighlighted(APawn* pawn, const bool bHighlighted)
+void ACommanderController::SetSetupUnitHighlighted(const APawn* pawn, const bool bHighlighted)
 {
     if (pawn == nullptr)
         return;
@@ -604,7 +605,7 @@ void ACommanderController::RemoveSetupUnit(APawn* pawn)
     int32 unitIndex = INDEX_NONE;
     for (int32 index = 0; index < m_setupPlacedUnits.Num(); ++index)
     {
-        if (m_setupPlacedUnits[index].Get() == pawn)
+        if (m_setupPlacedUnits[index].pawn.Get() == pawn)
         {
             unitIndex = index;
             break;
@@ -621,8 +622,6 @@ void ACommanderController::RemoveSetupUnit(APawn* pawn)
     ReleaseTrainingUnitToPool(pawn);
 
     m_setupPlacedUnits.RemoveAt(unitIndex);
-    if (m_tacticsLayout.IsValidIndex(unitIndex))
-        m_tacticsLayout.RemoveAt(unitIndex);
 }
 
 void ACommanderController::UpdatePlacementPointer() const
@@ -647,9 +646,10 @@ void ACommanderController::UpdatePlacementPointer() const
     m_placementPointer->ShowAt(cellCenter);
 }
 
-void ACommanderController::PlayerTick(float DeltaTime)
+void ACommanderController::PlayerTick(float deltaTime)
 {
-    Super::PlayerTick(DeltaTime);
+    Super::PlayerTick(deltaTime);
+
     UpdateSetupUnitHover();
     UpdatePlacementPointer();
     DrawDebugSelectedUnitDestination();
@@ -682,7 +682,7 @@ APawn* ACommanderController::FindBattleUnitUnderCursor() const
 
 void ACommanderController::SetDebugSelectedUnit(APawn* pawn)
 {
-    if (IsCVarDebugUnitDestinationUnchecked() || m_debugSelectedUnit.Get() == pawn)
+    if (IsVarDebugUnitDestinationUnchecked() || m_debugSelectedUnit.Get() == pawn)
         return;
 
     if (APawn* previousPawn = m_debugSelectedUnit.Get())
@@ -704,7 +704,7 @@ void ACommanderController::TryDebugSelectUnitAtCursor()
 
 void ACommanderController::DrawDebugSelectedUnitDestination() const
 {
-    if (IsCVarDebugUnitDestinationUnchecked())
+    if (IsVarDebugUnitDestinationUnchecked())
         return;
 
     const APawn* pawn = m_debugSelectedUnit.Get();
@@ -730,24 +730,6 @@ void ACommanderController::DrawDebugSelectedUnitDestination() const
     const FColor lineColor = FColor::Cyan;
     const FColor sphereColor = FColor::Yellow;
 
-    DrawDebugLine(
-        world,
-        origin,
-        destinationLocation,
-        lineColor,
-        false,
-        -1.f,
-        SDPG_Foreground,
-        lineThickness);
-
-    DrawDebugSphere(
-        world,
-        destinationLocation,
-        sphereRadius,
-        sphereSegments,
-        sphereColor,
-        false,
-        -1.f,
-        SDPG_Foreground,
-        lineThickness);
+    DrawDebugLine(world, origin, destinationLocation, lineColor, false, -1.f, SDPG_Foreground, lineThickness);
+    DrawDebugSphere(world, destinationLocation, sphereRadius, sphereSegments, sphereColor, false, -1.f, SDPG_Foreground, lineThickness);
 }

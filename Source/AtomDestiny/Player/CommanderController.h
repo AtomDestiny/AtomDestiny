@@ -23,11 +23,9 @@ class ATOMDESTINY_API ACommanderController : public APlayerController
     GENERATED_BODY()
 
 public:
-    ACommanderController();
+    explicit ACommanderController(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
-    virtual void SetupInputComponent() override;
-    virtual void BeginPlay() override;
-    virtual void PlayerTick(float DeltaTime) override;
+    void PlayerTick(float deltaTime) override;
 
     UInputMappingContext* GetPawnMappingContext() const { return m_pawnMappingContext; }
 
@@ -48,7 +46,7 @@ public:
 
     void OnSetupArmyModeChanged(bool setupArmy);
 
-    bool IsArmySetupActive() const { return m_bArmySetupActive; }
+    bool IsArmySetupActive() const { return m_armySetupActive; }
 
     // Debug function showing a destination point
     void TryDebugSelectUnitAtCursor();
@@ -66,9 +64,12 @@ public:
     void PersistTacticsLayoutForNextVisit() const;
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Enable mouse look"))
-    bool EnableMouseLook = true;
+    bool enableMouseLook = true;
 
 protected:
+    void SetupInputComponent() override;
+    void BeginPlay() override;
+
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Pawn mapping context"))
     UInputMappingContext* m_pawnMappingContext;
 
@@ -94,7 +95,13 @@ protected:
     UInputAction* m_actionRClick;
 
 private:
-    static void SetSetupUnitHighlighted(APawn* pawn, bool bHighlighted);
+    struct FSetupPlacedUnitEntry
+    {
+        TWeakObjectPtr<APawn> pawn;
+        FTacticsLayoutElement layout;
+    };
+
+    static void SetSetupUnitHighlighted(const APawn* pawn, bool bHighlighted);
     static void AlignUnitGroundPoint(APawn* pawn, const FVector& groundLocation);
 
     void UpdatePlacementPointer() const;
@@ -110,13 +117,11 @@ private:
     bool ProjectToGround(const FVector& cellCenter, FVector& outGroundLocation) const;
     FRotator ComputeFacingRotation(const FVector& location, EGameSide placementSide) const;
 
-    APawn* SpawnTrainingUnitAt(
-        EADUnitType unitType,
-        EGameSide placementSide,
-        const FVector& groundLocation,
-        const FRotator& facingRotation);
+    APawn* SpawnTrainingUnitAt(EADUnitType unitType, EGameSide placementSide, const FVector& groundLocation, const FRotator& facingRotation);
 
     void SaveTacticsLayoutToGameInstance() const;
+
+    TArray<FTacticsLayoutElement> BuildTacticsLayoutSnapshot() const;
 
     void TryRestoreTacticsLayout();
 
@@ -128,19 +133,12 @@ private:
     TObjectPtr<APlacementPointer> m_placementPointer;
 
     TWeakObjectPtr<UTrainingMainWidget> m_trainingWidget;
-
-    bool m_bArmySetupActive = false;
-
-    UPROPERTY()
-    TArray<TWeakObjectPtr<APawn>> m_setupPlacedUnits;
-
-    TArray<FTacticsLayoutElement> m_tacticsLayout;
-
+    TArray<FSetupPlacedUnitEntry> m_setupPlacedUnits;
     TWeakObjectPtr<APawn> m_hoveredSetupUnit;
-
     TWeakObjectPtr<APawn> m_debugSelectedUnit;
 
-    bool m_bTacticsLayoutRestored = false;
+    bool m_armySetupActive = false;
+    bool m_tacticsLayoutRestored = false;
 
     uint8 m_restoreLayoutAttempts = 0;
 };
