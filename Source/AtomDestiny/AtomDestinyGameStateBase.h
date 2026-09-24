@@ -31,6 +31,7 @@ public:
 
     void AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
     void RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
+    void MoveUnit(TWeakObjectPtr<AActor> actor, EGameSide from, EGameSide to);
 
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AtomDestiny|Side")
     AActor* GetRallyPoint(EGameSide side) const;
@@ -38,9 +39,6 @@ public:
     // use this method to prevent crushes for GetEnemies reference
     bool IsEnemiesExist(EGameSide side) const;
     const FEnemiesList& GetEnemies(EGameSide side) const;
-
-    const FSideRuntimeState* FindSideRuntimeState(EGameSide side) const;
-    FSideRuntimeState* FindSideRuntimeStateMutable(EGameSide side);
 
     ///
     /// Adds damage from projectile to object with explosion point parameters.
@@ -56,8 +54,8 @@ protected:
     static void AddDamageToState(const TScriptInterface<IParameters>& objectState, const FWeaponParameters& parameters);
 
     // called by GameMode directly
-    virtual void HandleBeginPlay() override;
-    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    void HandleBeginPlay() override;
+    void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
     ///
     /// Event callbacks
@@ -68,6 +66,9 @@ protected:
 
     UFUNCTION()
     void OnUnitDestroyed(AActor* actor, EGameSide side, EADUnitType unitType);
+
+    UFUNCTION()
+    void OnUnitSideChanged(AActor* actor, EGameSide oldSide, EGameSide newSide);
 
     void InitializeSides();
     void InitializeEnemies();
@@ -89,5 +90,4 @@ namespace AtomDestiny
     {
         return MakeWeakObjectPtr(Cast<AAtomDestinyGameStateBase>(actor->GetWorld()->GetGameState()));
     }
-
 } // namespace AtomDestiny

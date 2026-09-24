@@ -26,17 +26,11 @@ public:
     // Sets destination to unit from point
     virtual void SetDestinationByPoint(const FVector& destination) override;
 
-    // Delay AI/navigation until setup placement is finished (Training map)
-    void PrepareForSetupPlacement();
-
-    // Start AI after army setup ends
-    void ActivateAfterSetup();
-
-    virtual void ResetForPoolReuse() override;
-
 protected:
-    virtual void BeginPlay() override;
     virtual void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func) override;
+
+    // Chooses default destination and starts moving
+    virtual void StartLogic() override;
 
 private:
     void CheckTargetDistance();
@@ -64,6 +58,4 @@ private:
 
     // searches nearest enemy
     TWeakObjectPtr<AActor> FindEnemy(double minScanDistance, double scanDistance) const;
-
-    bool m_deferLogicUntilReady = false;
 };

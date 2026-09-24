@@ -7,13 +7,11 @@
 #include "Core/ObjectPool/Despawner.h"
 #include "Core/ObjectPool/ActorPool.h"
 #include "Core/ActorComponentUtils.h"
-#include "Logic/Logic.h"
 #include "Logic/UnitLogic.h"
 #include "Unit/UnitState.h"
 #include "Unit/UnitSideColorDetails.h"
 #include "Misc/FloorGrid.h"
 #include "Misc/PlacementPointer.h"
-#include "Templates/DefaultUnit.h"
 #include "UI/TrainingMainWidget.h"
 
 #include <GameFramework/Pawn.h>
@@ -50,17 +48,7 @@ namespace
         if (pawn == nullptr)
             return;
 
-        if (ADefaultUnit* unit = Cast<ADefaultUnit>(pawn))
-        {
-            unit->OnReleasedToPool();
-            AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(pawn));
-            return;
-        }
-
-        if (const auto despawner = pawn->FindComponentByClass<UDespawner>())
-            despawner->ClearDespawnTimer();
-
-        pawn->Destroy();
+        AtomDestiny::ObjectPool::Instance().Despawn(MakeWeakObjectPtr(pawn));
     }
 
     void MapKey(UInputMappingContext* context, const UInputAction* action, const FKey& key, bool isNegate = false, bool isSwizzle = false,
@@ -271,8 +259,8 @@ void ACommanderController::OnSetupArmyModeChanged(bool setupArmy)
                 if (pawn == nullptr)
                     continue;
 
-                if (UUnitLogic* logic = pawn->FindComponentByClass<UUnitLogic>())
-                    logic->ActivateAfterSetup();
+                if (UUnitLogicBase* logic = pawn->FindComponentByClass<UUnitLogicBase>())
+                    logic->Activate();
             }
         }));
 }
@@ -380,21 +368,15 @@ APawn* ACommanderController::SpawnTrainingUnitAt(
     if (pawn == nullptr)
         return nullptr;
 
-    if (const auto unit = Cast<ADefaultUnit>(pawn))
+    // Unit stays inactive until army setup ends
+    if (UUnitLogicBase* logic = pawn->FindComponentByClass<UUnitLogicBase>())
     {
-        unit->OnAcquiredFromPool(placementSide, EUnitPoolAcquireMode::SetupPlacement);
+        logic->SetSide(placementSide);
+        logic->Deactivate();
     }
-    else
-    {
-        if (const TScriptInterface<ILogic> logic = AtomDestiny::Utils::GetInterface<ILogic>(pawn))
-            logic->SetSide(placementSide);
 
-        if (const auto unitLogic = pawn->FindComponentByClass<UUnitLogic>())
-            unitLogic->PrepareForSetupPlacement();
-
-        if (const auto sideColorDetails = pawn->FindComponentByClass<UUnitSideColorDetails>())
-            sideColorDetails->ApplyForSide(placementSide);
-    }
+    if (const auto sideColorDetails = pawn->FindComponentByClass<UUnitSideColorDetails>())
+        sideColorDetails->ApplyForSide(placementSide);
 
     AlignUnitGroundPoint(pawn, groundLocation);
     pawn->SetActorRotation(facingRotation);
@@ -704,6 +686,7 @@ void ACommanderController::TryDebugSelectUnitAtCursor()
 
 void ACommanderController::DrawDebugSelectedUnitDestination() const
 {
+#if !UE_BUILD_SHIPPING
     if (IsVarDebugUnitDestinationUnchecked())
         return;
 
@@ -732,4 +715,5 @@ void ACommanderController::DrawDebugSelectedUnitDestination() const
 
     DrawDebugLine(world, origin, destinationLocation, lineColor, false, -1.f, SDPG_Foreground, lineThickness);
     DrawDebugSphere(world, destinationLocation, sphereRadius, sphereSegments, sphereColor, false, -1.f, SDPG_Foreground, lineThickness);
+#endif
 }

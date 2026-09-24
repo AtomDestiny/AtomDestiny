@@ -22,6 +22,10 @@ class ATOMDESTINY_API UUnitLogicBase : public UADObject, public ILogic
     UDELEGATE()
     DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FUnitAction, AActor*, actor, EGameSide, side, EADUnitType, unitType);
 
+    // Registered unit side changes
+    UDELEGATE()
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FUnitSideChanged, AActor*, actor, EGameSide, oldSide, EGameSide, newSide);
+
 public:
     explicit UUnitLogicBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
@@ -55,17 +59,16 @@ public:
     /// Sets destination to vector point
     virtual void SetDestinationByPoint(const FVector& destination) ABSTRACT_METHOD;
 
-    // Clears runtime AI/combat state when the owner is reused from an object pool
-    virtual void ResetForPoolReuse();
+    // Starts unit AI: navigation, game state registration and tick
+    virtual void Activate(bool bReset = false) override;
 
-    // Unregisters from game state and drops controllers before returning to the pool
-    void NotifyPoolReleased() const;
+    // Stops unit AI and clears its runtime state
+    virtual void Deactivate() override;
 
-    // Re-syncs game-state unit lists after side or pool reuse changes
-    void ReregisterWithGameState() const;
-
+#if !UE_BUILD_SHIPPING
     // World location the unit is navigating toward (rally, point, or current target).
     bool TryGetNavigationGoalLocation(FVector& outWorldLocation) const;
+#endif
 
     ///
     /// events
@@ -76,6 +79,9 @@ public:
 
     // Emits when unit destroyed
     inline static FUnitAction unitDestroyed;
+
+    // Emits when registered unit changes its side
+    inline static FUnitSideChanged unitSideChanged;
 
 protected:
     virtual void InitializeComponent() override;
@@ -97,11 +103,23 @@ protected:
     // Sets parameter to zero value
     virtual void ZeroizeParameter(EObjectParameters parameter) override;
 
+    // Runs logic after activation (or BeginPlay for active component)
+    virtual void StartLogic();
+
+    // Stops logic and resets runtime state on deactivation
+    virtual void StopLogic();
+
+    // Creates navigator controller if needed and binds it to the pawn
+    bool InitNavigation();
+
+    void RegisterInGameState();
+    void UnregisterFromGameState();
+
     void CreateEvent() const;
     void DestroyEvent() const;
 
-    // Pool/grid spawns register in OnAcquiredFromPool after side is known.
-    bool m_bSkipBeginPlayGameStateRegistration = false;
+    // Game state registration flag
+    bool m_isRegistered = false;
 
     // All unit weapons references
     TArray<TScriptInterface<IWeapon>> m_weapons;

@@ -2,7 +2,6 @@
 
 #include "AtomDestiny/Core/ObjectPool/ActorPool.h"
 #include "AtomDestiny/Core/Logger.h"
-#include "AtomDestiny/Templates/DefaultUnit.h"
 
 UUnitBasicDestroy::UUnitBasicDestroy(const FObjectInitializer& objectInitializer):
     UDestroyBase(objectInitializer)
@@ -24,11 +23,6 @@ void UUnitBasicDestroy::Destroy()
     else
     {
         SpawnExplosion(GetOwner()->GetTransform().GetLocation(), FQuat::Identity);
-    }
-
-    if (ADefaultUnit* unit = Cast<ADefaultUnit>(GetOwner()))
-    {
-        unit->OnReleasedToPool();
     }
 
     Super::Destroy();

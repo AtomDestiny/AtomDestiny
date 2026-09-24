@@ -9,10 +9,6 @@
 #include "AtomDestiny/Navigation/Navigator.h"
 
 #include "Core/ActorComponentUtils.h"
-#include "Templates/DefaultUnit.h"
-
-#include "GameFramework/FloatingPawnMovement.h"
-#include "GameFramework/Pawn.h"
 
 namespace
 {
@@ -20,7 +16,7 @@ namespace
 
     bool IsLiveEnemyTarget(const AActor* target, const AActor* self)
     {
-        if (!IsValid(target) || target == self || target->IsHidden())
+        if (!IsValid(target) || target == self)
         {
             return false;
         }
@@ -75,127 +71,17 @@ void UUnitLogic::SetDestinationByPoint(const FVector& destination)
     m_destinationPoint = destination;
 }
 
-void UUnitLogic::PrepareForSetupPlacement()
+void UUnitLogic::StartLogic()
 {
-    m_deferLogicUntilReady = true;
-    SetComponentTickEnabled(false);
-}
+    Super::StartLogic();
 
-void UUnitLogic::ResetForPoolReuse()
-{
-    Super::ResetForPoolReuse();
-    m_deferLogicUntilReady = false;
-}
-
-void UUnitLogic::ActivateAfterSetup()
-{
-    m_deferLogicUntilReady = false;
-
-    const auto pawn = Cast<APawn>(GetOwner());
-    if (pawn == nullptr)
+    if (!m_navigation.IsValid())
         return;
-
-    ReregisterWithGameState();
-
-    if (pawn->Controller == nullptr)
-        pawn->SpawnDefaultController();
-
-    ANavigator* navigator = Cast<ANavigator>(pawn->Controller.Get());
-    if (navigator == nullptr)
-        return;
-
-    if (navigator->GetPawn() == nullptr)
-        navigator->Possess(pawn);
-
-    m_navigation = MakeWeakObjectPtr(navigator);
-
-    const auto movement = pawn->FindComponentByClass<UFloatingPawnMovement>();
-    if (movement != nullptr)
-        m_navigation->SetMovementComponent(movement);
-
-    m_navigation->AttachToActor(pawn, FAttachmentTransformRules::KeepRelativeTransform);
-    m_navigation->SetPawn(pawn);
-    m_navigation->Move(pawn->GetActorLocation());
-
-    m_speed = m_navigation->GetSpeed();
-    if (m_speed <= 0.0 && movement != nullptr)
-    {
-        m_speed = movement->MaxSpeed;
-        m_navigation->SetSpeed(m_speed);
-    }
-
-    m_currentSpeed = m_speed;
-    m_navigation->SetStopDistance(m_defaultStopDistance);
-
-    if (m_animation == nullptr)
-    {
-        m_animation = AtomDestiny::Utils::GetInterface<IAnimation>(GetOwner());
-        m_scanDelay += FMath::RandRange(AtomDestiny::Unit::MinRandomScan, AtomDestiny::Unit::MaxRandomScan);
-    }
-
-    m_currentDestination = nullptr;
-    m_isTargetFound = false;
-    m_isAttacking = false;
-    m_canScan = true;
-
-    if (const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
-        gameState.IsValid())
-    {
-        if (const auto rallyPoint = gameState->GetRallyPoint(m_side))
-        {
-            SetDestination(rallyPoint);
-            LOG_INFO(
-                TEXT("ARallyPoint set as destination for Unit '%s' (side %s)."),
-                *pawn->GetName(),
-                *AtomDestiny::GameSide::ToString(m_side)
-            );
-        }
-        else
-        {
-            LOG_WARNING(
-                TEXT("Unit '%s' (side %s): no ARallyPoint found on the map. Check Side on placed rally flags."),
-                *pawn->GetName(),
-                *AtomDestiny::GameSide::ToString(m_side)
-            );
-
-            m_behaviour = EUnitBehaviour::Standing;
-        }
-    }
-    else
-    {
-        m_behaviour = EUnitBehaviour::MoveToTransform;
-    }
 
     CreateDestination();
-    SetTickEnabled(true);
 
     if (m_animation != nullptr && m_navigation->GetRemainingDistance() > m_navigation->GetStopDistance())
-    {
         m_animation->Walk();
-    }
-}
-
-void UUnitLogic::BeginPlay()
-{
-    // Pool SpawnActor runs BeginPlay before OnAcquiredFromPool; match deferred-spawn setup order.
-    if (const ADefaultUnit* unit = Cast<ADefaultUnit>(GetOwner()))
-    {
-        if (unit->IsPoolAcquirePending())
-        {
-            m_deferLogicUntilReady = true;
-            m_bSkipBeginPlayGameStateRegistration = true;
-        }
-    }
-
-    Super::BeginPlay();
-
-    if (m_deferLogicUntilReady)
-    {
-        SetComponentTickEnabled(false);
-        return;
-    }
-
-    CreateDestination();
 }
 
 void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func)
@@ -500,12 +386,6 @@ TWeakObjectPtr<AActor> UUnitLogic::FindEnemy(double minScanDistance, double scan
             if (AActor* target = (*enemies[sideCount])[unitCount].Get();
                 IsLiveEnemyTarget(target, GetOwner()))
             {
-                if (const TScriptInterface<ILogic> targetLogic = AtomDestiny::Utils::GetInterface<ILogic>(target);
-                    targetLogic != nullptr && targetLogic->GetSide() == m_side)
-                {
-                    continue;
-                }
-
                 const double sqrMagnitude = (target->GetActorLocation() - GetOwner()->GetActorLocation()).SquaredLength();
 
                 if ((sqrScanDistance >= sqrMagnitude) && (sqrMinScanDistance <= sqrMagnitude))

@@ -21,8 +21,8 @@ public:
     virtual bool IsDestroyed() const override;
     virtual void Destroy() override;
 
-    // Clears destroyed state when the owner is reused from an object pool.
-    void ResetForPoolReuse();
+    // Clears destroyed state
+    virtual void Activate(bool bReset = false) override;
 
 protected:
     virtual void BeginPlay() override;

@@ -17,8 +17,9 @@ void UDestroyBase::Destroy()
     m_destroyed = true;
 }
 
-void UDestroyBase::ResetForPoolReuse()
+void UDestroyBase::Activate(bool bReset)
 {
+    Super::Activate(bReset);
     m_destroyed = false;
 }
 

@@ -11,8 +11,6 @@ class UUnitSideColorDetails;
 
 #include <Runtime/Engine/Classes/GameFramework/Pawn.h>
 
-#include "AtomDestiny/AtomDestiny.h"
-#include "AtomDestiny/Core/ObjectPool/UnitPoolAcquireMode.h"
 #include "DefaultUnit.generated.h"
 
 ///
@@ -30,23 +28,8 @@ public:
     explicit ADefaultUnit(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     void BeginPlay() override;
-    void PostInitializeComponents() override;
-
-    // Called after ObjectPool::Spawn; configures side, setup mode, and pool reuse state
-    void OnAcquiredFromPool(EGameSide side, EUnitPoolAcquireMode mode);
-
-    // Called before ObjectPool::Despawn; unregisters the unit and stops runtime systems
-    void OnReleasedToPool();
-
-    // True between pool SpawnActor and OnAcquiredFromPool (BeginPlay must defer AI like deferred spawn)
-    bool IsPoolAcquirePending() const { return m_poolAcquirePending; }
-
-    UUnitLogic* ResolveUnitLogic() const;
 
 protected:
-    bool m_poolAcquirePending = true;
-    bool m_releasedToPoolOnce = false;
-
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Box collider"))
     TObjectPtr<USceneComponent> m_boxComponent;
 

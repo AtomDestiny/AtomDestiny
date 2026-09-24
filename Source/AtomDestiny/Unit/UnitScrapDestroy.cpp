@@ -3,7 +3,6 @@
 #include "AtomDestiny/Core/ObjectPool/ActorPool.h"
 #include "AtomDestiny/Core/ActorComponentUtils.h"
 #include "AtomDestiny/Core/Logger.h"
-#include "AtomDestiny/Templates/DefaultUnit.h"
 
 #include "AtomDestiny/Misc/ScrapConstruction.h"
 
@@ -30,11 +29,6 @@ void UUnitScrapDestroy::Destroy()
 
     const FVector actorLocation = GetOwner()->GetActorLocation();
     const FQuat actorRotation = GetOwner()->GetActorQuat();
-
-    if (ADefaultUnit* unit = Cast<ADefaultUnit>(GetOwner()))
-    {
-        unit->OnReleasedToPool();
-    }
 
     Super::Destroy();
     SpawnExplosion(actorLocation, FQuat::Identity);

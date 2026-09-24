@@ -43,9 +43,7 @@ namespace
     double CalculatePossibleCriticalDamage(double criticalChance, double criticalRate, double damage)
     {
         if (const double generatedValue = FMath::RandRange(MinimalCriticalRange, MaximumCriticalRange); generatedValue < criticalChance)
-        {
             damage *= criticalRate;
-        }
 
         return damage;
     }
@@ -72,8 +70,14 @@ void AAtomDestinyGameStateBase::AddUnit(TWeakObjectPtr<AActor> actor, EGameSide 
         return;
     }
 
-    const FSharedGameStateUnitList& unitListPtr = m_activeUnits[side];
-    unitListPtr->AddUnique(actor);
+    const FSharedGameStateUnitList* unitListPtr = m_activeUnits.Find(side);
+    if (unitListPtr == nullptr)
+    {
+        LOG_WARNING(TEXT("Trying to add unit to game state with unsupported side %s"), *AtomDestiny::GameSide::ToString(side));
+        return;
+    }
+
+    (*unitListPtr)->AddUnique(actor);
 }
 
 void AAtomDestinyGameStateBase::RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side)
@@ -84,8 +88,20 @@ void AAtomDestinyGameStateBase::RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSi
         return;
     }
 
-    const FSharedGameStateUnitList& unitListPtr = m_activeUnits[side];
-    unitListPtr->Remove(actor);
+    const FSharedGameStateUnitList* unitListPtr = m_activeUnits.Find(side);
+    if (unitListPtr == nullptr)
+    {
+        LOG_WARNING(TEXT("Trying to remove unit from game state with unsupported side %s"), *AtomDestiny::GameSide::ToString(side));
+        return;
+    }
+
+    (*unitListPtr)->Remove(actor);
+}
+
+void AAtomDestinyGameStateBase::MoveUnit(TWeakObjectPtr<AActor> actor, EGameSide from, EGameSide to)
+{
+    RemoveUnit(actor, from);
+    AddUnit(std::move(actor), to);
 }
 
 AActor* AAtomDestinyGameStateBase::GetRallyPoint(const EGameSide side) const
@@ -103,22 +119,10 @@ const FEnemiesList& AAtomDestinyGameStateBase::GetEnemies(EGameSide side) const
     return m_enemies[side];
 }
 
-const FSideRuntimeState* AAtomDestinyGameStateBase::FindSideRuntimeState(const EGameSide side) const
-{
-    return m_sideRuntimeState.Find(side);
-}
-
-FSideRuntimeState* AAtomDestinyGameStateBase::FindSideRuntimeStateMutable(const EGameSide side)
-{
-    return m_sideRuntimeState.Find(side);
-}
-
 void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& projectile, EProjectileDamageOptions options)
 {
     if (projectile == nullptr)
-    {
         return;
-    }
 
     if (const FWeaponParameters& weaponParameters = projectile->GetParameters(); weaponParameters.explosionRadius > 0)
     {
@@ -139,9 +143,7 @@ void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& p
                     filteredActors.insert(actor);
 
                     if (const TScriptInterface<IParameters> parameters = AtomDestiny::Utils::GetInterface<IParameters>(actor); parameters != nullptr)
-                    {
                         AddDamageToState(parameters, weaponParameters);
-                    }
                 }
             }
         }
@@ -149,9 +151,7 @@ void AAtomDestinyGameStateBase::AddDamage(const TScriptInterface<IProjectile>& p
     else
     {
         if (const TScriptInterface<IParameters> parameters = AtomDestiny::Utils::GetInterface<IParameters>(weaponParameters.target.Get()); parameters != nullptr)
-        {
             AddDamageToState(parameters, weaponParameters);
-        }
     }
 }
 
@@ -163,9 +163,7 @@ void AAtomDestinyGameStateBase::AddDamageToState(const TScriptInterface<IParamet
     double resultDamage = parameters.damage;
 
     if (parameters.criticalChance > 0 && parameters.criticalRate > 1)
-    {
         resultDamage = CalculatePossibleCriticalDamage(parameters.criticalChance, parameters.criticalRate, resultDamage);
-    }
 
     objectState->AddDamage(resultDamage, parameters.weaponType, parameters.owner.Get());
 }
@@ -176,6 +174,7 @@ void AAtomDestinyGameStateBase::HandleBeginPlay()
     // Super::HandleBeginPlay will call BeginPlay for all actors
     UUnitLogicBase::unitCreated.AddDynamic(this, &AAtomDestinyGameStateBase::OnUnitCreated);
     UUnitLogicBase::unitDestroyed.AddDynamic(this, &AAtomDestinyGameStateBase::OnUnitDestroyed);
+    UUnitLogicBase::unitSideChanged.AddDynamic(this, &AAtomDestinyGameStateBase::OnUnitSideChanged);
 
     Super::HandleBeginPlay();
 }
@@ -186,6 +185,7 @@ void AAtomDestinyGameStateBase::EndPlay(const EEndPlayReason::Type EndPlayReason
 
     UUnitLogicBase::unitCreated.RemoveDynamic(this, &AAtomDestinyGameStateBase::OnUnitCreated);
     UUnitLogicBase::unitDestroyed.RemoveDynamic(this, &AAtomDestinyGameStateBase::OnUnitDestroyed);
+    UUnitLogicBase::unitSideChanged.RemoveDynamic(this, &AAtomDestinyGameStateBase::OnUnitSideChanged);
 
     m_activeUnits.Reset();
     m_enemies.Reset();
@@ -201,6 +201,11 @@ void AAtomDestinyGameStateBase::OnUnitCreated(AActor* actor, EGameSide side, EAD
 void AAtomDestinyGameStateBase::OnUnitDestroyed(AActor* actor, EGameSide side, EADUnitType)
 {
     RemoveUnit(MakeWeakObjectPtr(actor), side);
+}
+
+void AAtomDestinyGameStateBase::OnUnitSideChanged(AActor* actor, EGameSide oldSide, EGameSide newSide)
+{
+    MoveUnit(MakeWeakObjectPtr(actor), oldSide, newSide);
 }
 
 void AAtomDestinyGameStateBase::InitializeSides()
@@ -226,9 +231,7 @@ void AAtomDestinyGameStateBase::InitializeEnemies()
         for (const auto& [s, l] : m_activeUnits)
         {
             if (side != s && side != EGameSide::None)
-            {
                 m_enemies[side].Add(m_activeUnits[s]);
-            }
         }
     }
 }
@@ -240,9 +243,7 @@ void AAtomDestinyGameStateBase::InitializeSideRuntime()
     for (const auto& [side, list] : m_activeUnits)
     {
         if (side == EGameSide::None)
-        {
             continue;
-        }
 
         m_sideRuntimeState.Add(side, FSideRuntimeState{});
     }

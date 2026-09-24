@@ -51,8 +51,8 @@ public:
 
     void SetHealthBarWidget(TWeakObjectPtr<UHealthBar> widget);
 
-    // Restores health/defence after the owner returns from an object pool
-    void ResetForPoolReuse();
+    // Restores health and defence, drops enhancements
+    virtual void Activate(bool bReset = false) override;
 
 protected:
     virtual void InitializeComponent() override;

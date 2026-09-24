@@ -64,8 +64,12 @@ void UParametersBase::SetHealthBarWidget(TWeakObjectPtr<UHealthBar> widget)
     m_healthBarWidget = widget;
 }
 
-void UParametersBase::ResetForPoolReuse()
+void UParametersBase::Activate(bool bReset)
 {
+    Super::Activate(bReset);
+
+    ClearParameterEnhancements();
+
     m_currentHealth = m_maxHealth;
     m_currentMaxHealth = m_maxHealth;
     m_currentDefence = m_defence;

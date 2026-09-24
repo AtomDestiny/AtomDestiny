@@ -20,7 +20,7 @@ class ATOMDESTINY_API ARallyPoint : public AActor
     GENERATED_BODY()
 
 public:
-    ARallyPoint(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
+    explicit ARallyPoint(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AtomDestiny|Side", meta = (WorldContext = "worldContextObject"))
     static ARallyPoint* FindForSide(const UObject* worldContextObject, EGameSide side);
@@ -35,13 +35,13 @@ public:
     TObjectPtr<USceneComponent> m_root;
 
 protected:
-    virtual void BeginPlay() override;
-    virtual void EndPlay(const EEndPlayReason::Type endPlayReason) override;
+    void BeginPlay() override;
+    void EndPlay(const EEndPlayReason::Type endPlayReason) override;
 
 #if WITH_EDITOR
-    virtual void OnConstruction(const FTransform& transform) override;
-    virtual void PostLoad() override;
-    virtual void PostEditChangeProperty(FPropertyChangedEvent& propertyChangedEvent) override;
+    void OnConstruction(const FTransform& transform) override;
+    void PostLoad() override;
+    void PostEditChangeProperty(FPropertyChangedEvent& propertyChangedEvent) override;
 #endif
 
     void ApplyEditorFlagVisual() const;

@@ -2,7 +2,6 @@
 
 #include <Components/BoxComponent.h>
 
-#include "AtomDestiny/Behaviour/DestroyBase.h"
 #include "AtomDestiny/Logic/UnitLogic.h"
 #include "AtomDestiny/Unit/UnitMovementComponent.h"
 #include "AtomDestiny/Unit/UnitParameters.h"
@@ -38,21 +37,6 @@ ADefaultUnit::ADefaultUnit(const FObjectInitializer& objectInitializer):
     AIControllerClass = ANavigator::StaticClass();
 }
 
-UUnitLogic* ADefaultUnit::ResolveUnitLogic() const
-{
-    return m_unitLogic != nullptr ? m_unitLogic.Get() : FindComponentByClass<UUnitLogic>();
-}
-
-void ADefaultUnit::PostInitializeComponents()
-{
-    Super::PostInitializeComponents();
-
-    if (m_unitLogic == nullptr)
-    {
-        m_unitLogic = FindComponentByClass<UUnitLogic>();
-    }
-}
-
 void ADefaultUnit::BeginPlay()
 {
     Super::BeginPlay();
@@ -62,47 +46,4 @@ void ADefaultUnit::BeginPlay()
     healthBar->SetEnergyVisible(false);
 
     m_unitParameters->SetHealthBarWidget(healthBar);
-}
-
-void ADefaultUnit::OnAcquiredFromPool(const EGameSide side, const EUnitPoolAcquireMode mode)
-{
-    UUnitLogic* unitLogic = ResolveUnitLogic();
-
-    if (m_releasedToPoolOnce)
-    {
-        if (unitLogic != nullptr)
-            unitLogic->ResetForPoolReuse();
-
-        if (m_unitParameters != nullptr)
-            m_unitParameters->ResetForPoolReuse();
-    }
-
-    if (m_unitDestroy != nullptr)
-        m_unitDestroy->ResetForPoolReuse();
-
-    if (unitLogic != nullptr)
-    {
-        unitLogic->SetSide(side);
-        unitLogic->ReregisterWithGameState();
-
-        if (mode == EUnitPoolAcquireMode::SetupPlacement)
-            unitLogic->PrepareForSetupPlacement();
-    }
-
-    if (m_sideColorDetails != nullptr)
-        m_sideColorDetails->ApplyForSide(side);
-
-    m_poolAcquirePending = false;
-}
-
-void ADefaultUnit::OnReleasedToPool()
-{
-    m_releasedToPoolOnce = true;
-    m_poolAcquirePending = true;
-
-    if (UUnitLogic* unitLogic = ResolveUnitLogic())
-    {
-        unitLogic->NotifyPoolReleased();
-        unitLogic->PrepareForSetupPlacement();
-    }
 }

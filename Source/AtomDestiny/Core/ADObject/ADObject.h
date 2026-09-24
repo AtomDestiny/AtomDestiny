@@ -76,6 +76,9 @@ protected:
     // Removes enhancement value from parameter
     void RemoveFromParameter(EObjectParameters parameter, const TWeakObjectPtr<AActor>& enhanceObject);
 
+    // Removes all enhancement and zero values from all parameters, recalculation is up to implementor
+    void ClearParameterEnhancements();
+
     // Recalculates value from start value from all exists parameters.
     // GetParameterAvailable use before to check possible parameter problems.
     double CalculateParametersFromAll(const double startValue, EObjectParameters parameter) const;
