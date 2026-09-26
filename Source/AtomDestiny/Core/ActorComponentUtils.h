@@ -82,7 +82,7 @@ namespace AtomDestiny::Utils
     }
 
     template<typename Interface>
-    [[nodiscard]] TScriptInterface<Interface> GetInterface(AActor* actor)
+    [[nodiscard]] TScriptInterface<Interface> GetInterface(const AActor* actor)
     {
         if (actor == nullptr)
         {
@@ -96,7 +96,7 @@ namespace AtomDestiny::Utils
     }
 
     template<typename Interface, typename UEInterface>
-    [[nodiscard]] TArray<TScriptInterface<Interface>> GetInterfaces(AActor* actor)
+    [[nodiscard]] TArray<TScriptInterface<Interface>> GetInterfaces(const AActor* actor)
     {
         if (actor == nullptr)
         {
@@ -105,7 +105,7 @@ namespace AtomDestiny::Utils
 
         TArray<TScriptInterface<Interface>> interfaces;
 
-        for (UActorComponent* component : actor->GetComponents())
+        for (const auto component : actor->GetComponents())
         {
             if (component && component->Implements<UEInterface>())
             {

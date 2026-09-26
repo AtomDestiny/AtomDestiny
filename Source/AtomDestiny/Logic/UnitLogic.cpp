@@ -1,15 +1,45 @@
 ﻿#include "UnitLogic.h"
 
 #include <limits>
-#include <AtomDestiny/AtomDestinyGameStateBase.h>
-#include <AtomDestiny/Core/Logger.h>
-#include <AtomDestiny/Core/Utils.h>
+
+#include "AtomDestiny/AtomDestinyGameStateBase.h"
+#include "AtomDestiny/Behaviour/Destroyable.h"
+#include "AtomDestiny/Core/Logger.h"
+#include "AtomDestiny/Core/Utils.h"
+#include "AtomDestiny/Navigation/Navigator.h"
+
+#include "Core/ActorComponentUtils.h"
 
 namespace
 {
     constexpr double MaxScanDistance = std::numeric_limits<double>::max();
-    
-} // namespace
+
+    bool IsLiveEnemyTarget(const AActor* target, const AActor* self)
+    {
+        if (!IsValid(target) || target == self)
+        {
+            return false;
+        }
+
+        if (const TScriptInterface<IDestroyable> destroyable = AtomDestiny::Utils::GetInterface<IDestroyable>(target);
+            destroyable != nullptr && destroyable->IsDestroyed())
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool IsTrackedEnemyTarget(const AActor* target, const AActor* self, const AActor* mainDestination)
+    {
+        if (target == nullptr || target == mainDestination)
+        {
+            return false;
+        }
+
+        return IsLiveEnemyTarget(target, self);
+    }
+}
 
 UUnitLogic::UUnitLogic(const FObjectInitializer& objectInitializer):
     UUnitLogicBase(objectInitializer)
@@ -26,7 +56,7 @@ void UUnitLogic::SetDestination(AActor* destination)
 {
     m_currentDestination = nullptr;
     m_canScan = true;
-    
+
     m_behaviour = destination != nullptr ? EUnitBehaviour::MoveToTransform : EUnitBehaviour::Standing;
     m_mainDestination = destination != nullptr ? MakeWeakObjectPtr(destination) : nullptr;
 }
@@ -36,44 +66,45 @@ void UUnitLogic::SetDestinationByPoint(const FVector& destination)
     m_currentDestination = nullptr;
     m_mainDestination = nullptr;
     m_canScan = true;
-    
+
     m_behaviour = EUnitBehaviour::MoveToPoint;
     m_destinationPoint = destination;
 }
 
-void UUnitLogic::BeginPlay()
+void UUnitLogic::StartLogic()
 {
-    Super::BeginPlay();
-    
+    Super::StartLogic();
+
+    if (!m_navigation.IsValid())
+        return;
+
     CreateDestination();
+
+    if (m_animation != nullptr && m_navigation->GetRemainingDistance() > m_navigation->GetStopDistance())
+        m_animation->Walk();
 }
 
 void UUnitLogic::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* func)
 {
     Super::TickComponent(deltaTime, tickType, func);
 
+    if (!m_navigation.IsValid())
+        return;
+
     CheckTargetDistance();
     CheckNavigation();
     CheckScanDelay(deltaTime);
 
     if (!m_isAttacking && m_canScan)
-    {
         ScanEnemy();
-    }
 
     if (m_isTargetFound && !m_isAttacking)
-    {
         UpdateNavigationTarget();
-    }
 
     if (m_isTargetFound)
-    {
         TryToAttack(deltaTime);
-    }
     else
-    {
         SetDefaultDestination();
-    }
 }
 
 void UUnitLogic::CheckTargetDistance()
@@ -82,12 +113,10 @@ void UUnitLogic::CheckTargetDistance()
     {
         const double scanLengthSquared = m_scanDistance * m_scanDistance;
         const FVector targetVector = m_currentDestination->GetActorLocation() - GetOwner()->GetActorLocation();
-        
+
         if (targetVector.SquaredLength() <= (scanLengthSquared + m_tryAttackDelta))
-        {
             return;
-        }
-        
+
         m_isAttacking = false;
         m_isTargetFound = false;
         m_currentDestination = nullptr;
@@ -95,9 +124,7 @@ void UUnitLogic::CheckTargetDistance()
         for (const TScriptInterface<IWeapon>& weapon : m_weapons)
         {
             if (weapon != nullptr)
-            {
                 weapon->SetTarget(nullptr);
-            }
         }
     }
 }
@@ -105,18 +132,30 @@ void UUnitLogic::CheckTargetDistance()
 void UUnitLogic::CreateDestination()
 {
     if (!m_navigation.IsValid())
+        return;
+
+    if (m_mainDestination.IsValid() && m_behaviour == EUnitBehaviour::MoveToTransform)
     {
+        m_currentDestination = m_mainDestination;
+        m_navigation->Move(m_currentDestination->GetActorLocation());
         return;
     }
 
-    if (const TWeakObjectPtr<AActor> destination = AtomDestiny::GetGameState(GetOwner())->GetDestination(m_side); destination.Get() && m_behaviour == EUnitBehaviour::MoveToTransform)
+    if (const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
+        gameState.IsValid())
     {
-        m_mainDestination = destination;
-        m_currentDestination = m_mainDestination;
-        
-        m_navigation->Move(m_currentDestination->GetActorLocation());
+        if (AActor* sideDestination = gameState->GetDestination(m_side);
+            sideDestination != nullptr && m_behaviour == EUnitBehaviour::MoveToTransform)
+        {
+            m_mainDestination = MakeWeakObjectPtr(sideDestination);
+            m_currentDestination = m_mainDestination;
+
+            m_navigation->Move(m_currentDestination->GetActorLocation());
+            return;
+        }
     }
-    else if (m_behaviour == EUnitBehaviour::MoveToPoint)
+
+    if (m_behaviour == EUnitBehaviour::MoveToPoint)
     {
         m_navigation->Move(m_destinationPoint);
     }
@@ -133,6 +172,16 @@ void UUnitLogic::CreateDestination()
 
 void UUnitLogic::CheckNavigation()
 {
+    if (m_currentDestination.IsValid()
+        && !IsTrackedEnemyTarget(m_currentDestination.Get(), GetOwner(), m_mainDestination.Get()))
+    {
+        m_currentDestination = nullptr;
+        m_isTargetFound = false;
+        m_isAttacking = false;
+        SetDefaultDestination();
+        return;
+    }
+
     if (!m_currentDestination.IsValid())
     {
         SetDefaultDestination();
@@ -146,7 +195,7 @@ void UUnitLogic::CheckNavigation()
         {
             weapon.GetInterface()->SetTarget(nullptr);
         }
-        
+
         SetDefaultDestination();
 
         m_isTargetFound = false;
@@ -156,13 +205,18 @@ void UUnitLogic::CheckNavigation()
 
 void UUnitLogic::SetDefaultDestination()
 {
+    if (!m_navigation.IsValid())
+    {
+        return;
+    }
+
     if (m_behaviour == EUnitBehaviour::MoveToPoint)
     {
         m_navigation->Move(m_destinationPoint);
     }
     else
     {
-        if (m_mainDestination.Get() && m_behaviour == EUnitBehaviour::MoveToTransform)
+        if (m_mainDestination.IsValid() && m_behaviour == EUnitBehaviour::MoveToTransform)
         {
             m_currentDestination = m_mainDestination;
             m_navigation->Move(m_currentDestination->GetActorLocation());
@@ -184,9 +238,12 @@ void UUnitLogic::SetDefaultDestination()
     }
 }
 
-void UUnitLogic::UpdateNavigationTarget()
+void UUnitLogic::UpdateNavigationTarget() const
 {
-    if (m_currentDestination.Get() && m_behaviour == EUnitBehaviour::MoveToTransform)
+    if (!m_navigation.IsValid())
+        return;
+
+    if (m_currentDestination.IsValid() && m_behaviour == EUnitBehaviour::MoveToTransform)
     {
         m_navigation->Move(m_currentDestination->GetActorLocation());
     }
@@ -202,22 +259,25 @@ void UUnitLogic::UpdateNavigationTarget()
     m_navigation->SetStopDistance(m_defaultStopDistance);
 
     if (m_animation != nullptr)
-    {
         m_animation->Walk();
-    }
 }
 
 void UUnitLogic::MoveNearestEnemyIfCan()
 {
+    if (!m_navigation.IsValid() || GetOwner() == nullptr)
+    {
+        return;
+    }
+
     // So we have no destination and should try to search any possible enemy target
     if (const TWeakObjectPtr<AActor> target = FindEnemy(0, std::numeric_limits<double>::max()); target.IsValid())
     {
         m_navigation->Move(target.Get());
-        m_currentDestination = std::move(target);
+        m_currentDestination = target;
     }
     else
     {
-        m_navigation->Move(GetOwner());
+        m_navigation->Move(GetOwner()->GetActorLocation());
     }
 }
 
@@ -235,18 +295,18 @@ void UUnitLogic::ScanEnemy()
 void UUnitLogic::TryToAttack(float deltaTime)
 {
     m_isAttacking = false;
-        
+
     if (m_currentDestination != nullptr)
     {
         const FVector targetVector = m_currentDestination->GetActorLocation() - GetOwner()->GetActorLocation();
-        
+
         for (TScriptInterface<IWeapon>& weapon : m_weapons)
-        {      
+        {
             weapon->SetTarget(m_currentDestination.Get());
-        
+
             auto weaponSqrDist = weapon->GetAttackRange();
             weaponSqrDist *= weaponSqrDist;
-        
+
             if (targetVector.SquaredLength() <= weaponSqrDist + m_tryAttackDelta)
             {
                 if (weapon->IsSeeTarget())
@@ -261,7 +321,7 @@ void UUnitLogic::TryToAttack(float deltaTime)
 void UUnitLogic::Aim(const TScriptInterface<IWeapon>& weapon, float deltaTime)
 {
     m_isAttacking = true;
-        
+
     if (weapon->IsRotated())
     {
         CheckBehaviour(weapon);
@@ -275,9 +335,9 @@ void UUnitLogic::Aim(const TScriptInterface<IWeapon>& weapon, float deltaTime)
         {
             m_animation->Idle();
         }
-        
+
         RotateToTarget(deltaTime);
-        
+
         if (m_isRotatedOnTarget)
         {
             CheckBehaviour(weapon);
@@ -290,16 +350,14 @@ void UUnitLogic::Aim(const TScriptInterface<IWeapon>& weapon, float deltaTime)
     }
 }
 
-void UUnitLogic::CheckBehaviour(const TScriptInterface<IWeapon>& weapon)
+void UUnitLogic::CheckBehaviour(const TScriptInterface<IWeapon>& weapon) const
 {
     if (weapon->IsShouldStop())
     {
         m_navigation->Stop();
-        
+
         if (m_animation != nullptr)
-        {
             m_animation->Attack();
-        }
     }
 }
 
@@ -309,14 +367,12 @@ TWeakObjectPtr<AActor> UUnitLogic::FindEnemy(double minScanDistance, double scan
     const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
 
     if (!gameState.IsValid() || !gameState->IsEnemiesExist(m_side) || gameState->GetEnemies(m_side).IsEmpty())
-    {
         return nullptr;
-    }
-        
+
     const FEnemiesList& enemies = gameState->GetEnemies(m_side);
     double minDist = ::MaxScanDistance;
     AActor* enemy = nullptr;
-    
+
     const double sqrScanDistance = scanDistance * scanDistance;
     const double sqrMinScanDistance = minScanDistance * minScanDistance;
     const size_t enemyListSideCount = static_cast<size_t>(enemies.Num());
@@ -327,7 +383,8 @@ TWeakObjectPtr<AActor> UUnitLogic::FindEnemy(double minScanDistance, double scan
 
         for (int unitCount = 0; unitCount < enemyListUnitCount; ++unitCount)
         {
-            if (AActor* target = (*enemies[sideCount])[unitCount].Get(); target != nullptr)
+            if (AActor* target = (*enemies[sideCount])[unitCount].Get();
+                IsLiveEnemyTarget(target, GetOwner()))
             {
                 const double sqrMagnitude = (target->GetActorLocation() - GetOwner()->GetActorLocation()).SquaredLength();
 

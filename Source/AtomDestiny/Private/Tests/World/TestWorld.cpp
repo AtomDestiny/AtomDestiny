@@ -12,11 +12,11 @@ AtomDestiny::FTestWorld::FTestWorld():
     worldContext.SetCurrentWorld(m_world.Get());
 
     m_world->InitializeActorsForPlay(FURL());
-    
+
     AWorldSettings* settings = m_world->GetWorldSettings();
-    settings->MinUndilatedFrameTime = 0.0001;
-    settings->MaxUndilatedFrameTime = 10;
-    
+    settings->MinUndilatedFrameTime = 0.0001f;
+    settings->MaxUndilatedFrameTime = 10.f;
+
     m_world->BeginPlay();
 }
 
@@ -35,7 +35,7 @@ TWeakObjectPtr<AActor> AtomDestiny::FTestWorld::CreateNewActor(const FString& na
 {
     FActorSpawnParameters spawnParams;
     spawnParams.Name = FName{name};
-    
+
     AActor* actor = m_world->SpawnActor<AActor>(spawnParams);
     return MakeWeakObjectPtr(actor);
 }
@@ -43,9 +43,9 @@ TWeakObjectPtr<AActor> AtomDestiny::FTestWorld::CreateNewActor(const FString& na
 void AtomDestiny::FTestWorld::Tick(float deltaSeconds)
 {
     check(IsInGameThread());
-    
+
     StaticTick(deltaSeconds);
     m_world->Tick(LEVELTICK_All, deltaSeconds);
-    
+
     ++m_frameCount;
 }

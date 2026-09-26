@@ -59,6 +59,11 @@ void UUniversalWeaponController::Fire(float deltaTime)
     {
         RotateToTarget(deltaTime);
 
+        if (m_weaponAnimation != nullptr && !m_weaponAnimation->IsReady())
+        {
+            return;
+        }
+
         if (!m_firing && isValidShotDistance && m_isRotatedOnTarget)
         {
             RunCoroutine(MakeShot());

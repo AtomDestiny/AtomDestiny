@@ -3,7 +3,6 @@
 #include <AtomDestiny/AtomDestiny.h>
 
 #include <AtomDestiny/Unit/Unit.h>
-#include <AtomDestiny/Gameplay/GameDestination.h>
 
 #include <AtomDestiny/Projectile/Projectile.h>
 #include <AtomDestiny/Parameters/Parameters.h>
@@ -31,8 +30,11 @@ public:
 
     void AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
     void RemoveUnit(TWeakObjectPtr<AActor> actor, EGameSide side);
+    void MoveUnit(TWeakObjectPtr<AActor> actor, EGameSide from, EGameSide to);
 
-    TWeakObjectPtr<AActor> GetDestination(EGameSide side) const;
+    // Returns level destination of the side, units move there by default
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AtomDestiny|Side")
+    AActor* GetDestination(EGameSide side) const;
 
     // use this method to prevent crushes for GetEnemies reference
     bool IsEnemiesExist(EGameSide side) const;
@@ -52,8 +54,8 @@ protected:
     static void AddDamageToState(const TScriptInterface<IParameters>& objectState, const FWeaponParameters& parameters);
 
     // called by GameMode directly
-    virtual void HandleBeginPlay() override;
-    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    void HandleBeginPlay() override;
+    void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
     ///
     /// Event callbacks
@@ -65,11 +67,11 @@ protected:
     UFUNCTION()
     void OnUnitDestroyed(AActor* actor, EGameSide side, EADUnitType unitType);
 
+    UFUNCTION()
+    void OnUnitSideChanged(AActor* actor, EGameSide oldSide, EGameSide newSide);
+
     void InitializeSides();
     void InitializeEnemies();
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Game destination"))
-    FGameDestination m_destination;
 
     // represents active units at overall battle
     TMap<EGameSide, FSharedGameStateUnitList> m_activeUnits;
@@ -84,5 +86,4 @@ namespace AtomDestiny
     {
         return MakeWeakObjectPtr(Cast<AAtomDestinyGameStateBase>(actor->GetWorld()->GetGameState()));
     }
-
 } // namespace AtomDestiny

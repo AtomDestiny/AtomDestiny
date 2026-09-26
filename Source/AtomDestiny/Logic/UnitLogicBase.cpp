@@ -2,13 +2,19 @@
 
 #include <algorithm>
 
+#include <AtomDestiny/AtomDestinyGameStateBase.h>
 #include <AtomDestiny/Core/MathUtils.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/Logger.h>
 
+#include "GameFramework/FloatingPawnMovement.h"
+#include "GameFramework/Pawn.h"
+
 UUnitLogicBase::UUnitLogicBase(const FObjectInitializer& objectInitializer):
     UADObject(objectInitializer)
 {
+    // Units placed on a level start logic on their own
+    bAutoActivate = true;
 }
 
 const TArray<TScriptInterface<IWeapon>>& UUnitLogicBase::GetAllWeapon() const
@@ -43,7 +49,31 @@ double UUnitLogicBase::GetVelocity() const
 
 void UUnitLogicBase::SetSide(EGameSide side)
 {
+    if (m_side == side)
+        return;
+
+    const EGameSide oldSide = m_side;
     m_side = side;
+
+    if (m_isRegistered)
+        unitSideChanged.Broadcast(GetOwner(), oldSide, side);
+}
+
+void UUnitLogicBase::Activate(bool bReset)
+{
+    Super::Activate(bReset);
+
+    // Auto activation comes before BeginPlay, logic starts there
+    if (HasBegunPlay())
+        StartLogic();
+}
+
+void UUnitLogicBase::Deactivate()
+{
+    if (HasBegunPlay())
+        StopLogic();
+
+    Super::Deactivate();
 }
 
 void UUnitLogicBase::InitializeComponent()
@@ -61,43 +91,19 @@ void UUnitLogicBase::BeginPlay()
 {
     Super::BeginPlay();
 
-    // navigation initialization
-    APawn* pawn = CastChecked<APawn>(GetOwner());
-    check(pawn->AIControllerClass != nullptr);
-
-    if (ANavigator* navigator = Cast<ANavigator>(pawn->Controller.Get()); navigator != nullptr)
-    {
-        m_navigation = MakeWeakObjectPtr(navigator);
-        m_navigation->SetMovementComponent(pawn->FindComponentByClass<UFloatingPawnMovement>());
-
-        m_navigation->AttachToActor(pawn, FAttachmentTransformRules::KeepRelativeTransform);
-
-        m_navigation->SetPawn(pawn);
-        m_navigation->AActor::SetActorLocation(pawn->GetActorLocation());
-    }
-    else
-    {
-        SetTickEnabled(false);
-        LOG_ERROR(TEXT("Pawn AIControllerClass should be an ANavigator or derived from. Tick disabled"));
-        return;
-    }
-
-    m_speed = m_navigation->GetSpeed();
-    m_currentSpeed = m_speed;
-    m_navigation->SetStopDistance(m_defaultStopDistance);
-
     m_animation = AtomDestiny::Utils::GetInterface<IAnimation>(GetOwner());
     m_scanDelay += FMath::RandRange(AtomDestiny::Unit::MinRandomScan, AtomDestiny::Unit::MaxRandomScan);
 
-    // new layer
-    // Utils.SetLayerRecursively(gameObject, LayerMask.NameToLayer(Core.GetLayerNameFromSide(side)));
-    CreateEvent();
+    if (IsActive())
+        StartLogic();
+    else
+        SetComponentTickEnabled(false);
 }
 
 void UUnitLogicBase::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
     Super::EndPlay(endPlayReason);
-    DestroyEvent();
+    UnregisterFromGameState();
 }
 
 void UUnitLogicBase::RotateToTarget(float deltaTime)
@@ -171,7 +177,9 @@ void UUnitLogicBase::RecalculateParameter(EObjectParameters parameter)
     case EObjectParameters::Velocity:
         {
             m_currentSpeed = CalculateParametersFromAll(m_speed, parameter);
-            m_navigation->SetSpeed(m_currentSpeed);
+
+            if (m_navigation.IsValid())
+                m_navigation->SetSpeed(m_currentSpeed);
 
             break;
         }
@@ -187,7 +195,9 @@ void UUnitLogicBase::ZeroizeParameter(EObjectParameters parameter)
     {
     case EObjectParameters::Velocity:
         m_currentSpeed = 0;
-        m_navigation->SetSpeed(m_currentSpeed);
+
+        if (m_navigation.IsValid())
+            m_navigation->SetSpeed(m_currentSpeed);
         break;
 
     default:
@@ -204,3 +214,141 @@ void UUnitLogicBase::DestroyEvent() const
 {
     unitDestroyed.Broadcast(GetOwner(), m_side, m_unitType);
 }
+
+void UUnitLogicBase::RegisterInGameState()
+{
+    if (m_isRegistered)
+        return;
+
+    m_isRegistered = true;
+    CreateEvent();
+}
+
+void UUnitLogicBase::UnregisterFromGameState()
+{
+    if (!m_isRegistered)
+        return;
+
+    m_isRegistered = false;
+    DestroyEvent();
+}
+
+bool UUnitLogicBase::InitNavigation()
+{
+    if (m_navigation.IsValid())
+        return true;
+
+    APawn* pawn = CastChecked<APawn>(GetOwner());
+    check(pawn->AIControllerClass != nullptr);
+
+    if (pawn->Controller == nullptr)
+        pawn->SpawnDefaultController();
+
+    ANavigator* navigator = Cast<ANavigator>(pawn->Controller.Get());
+    if (navigator == nullptr)
+    {
+        LOG_ERROR(TEXT("Pawn AIControllerClass should be an ANavigator or derived from"));
+        return false;
+    }
+
+    if (navigator->GetPawn() != pawn)
+        navigator->Possess(pawn);
+
+    const auto movement = pawn->FindComponentByClass<UFloatingPawnMovement>();
+
+    m_navigation = MakeWeakObjectPtr(navigator);
+    m_navigation->SetMovementComponent(movement);
+    m_navigation->AttachToActor(pawn, FAttachmentTransformRules::KeepRelativeTransform);
+    m_navigation->SetPawn(pawn);
+    m_navigation->AActor::SetActorLocation(pawn->GetActorLocation());
+
+    m_speed = m_navigation->GetSpeed();
+
+    if (m_speed <= 0.0 && movement != nullptr)
+        m_speed = movement->MaxSpeed;
+
+    m_navigation->SetStopDistance(m_defaultStopDistance);
+    return true;
+}
+
+void UUnitLogicBase::StartLogic()
+{
+    if (!InitNavigation())
+    {
+        SetComponentTickEnabled(false);
+        return;
+    }
+
+    m_currentSpeed = m_speed;
+    m_navigation->SetSpeed(m_currentSpeed);
+
+    RegisterInGameState();
+}
+
+void UUnitLogicBase::StopLogic()
+{
+    UnregisterFromGameState();
+
+    if (m_navigation.IsValid())
+        m_navigation->Stop();
+
+    for (const TScriptInterface<IWeapon>& weapon : m_weapons)
+    {
+        if (weapon != nullptr)
+            weapon->SetTarget(nullptr);
+    }
+
+    if (m_animation != nullptr)
+        m_animation->Idle();
+
+    ClearParameterEnhancements();
+
+    m_mainDestination = nullptr;
+    m_currentDestination = nullptr;
+    m_isTargetFound = false;
+    m_isAttacking = false;
+    m_isRotatedOnTarget = false;
+    m_canScan = true;
+    m_scanDelayCounter = 0;
+    m_behaviour = EUnitBehaviour::MoveToTransform;
+    m_destinationPoint = FVector::ZeroVector;
+}
+
+#if !UE_BUILD_SHIPPING
+bool UUnitLogicBase::TryGetNavigationGoalLocation(FVector& outWorldLocation) const
+{
+    if (m_currentDestination.IsValid())
+    {
+        outWorldLocation = m_currentDestination->GetActorLocation();
+        return true;
+    }
+
+    if (m_behaviour == EUnitBehaviour::MoveToPoint)
+    {
+        outWorldLocation = m_destinationPoint;
+        return true;
+    }
+
+    if (m_mainDestination.IsValid())
+    {
+        outWorldLocation = m_mainDestination->GetActorLocation();
+        return true;
+    }
+
+    if (m_behaviour == EUnitBehaviour::MoveToTransform)
+    {
+        if (const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
+            gameState.IsValid())
+        {
+            if (const AActor* sideDestination = gameState->GetDestination(m_side);
+                sideDestination != nullptr)
+            {
+                outWorldLocation = sideDestination->GetActorLocation();
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+#endif

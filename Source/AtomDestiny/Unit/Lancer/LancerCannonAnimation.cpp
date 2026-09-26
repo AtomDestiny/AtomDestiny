@@ -10,6 +10,9 @@ void ULancerCannonAnimation::BeginPlay()
     {
         m_animation = m_skeletalMeshComponent->GetSingleNodeInstance();
     }
+
+    // Skeletal mesh may auto-play its default clip on spawn; keep cannon idle until a real shot.
+    SetDefaultState();
 }
 
 bool ULancerCannonAnimation::IsReady() const

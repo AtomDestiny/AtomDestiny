@@ -7,6 +7,9 @@ void AAtomDestinyStartMenuGameState::PreInitializeComponents()
     Super::PreInitializeComponents();
     
     std::call_once(Initialized, [this] {
-        AtomDestiny::UnitStorage::Instance().Add(m_units);
+        if (m_units.Num() > 0)
+        {
+            AtomDestiny::UnitStorage::Instance().Add(m_units);
+        }
     });
 }

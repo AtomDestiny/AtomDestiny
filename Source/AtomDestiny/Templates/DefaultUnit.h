@@ -7,6 +7,7 @@ class USceneComponent;
 class UHealthBarComponent;
 class UUnitMovementComponent;
 class UUnitScrapDestroy;
+class UUnitSideColorDetails;
 
 #include <Runtime/Engine/Classes/GameFramework/Pawn.h>
 
@@ -14,7 +15,7 @@ class UUnitScrapDestroy;
 
 ///
 /// Represents default unit with basic components.
-/// It consists of Box collider, Unit parameters (heath and defence),
+/// It consists of Box collider, Unit parameters (heath and defense),
 /// Unit state (massive API to unit info and control), Ground point, Movement component and
 /// Unit logic (AI control component).
 ///
@@ -22,25 +23,25 @@ UCLASS(BlueprintType, Blueprintable, meta=(ShortTooltip="Default unit with basic
 class ADefaultUnit : public APawn
 {
     GENERATED_BODY()
-    
+
 public:
     explicit ADefaultUnit(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
-    virtual void BeginPlay() override;
-    
+    void BeginPlay() override;
+
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Box collider"))
     TObjectPtr<USceneComponent> m_boxComponent;
-    
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ground point"))
     TObjectPtr<USceneComponent> m_groundPoint;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Health bar"))
     TObjectPtr<UHealthBarComponent> m_healthBar;
-    
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit state"))
     TObjectPtr<UUnitState> m_unitState;
-    
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit logic"))
     TObjectPtr<UUnitLogic> m_unitLogic;
 
@@ -52,4 +53,8 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit destroy behaviour"))
     TObjectPtr<UUnitScrapDestroy> m_unitDestroy;
+
+    // Tints detail meshes whose names contain "side_part" (or manual list on the component)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Side color details"))
+    TObjectPtr<UUnitSideColorDetails> m_sideColorDetails;
 };

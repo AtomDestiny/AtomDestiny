@@ -19,17 +19,20 @@ namespace AtomDestiny
 
         // Spawns an object from our pool
         TWeakObjectPtr<AActor> Spawn(const FVector& position, const FQuat& rotation);
-        
+
         // Returns an object to the inactive pool.
         void Despawn(TWeakObjectPtr<AActor> object);
-    
+
+        // Destroys pooled instances; does not destroy the spawn template actor.
+        void DestroyAllInstances();
+
     private:
-        
+
         // Counter to append an id to the name of anything instantiated.
         int32_t m_nextId = 1;
-        
+
         std::stack<TWeakObjectPtr<AActor>> m_inactive;
         TWeakObjectPtr<AActor> m_gameObjectToSpawn;
     };
-    
+
 } // namespace AtomDestiny
