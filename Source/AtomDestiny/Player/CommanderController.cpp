@@ -309,11 +309,11 @@ FRotator ACommanderController::ComputeFacingRotation(const FVector& location, co
     if (gameState == nullptr)
         return FRotator::ZeroRotator;
 
-    const AActor* rallyPoint = gameState->GetRallyPoint(placementSide);
-    if (rallyPoint == nullptr)
+    const AActor* sideDestination = gameState->GetDestination(placementSide);
+    if (sideDestination == nullptr)
         return FRotator::ZeroRotator;
 
-    FVector direction = rallyPoint->GetActorLocation() - location;
+    FVector direction = sideDestination->GetActorLocation() - location;
     direction.Z = 0.f;
     if (direction.IsNearlyZero())
         return FRotator::ZeroRotator;

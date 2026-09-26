@@ -66,7 +66,7 @@ public:
     virtual void Deactivate() override;
 
 #if !UE_BUILD_SHIPPING
-    // World location the unit is navigating toward (rally, point, or current target).
+    // World location the unit is navigating toward (side destination, point, or current target).
     bool TryGetNavigationGoalLocation(FVector& outWorldLocation) const;
 #endif
 

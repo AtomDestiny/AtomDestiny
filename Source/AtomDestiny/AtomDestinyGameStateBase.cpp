@@ -12,7 +12,7 @@
 
 #include <AtomDestiny/Core/ActorComponentUtils.h>
 #include <AtomDestiny/Core/ObjectPool/ActorPool.h>
-#include <AtomDestiny/Gameplay/RallyPoint.h>
+#include <AtomDestiny/Gameplay/SideDestination.h>
 
 #include <GameFramework/Actor.h>
 
@@ -59,7 +59,6 @@ AAtomDestinyGameStateBase::AAtomDestinyGameStateBase()
 {
     InitializeSides();
     InitializeEnemies();
-    InitializeSideRuntime();
 }
 
 void AAtomDestinyGameStateBase::AddUnit(TWeakObjectPtr<AActor> actor, EGameSide side)
@@ -104,9 +103,9 @@ void AAtomDestinyGameStateBase::MoveUnit(TWeakObjectPtr<AActor> actor, EGameSide
     AddUnit(std::move(actor), to);
 }
 
-AActor* AAtomDestinyGameStateBase::GetRallyPoint(const EGameSide side) const
+AActor* AAtomDestinyGameStateBase::GetDestination(const EGameSide side) const
 {
-    return ARallyPoint::FindForSide(this, side);
+    return ASideDestination::FindForSide(this, side);
 }
 
 bool AAtomDestinyGameStateBase::IsEnemiesExist(EGameSide side) const
@@ -233,18 +232,5 @@ void AAtomDestinyGameStateBase::InitializeEnemies()
             if (side != s && side != EGameSide::None)
                 m_enemies[side].Add(m_activeUnits[s]);
         }
-    }
-}
-
-void AAtomDestinyGameStateBase::InitializeSideRuntime()
-{
-    m_sideRuntimeState.Empty();
-
-    for (const auto& [side, list] : m_activeUnits)
-    {
-        if (side == EGameSide::None)
-            continue;
-
-        m_sideRuntimeState.Add(side, FSideRuntimeState{});
     }
 }

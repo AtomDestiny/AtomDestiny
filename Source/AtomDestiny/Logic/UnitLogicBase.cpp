@@ -340,10 +340,10 @@ bool UUnitLogicBase::TryGetNavigationGoalLocation(FVector& outWorldLocation) con
         if (const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
             gameState.IsValid())
         {
-            if (const AActor* rallyPoint = gameState->GetRallyPoint(m_side);
-                rallyPoint != nullptr)
+            if (const AActor* sideDestination = gameState->GetDestination(m_side);
+                sideDestination != nullptr)
             {
-                outWorldLocation = rallyPoint->GetActorLocation();
+                outWorldLocation = sideDestination->GetActorLocation();
                 return true;
             }
         }

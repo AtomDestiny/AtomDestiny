@@ -31,18 +31,3 @@ struct FSideDefinition
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Base energy flow"))
     float baseEnergyFlow = 0.f;
 };
-
-///
-/// Per-match runtime resources for a side (stored on GameState).
-///
-USTRUCT(BlueprintType)
-struct FSideRuntimeState
-{
-    GENERATED_BODY()
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Cash"))
-    float cash = 0.f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Energy"))
-    float energy = 0.f;
-};

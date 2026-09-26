@@ -62,6 +62,10 @@ void ANavigator::Move(const FVector& point)
 void ANavigator::Stop()
 {
     AAIController::StopMovement();
+
+    // Forget last target, so the next Move to the same target is not skipped by CheckMoveRequest
+    m_target = nullptr;
+    m_targetPoint = FVector{};
 }
 
 void ANavigator::SetSpeed(double speed) const

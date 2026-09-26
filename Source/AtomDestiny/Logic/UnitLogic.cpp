@@ -144,10 +144,10 @@ void UUnitLogic::CreateDestination()
     if (const TWeakObjectPtr<AAtomDestinyGameStateBase> gameState = AtomDestiny::GetGameState(GetOwner());
         gameState.IsValid())
     {
-        if (AActor* rallyPoint = gameState->GetRallyPoint(m_side);
-            rallyPoint != nullptr && m_behaviour == EUnitBehaviour::MoveToTransform)
+        if (AActor* sideDestination = gameState->GetDestination(m_side);
+            sideDestination != nullptr && m_behaviour == EUnitBehaviour::MoveToTransform)
         {
-            m_mainDestination = MakeWeakObjectPtr(rallyPoint);
+            m_mainDestination = MakeWeakObjectPtr(sideDestination);
             m_currentDestination = m_mainDestination;
 
             m_navigation->Move(m_currentDestination->GetActorLocation());
