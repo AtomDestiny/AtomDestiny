@@ -50,6 +50,9 @@ public:
     // Sets side
     virtual void SetSide(EGameSide side) override;
 
+    // Emits on every unit side change
+    virtual FLogicSideChanged& OnSideChanged() override { return m_sideChanged; }
+
     // Updates unit needs
     virtual void UpdateParameters() ABSTRACT_METHOD;
 
@@ -120,6 +123,9 @@ protected:
 
     // Game state registration flag
     bool m_isRegistered = false;
+
+    // Instance side change event, static unitSideChanged is for game state registration only
+    FLogicSideChanged m_sideChanged;
 
     // All unit weapons references
     TArray<TScriptInterface<IWeapon>> m_weapons;

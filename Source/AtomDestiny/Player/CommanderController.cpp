@@ -8,12 +8,14 @@
 #include "Core/ActorComponentUtils.h"
 #include "Logic/UnitLogic.h"
 #include "Unit/UnitState.h"
-#include "Unit/UnitSideColorDetails.h"
 #include "Misc/FloorGrid.h"
 #include "Misc/PlacementPointer.h"
 #include "UI/TrainingMainWidget.h"
 
+#include <Components/SkinnedMeshComponent.h>
+#include <Components/StaticMeshComponent.h>
 #include <GameFramework/Pawn.h>
+#include <Materials/MaterialInterface.h>
 #include <InputAction.h>
 #include <InputMappingContext.h>
 #include <EngineUtils.h>
@@ -151,7 +153,16 @@ void ACommanderController::BeginPlay()
     if (m_placementPointer != nullptr)
         m_placementPointer->HidePointer();
 
+    UUnitLogicBase::unitDestroyed.AddDynamic(this, &ACommanderController::OnUnitDestroyed);
+
     TryRestoreTacticsLayout();
+}
+
+void ACommanderController::EndPlay(const EEndPlayReason::Type endPlayReason)
+{
+    UUnitLogicBase::unitDestroyed.RemoveDynamic(this, &ACommanderController::OnUnitDestroyed);
+
+    Super::EndPlay(endPlayReason);
 }
 
 void ACommanderController::SetTrainingWidget(UTrainingMainWidget* widget)
@@ -341,15 +352,12 @@ APawn* ACommanderController::SpawnTrainingUnitAt(
     if (pawn == nullptr)
         return nullptr;
 
-    // Unit stays inactive until army setup ends
+    // Unit stays inactive until army setup ends, team color follows the side by itself
     if (UUnitLogicBase* logic = pawn->FindComponentByClass<UUnitLogicBase>())
     {
         logic->SetSide(placementSide);
         logic->Deactivate();
     }
-
-    if (const auto sideColorDetails = pawn->FindComponentByClass<UUnitSideColorDetails>())
-        sideColorDetails->ApplyForSide(placementSide);
 
     AlignUnitGroundPoint(pawn, groundLocation);
     pawn->SetActorRotation(facingRotation);
@@ -514,13 +522,19 @@ APawn* ACommanderController::FindSetupUnitUnderCursor() const
     return nullptr;
 }
 
-void ACommanderController::SetSetupUnitHighlighted(const APawn* pawn, const bool bHighlighted)
+void ACommanderController::SetSetupUnitHighlighted(const APawn* pawn, const bool bHighlighted) const
 {
     if (pawn == nullptr)
         return;
 
-    if (const auto sideColorDetails = pawn->FindComponentByClass<UUnitSideColorDetails>())
-        sideColorDetails->SetHighlighted(bHighlighted);
+    UMaterialInterface* overlay = bHighlighted ? m_highlightOverlayMaterial.LoadSynchronous() : nullptr;
+
+    // Unit meshes only, health bar widget is a mesh component too
+    for (UMeshComponent* mesh : AtomDestiny::Utils::GetComponents<UMeshComponent>(pawn))
+    {
+        if (mesh->IsA<UStaticMeshComponent>() || mesh->IsA<USkinnedMeshComponent>())
+            mesh->SetOverlayMaterial(overlay);
+    }
 }
 
 void ACommanderController::ClearSetupUnitHover()
@@ -647,6 +661,16 @@ void ACommanderController::SetDebugSelectedUnit(APawn* pawn)
 
     if (pawn != nullptr)
         SetSetupUnitHighlighted(pawn, true);
+}
+
+void ACommanderController::OnUnitDestroyed(AActor* actor, EGameSide, EADUnitType)
+{
+    if (actor == nullptr || actor != m_debugSelectedUnit.Get())
+        return;
+
+    // Overlay would stay on the pooled instance otherwise
+    SetSetupUnitHighlighted(m_debugSelectedUnit.Get(), false);
+    m_debugSelectedUnit.Reset();
 }
 
 void ACommanderController::TryDebugSelectUnitAtCursor()

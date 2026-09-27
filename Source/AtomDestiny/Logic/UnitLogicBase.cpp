@@ -57,6 +57,8 @@ void UUnitLogicBase::SetSide(EGameSide side)
 
     if (m_isRegistered)
         unitSideChanged.Broadcast(GetOwner(), oldSide, side);
+
+    m_sideChanged.Broadcast(side);
 }
 
 void UUnitLogicBase::Activate(bool bReset)

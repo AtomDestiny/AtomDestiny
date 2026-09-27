@@ -4,6 +4,7 @@
 #include "GameFramework/PlayerController.h"
 #include "AtomDestiny/AtomDestiny.h"
 #include "AtomDestiny/Gameplay/TacticsLayoutElement.h"
+#include "AtomDestiny/Unit/Unit.h"
 
 #include "CommanderController.generated.h"
 
@@ -12,12 +13,13 @@ class AFloorGrid;
 class APawn;
 class UInputAction;
 class UInputMappingContext;
+class UMaterialInterface;
 class UTrainingMainWidget;
 
 ///
 /// Class which contains actions & Movement setup for CommanderPawn
 ///
-UCLASS()
+UCLASS(Config = Game)
 class ATOMDESTINY_API ACommanderController : public APlayerController
 {
     GENERATED_BODY()
@@ -66,6 +68,11 @@ public:
 protected:
     void SetupInputComponent() override;
     void BeginPlay() override;
+    void EndPlay(const EEndPlayReason::Type endPlayReason) override;
+
+    // Overlay material for hovered and selected units (Config/DefaultGame.ini)
+    UPROPERTY(Config, EditDefaultsOnly, meta = (DisplayName = "Highlight overlay material"))
+    TSoftObjectPtr<UMaterialInterface> m_highlightOverlayMaterial;
 
     UPROPERTY(EditAnywhere, meta = (DisplayName = "Pawn mapping context"))
     UInputMappingContext* m_pawnMappingContext;
@@ -98,7 +105,7 @@ private:
         FTacticsLayoutElement layout;
     };
 
-    static void SetSetupUnitHighlighted(const APawn* pawn, bool bHighlighted);
+    void SetSetupUnitHighlighted(const APawn* pawn, bool bHighlighted) const;
     static void AlignUnitGroundPoint(APawn* pawn, const FVector& groundLocation);
 
     void UpdatePlacementPointer() const;
@@ -125,6 +132,10 @@ private:
     // Debug destination functions
     void SetDebugSelectedUnit(APawn* pawn);
     void DrawDebugSelectedUnitDestination() const;
+
+    // Drops debug selection when the selected unit leaves the battle (dies or returns to pool)
+    UFUNCTION()
+    void OnUnitDestroyed(AActor* actor, EGameSide side, EADUnitType unitType);
 
     UPROPERTY()
     TObjectPtr<APlacementPointer> m_placementPointer;
