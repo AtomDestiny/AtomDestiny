@@ -15,7 +15,7 @@ ARocketBase::ARocketBase(const FObjectInitializer& objectInitializer):
         m_boxCollider = objectInitializer.CreateDefaultSubobject<UBoxComponent>(this, TEXT("BoxCollider"));
         m_boxCollider->SetGenerateOverlapEvents(true);
         m_boxCollider->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-        
+
         RootComponent = m_boxCollider;
     }
 
@@ -46,7 +46,7 @@ void ARocketBase::OnDisabled()
     m_launched = false;
 
     SetActorRotation(m_rocketForward.Rotation());
-    
+
     // reset rigid body
 }
 
@@ -72,10 +72,10 @@ FVoidCoroutine ARocketBase::LockOn()
 
 void ARocketBase::NotifyActorBeginOverlap(AActor* other)
 {
-    if (!m_launched)
+    if (!m_launched || (m_parameters.owner.IsValid() && m_parameters.owner.Get() == other))
         return;
 
-    AtomDestiny::GetGameState(this)->AddDamage(this, EProjectileDamageOptions::ProjectilePoint);    // TODO: mb use Impact point instead
+    AtomDestiny::GetGameState(this)->AddDamage(this, EProjectileDamageOptions::ImpactPoint);
     AtomDestiny::ObjectPool::Instance().Spawn(m_impactPrefab, GetActorTransform().GetLocation(), FQuat::Identity);
 
     AtomDestiny::ObjectPool::Instance().Despawn(this);
@@ -86,7 +86,7 @@ void ARocketBase::Tick(float deltaSeconds)
     Super::Tick(deltaSeconds);
 
     m_lifeTime -= static_cast<double>(deltaSeconds);
-    
+
     if (m_lifeTime <= 0)
     {
         AtomDestiny::ObjectPool::Instance().Spawn(m_impactPrefab, GetActorTransform().GetLocation(), FQuat::Identity);
