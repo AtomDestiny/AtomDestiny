@@ -11,6 +11,8 @@ UUnitAnimationBase::UUnitAnimationBase(const FObjectInitializer& objectInitializ
 void UUnitAnimationBase::InitializeComponent()
 {
     Super::InitializeComponent();
+
+    m_skeletalMeshComponent = GetOwner()->FindComponentByClass<USkeletalMeshComponent>();
     
     if (!m_skeletalMeshComponent.IsValid())
     {

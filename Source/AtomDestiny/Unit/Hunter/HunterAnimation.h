@@ -4,7 +4,7 @@
 
 #include "HunterAnimation.generated.h"
 
-class UAnimSingleNodeInstance;
+class UAnimInstance;
 
 ///
 /// Represents move animation controller for Hunter unit
@@ -22,8 +22,6 @@ public:
     void Attack() override;
     
 private:
-    TWeakObjectPtr<UAnimSingleNodeInstance> m_animation;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Walking transition", AllowPrivateAccess = "true"))
-    bool m_isWalking = false;
+    TWeakObjectPtr<UAnimInstance> m_animation;
+    FBoolProperty* m_isWalkingProperty;
 };
