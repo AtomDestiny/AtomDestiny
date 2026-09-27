@@ -2,7 +2,7 @@
 
 #include <AtomDestiny/Core/Logger.h>
 #include <AtomDestiny/Core/ActorComponentUtils.h>
-#include <AtomDestiny/Core/ADObject/Parameterizable.h>
+#include <AtomDestiny/Core/ADComponent/Parameterizable.h>
 
 #include <AtomDestiny/Navigation/Navigator.h>
 

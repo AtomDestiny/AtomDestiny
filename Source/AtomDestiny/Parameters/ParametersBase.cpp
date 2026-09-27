@@ -3,7 +3,7 @@
 #include <AtomDestiny/Core/Logger.h>
 
 UParametersBase::UParametersBase(const FObjectInitializer& objectInitializer):
-    UADObject(objectInitializer)
+    UADComponent(objectInitializer)
 {
 }
 

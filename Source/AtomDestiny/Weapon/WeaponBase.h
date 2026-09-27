@@ -4,7 +4,7 @@
 #include <AtomDestiny/Weapon/Weapon.h>
 #include <AtomDestiny/Weapon/WeaponAnimation.h>
 
-#include <AtomDestiny/Core/ADObject/ADObject.h>
+#include <AtomDestiny/Core/ADComponent/ADComponent.h>
 
 #include <AtomDestiny/Coroutines/Coroutines.h>
 
@@ -14,7 +14,7 @@
 /// Represents base abstract weapon, any weapon realizations should use it as base class
 ///
 UCLASS(Abstract)
-class ATOMDESTINY_API UWeaponBase : public UADObject, public IWeapon
+class ATOMDESTINY_API UWeaponBase : public UADComponent, public IWeapon
 {
     GENERATED_BODY()
 

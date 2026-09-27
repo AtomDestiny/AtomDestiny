@@ -2,9 +2,9 @@
 
 #include <Runtime/CoreUObject/Public/UObject/Interface.h>
 
-#include <AtomDestiny/Core/ADObject/ObjectParameters.h>
-#include <AtomDestiny/Core/ADObject/ParameterEnhancement.h>
-#include <AtomDestiny/Core/ADObject/ParameterZeroPack.h>
+#include <AtomDestiny/Core/ADComponent/ObjectParameters.h>
+#include <AtomDestiny/Core/ADComponent/ParameterEnhancement.h>
+#include <AtomDestiny/Core/ADComponent/ParameterZeroPack.h>
 
 #include "Parameterizable.generated.h"
 

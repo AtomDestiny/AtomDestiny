@@ -37,7 +37,7 @@ void UADObject::ZeroParameter(EObjectParameters parameter, const FParameterZeroP
         LOG_WARNING(TEXT("You try to zero non existing parameter"));
         return;
     }
-    
+
     std::vector<GameObjectWeak>& zeroList = m_enhancementParameters.find(parameter)->second.first;
 
     if (const auto iter = std::find(std::begin(zeroList), std::end(zeroList), pack.zeroObject); iter != std::cend(zeroList))
@@ -49,7 +49,7 @@ void UADObject::ZeroParameter(EObjectParameters parameter, const FParameterZeroP
         zeroList.push_back(pack.zeroObject);
         ZeroizeParameter(parameter);
     }
-    
+
     Recalculate(parameter);
 }
 
@@ -90,7 +90,7 @@ std::vector<EObjectParameters> UADObject::GetParameterTypes() const
 
     for ([[maybe_unused]] const auto& [key, value] : m_enhancementParameters)
         objectParameters.push_back(key);
-    
+
     return objectParameters;
 }
 
@@ -163,7 +163,7 @@ void UADObject::AddToParameter(EObjectParameters parameter, const FParameterEnha
 
     if (const auto iter = std::find_if(std::cbegin(enhancementList), std::cend(enhancementList), predicate); iter == std::cend(enhancementList))
         enhancementList.push_back(enhancement);
-    
+
     if (GetParameterAvailable(parameter))
         Recalculate(parameter);
 }

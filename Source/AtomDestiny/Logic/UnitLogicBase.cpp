@@ -11,7 +11,7 @@
 #include "GameFramework/Pawn.h"
 
 UUnitLogicBase::UUnitLogicBase(const FObjectInitializer& objectInitializer):
-    UADObject(objectInitializer)
+    UADComponent(objectInitializer)
 {
     // Units placed on a level start logic on their own
     bAutoActivate = true;
