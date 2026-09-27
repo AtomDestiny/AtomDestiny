@@ -57,4 +57,7 @@ protected:
     // Paints unit with its side team color
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Team color"))
     TObjectPtr<UUnitTeamColor> m_teamColor;
+
+private:
+    void SetupTags();
 };

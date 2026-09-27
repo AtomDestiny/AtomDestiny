@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CoreMinimal.h>
+#include <Misc/EnumRange.h>
 #include <Templates/UnrealTemplate.h>
 
 #include <GameFramework/Actor.h>

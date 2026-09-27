@@ -9,7 +9,7 @@
 
 ///
 /// Represents adapter to CoroutinesRunner as UE Component.
-/// CoroutineComponent mainly derived by ADObject.
+/// CoroutineComponent mainly derived by ADComponent.
 /// 
 UCLASS(ClassGroup=(AtomDestiny), Blueprintable)
 class ATOMDESTINY_API UCoroutineComponent : public UActorComponent

@@ -8,7 +8,7 @@
 #include "Parameters.generated.h"
 
 ///
-/// Defence type of ADObject.
+/// Defence type of ADComponent.
 /// Conceptually it should be referenced to Units, but can be used on Buildings.
 ///
 UENUM(BlueprintType)

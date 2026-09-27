@@ -11,7 +11,7 @@ class UDestroyable : public UInterface
 };
 
 ///
-/// Base interface for ADObject destroy
+/// Base interface for ADComponent destroy
 ///
 class IDestroyable
 {

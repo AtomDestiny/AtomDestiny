@@ -2,6 +2,7 @@
 
 #include <Components/BoxComponent.h>
 
+#include "AtomDestiny/Core/ActorUtils.h"
 #include "AtomDestiny/Logic/UnitLogic.h"
 #include "AtomDestiny/Unit/UnitMovementComponent.h"
 #include "AtomDestiny/Unit/UnitParameters.h"
@@ -42,6 +43,11 @@ ADefaultUnit::ADefaultUnit(const FObjectInitializer& objectInitializer):
 void ADefaultUnit::BeginPlay()
 {
     Super::BeginPlay();
+
+    if (IsHidden())
+    {
+        AtomDestiny::Utils::SetActorEditorActive(this, false);
+    }
 
     // Setup Health bar here because HealthBarComponent creates it after BeginPlay
     const auto healthBar = Cast<UHealthBar>(m_healthBar->GetUserWidgetObject());

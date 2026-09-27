@@ -30,43 +30,43 @@ public:
     explicit UUnitLogicBase(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     // Returns list of all unit weapons
-    virtual const TArray<TScriptInterface<IWeapon>>& GetAllWeapon() const override;
+    const TArray<TScriptInterface<IWeapon>>& GetAllWeapon() const override;
 
     // Returns unit size (for energy and death match mode)
-    virtual EUnitSize GetSize() const override;
+    EUnitSize GetSize() const override;
 
     // Returns unit side
-    virtual EGameSide GetSide() const override;
+    EGameSide GetSide() const override;
 
     // Returns unit cost
-    virtual int32 GetCost() const override;
+    int32 GetCost() const override;
 
     // Returns unit type
-    virtual EADUnitType GetUnitType() const override;
+    EADUnitType GetUnitType() const override;
 
     // Returns current velocity
-    virtual double GetVelocity() const override;
+    double GetVelocity() const override;
 
     // Sets side
-    virtual void SetSide(EGameSide side) override;
+    void SetSide(EGameSide side) override;
 
     // Emits on every unit side change
-    virtual FLogicSideChanged& OnSideChanged() override { return m_sideChanged; }
+    FLogicSideChanged& OnSideChanged() override { return m_sideChanged; }
 
     // Updates unit needs
-    virtual void UpdateParameters() ABSTRACT_METHOD;
+    void UpdateParameters() ABSTRACT_METHOD;
 
     // Sets destination to transform
-    virtual void SetDestination(AActor* destination) ABSTRACT_METHOD;
+    void SetDestination(AActor* destination) ABSTRACT_METHOD;
 
     /// Sets destination to vector point
-    virtual void SetDestinationByPoint(const FVector& destination) ABSTRACT_METHOD;
+    void SetDestinationByPoint(const FVector& destination) ABSTRACT_METHOD;
 
     // Starts unit AI: navigation, game state registration and tick
-    virtual void Activate(bool bReset = false) override;
+    void Activate(bool bReset = false) override;
 
     // Stops unit AI and clears its runtime state
-    virtual void Deactivate() override;
+    void Deactivate() override;
 
 #if !UE_BUILD_SHIPPING
     // World location the unit is navigating toward (side destination, point, or current target).
@@ -87,9 +87,9 @@ public:
     inline static FUnitSideChanged unitSideChanged;
 
 protected:
-    virtual void InitializeComponent() override;
-    virtual void BeginPlay() override;
-    virtual void EndPlay(const EEndPlayReason::Type endPlayReason) override;
+    void InitializeComponent() override;
+    void BeginPlay() override;
+    void EndPlay(const EEndPlayReason::Type endPlayReason) override;
 
     // Checks and rotates actor to target
     void RotateToTarget(float deltaTime);
@@ -101,10 +101,10 @@ protected:
     void CalculateDistances();
 
     // Recalculates speed parameter
-    virtual void RecalculateParameter(EObjectParameters parameter) override;
+    void RecalculateParameter(EObjectParameters parameter) override;
 
     // Sets parameter to zero value
-    virtual void ZeroizeParameter(EObjectParameters parameter) override;
+    void ZeroizeParameter(EObjectParameters parameter) override;
 
     // Runs logic after activation (or BeginPlay for active component)
     virtual void StartLogic();
@@ -131,10 +131,10 @@ protected:
     TArray<TScriptInterface<IWeapon>> m_weapons;
 
     // Scan distance (calculated from max attack range + attack delta range)
-    double m_scanDistance;
+    double m_scanDistance = 0;
 
     // Minimal scan distance (choose from min attack range from all weapons)
-    double m_minScanDistance;
+    double m_minScanDistance = 0;
 
     // Started unit speed
     double m_speed = 0;
@@ -168,11 +168,11 @@ protected:
 
     // Game unit type
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit type"))
-    EADUnitType m_unitType;
+    EADUnitType m_unitType = EADUnitType::None;
 
     // Game unit size
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit size"))
-    EUnitSize m_unitSize;
+    EUnitSize m_unitSize = EUnitSize::None;
 
     // Unit mineral cost
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Unit cost"))
@@ -204,7 +204,7 @@ protected:
     bool m_canScan = true;
 
     // Hashed destination point
-    FVector m_destinationPoint;
+    FVector m_destinationPoint{};
 
     // Animation controller (unit animation interface)
     TScriptInterface<IAnimation> m_animation;

@@ -43,7 +43,7 @@ protected:
     virtual void InitializeComponent() override;
     virtual void BeginPlay() override;
 
-    // ADObject interface
+    // ADComponent interface
     virtual void RecalculateParameter(EObjectParameters parameter) override;
     virtual void ZeroizeParameter(EObjectParameters parameter) override;
     
