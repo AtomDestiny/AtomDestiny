@@ -17,14 +17,23 @@ void UDestroyBase::Destroy()
     m_destroyed = true;
 }
 
+void UDestroyBase::Activate(bool bReset)
+{
+    Super::Activate(bReset);
+    m_destroyed = false;
+}
+
 void UDestroyBase::BeginPlay()
 {
     Super::BeginPlay();
-    
+
     AtomDestiny::ObjectPool::Instance().Preload(m_explosionPrefab);
 }
 
 void UDestroyBase::SpawnExplosion(const FVector& location, const FQuat& rotation)
 {
+    if (!IsValid(m_explosionPrefab))
+        return;
+
     AtomDestiny::ObjectPool::Instance().Spawn(m_explosionPrefab, location, rotation);
 }

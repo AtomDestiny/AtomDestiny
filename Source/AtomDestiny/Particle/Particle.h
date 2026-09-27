@@ -15,17 +15,19 @@ UCLASS(BlueprintType, Blueprintable, hideCategories=(Actor), meta=(ShortTooltip=
 class AParticle : public AActor
 {
     GENERATED_BODY()
-    
+
 public:
     explicit AParticle(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     // plays particle on activation
     virtual void SetActorHiddenInGame(bool hidden) override;
     virtual void Tick(float deltaTime) override;
-    
+
+    void PlayEffect();
+
 protected:
-    void UpdateNiagaraTransform();
-    
+    void UpdateNiagaraTransform() const;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Root scene component"))
     TObjectPtr<USceneComponent> m_sceneComponent;
 

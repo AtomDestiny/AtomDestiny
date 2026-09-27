@@ -47,7 +47,7 @@ void UUnitParameters::TickComponent(float deltaTime, ELevelTick levelTick, FActo
 
 void UUnitParameters::RenderHealthBar()
 {
-    if (m_healthBarWidget == nullptr || !m_healthBarWidget.IsValid() || m_hideBar)
+    if (m_healthBarWidget == nullptr || !m_healthBarWidget.IsValid() || m_hideBar || m_isDead)
         return;
 
     m_healthBarWidget->SetHealthPercent(m_currentHealth / m_currentMaxHealth);
@@ -59,6 +59,11 @@ void UUnitParameters::CheckHealthState()
     // check current health on death
     if (m_currentHealth <= 0 && !m_isDead)
     {
+        if (m_healthBarWidget.IsValid())
+        {
+            m_healthBarWidget->SetHealthVisible(false);
+        }
+
         const TScriptInterface<IDestroyable> destroyable = AtomDestiny::Utils::GetInterface<IDestroyable>(GetOwner());
 
         if (destroyable == nullptr)

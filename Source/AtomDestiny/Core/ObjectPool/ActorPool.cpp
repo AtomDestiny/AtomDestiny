@@ -67,6 +67,11 @@ TWeakObjectPtr<AActor> ActorPool::Spawn(const TSubclassOf<AActor>& object)
 
 void ActorPool::Despawn(TWeakObjectPtr<AActor> object) const
 {
+    if (!object.IsValid())
+    {
+        return;
+    }
+
     if (const auto poolMember = object->FindComponentByClass<UActorPoolMember>(); poolMember == nullptr)
     {
         LOG_WARNING(TEXT("The Actor %s wasn't spawned from a pool. Destroying it instead."), GetData(object->GetName()));
@@ -84,6 +89,11 @@ void ActorPool::Despawn(TWeakObjectPtr<AActor> object) const
 
 void ActorPool::Despawn(TWeakObjectPtr<AActor> object, double time) const
 {
+    if (!object.IsValid())
+    {
+        return;
+    }
+
     auto despawner = object->FindComponentByClass<UDespawner>();
 
     if (despawner == nullptr)
@@ -94,18 +104,8 @@ void ActorPool::Despawn(TWeakObjectPtr<AActor> object, double time) const
     despawner->Despawn(time);
 }
 
-void ActorPool::DestroyAll()
+void ActorPool::Reset()
 {
-    for (const auto& [actor, pool] : m_pools)
-    {
-        if (actor.IsValid())
-        {
-            actor->Destroy();
-        }
-
-        (void)pool;
-    }
-    
     m_pools.clear();
 }
 

@@ -15,6 +15,7 @@ AParticle::AParticle(const FObjectInitializer& objectInitializer):
     }
 
     m_niagaraComponent = objectInitializer.CreateDefaultSubobject<UNiagaraComponent>(this, TEXT("NiagaraComponent"));
+    m_niagaraComponent->SetupAttachment(RootComponent);
 
     PrimaryActorTick.bCanEverTick = true;
     PrimaryActorTick.bStartWithTickEnabled = true;
@@ -26,11 +27,28 @@ void AParticle::SetActorHiddenInGame(bool hidden)
 
     if (!hidden)
     {
-        UpdateNiagaraTransform();
-        m_niagaraComponent->ActivateSystem();
-        
-        AtomDestiny::ObjectPool::Instance().Despawn(this, m_despawnDelay);
+        PlayEffect();
     }
+}
+
+void AParticle::PlayEffect()
+{
+    if (!IsValid(m_niagaraComponent))
+    {
+        return;
+    }
+
+    UpdateNiagaraTransform();
+
+    if (!m_niagaraComponent->IsActive())
+    {
+        m_niagaraComponent->SetActive(true, true);
+    }
+
+    m_niagaraComponent->Deactivate();
+    m_niagaraComponent->ActivateSystem(true);
+
+    AtomDestiny::ObjectPool::Instance().Despawn(this, m_despawnDelay);
 }
 
 void AParticle::Tick(float deltaTime)
@@ -39,7 +57,7 @@ void AParticle::Tick(float deltaTime)
     UpdateNiagaraTransform();
 }
 
-void AParticle::UpdateNiagaraTransform()
+void AParticle::UpdateNiagaraTransform() const
 {
     m_niagaraComponent->SetWorldLocation(GetActorLocation());
     m_niagaraComponent->SetWorldRotation(GetActorRotation());

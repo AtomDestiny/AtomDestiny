@@ -2,8 +2,9 @@
 
 #include "Core/Logger.h"
 #include "UI/HealthBar.h"
-#include "Kismet/GameplayStatics.h"
-#include "UObject/ConstructorHelpers.h"
+
+#include <Kismet/GameplayStatics.h>
+#include <UObject/ConstructorHelpers.h>
 
 UHealthBarComponent::UHealthBarComponent(const FObjectInitializer& objectInitializer):
     UWidgetComponent(objectInitializer)
@@ -17,28 +18,54 @@ UHealthBarComponent::UHealthBarComponent(const FObjectInitializer& objectInitial
     SetUsingAbsoluteLocation(true);
 }
 
+void UHealthBarComponent::Activate(const bool bReset)
+{
+    Super::Activate(bReset);
+
+    SetHiddenInGame(false);
+    SetVisibility(true);
+}
+
+void UHealthBarComponent::Deactivate()
+{
+    SetVisibility(false);
+    SetHiddenInGame(true);
+
+    if (UHealthBar* healthBar = Cast<UHealthBar>(GetUserWidgetObject()))
+    {
+        healthBar->SetHealthVisible(false);
+    }
+
+    Super::Deactivate();
+}
+
 void UHealthBarComponent::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction)
 {
+    if (!IsActive() || GetOwner() == nullptr || GetOwner()->IsHidden())
+    {
+        return;
+    }
+
     Super::TickComponent(deltaTime, tickType, thisTickFunction);
-    
+
     const auto world = GetWorld();
-    
+
     if (!world)
         return;
 
     const auto cameraManager = UGameplayStatics::GetPlayerCameraManager(world, 0);
-    
+
     if (!cameraManager)
         return;
-    
+
     const auto& playerTransform = cameraManager->GetTransform();
-    
+
     if (!playerTransform.IsValid())
     {
         LOG_WARNING(TEXT("Invalid player transform!"));
         return;
     }
-    
+
     const FVector up = playerTransform.TransformVector({0,0,1});
     SetWorldLocation(GetOwner()->GetActorLocation() + up * 420);
 }

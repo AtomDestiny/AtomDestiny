@@ -190,6 +190,15 @@ void UADObject::RemoveFromParameter(EObjectParameters parameter, const TWeakObje
     }
 }
 
+void UADObject::ClearParameterEnhancements()
+{
+    for ([[maybe_unused]] auto& [parameter, lists] : m_enhancementParameters)
+    {
+        lists.first.clear();
+        lists.second.clear();
+    }
+}
+
 double UADObject::CalculateParametersFromAll(const double startValue, EObjectParameters parameter) const
 {
     const std::vector<FParameterEnhancement>& parameters = const_cast<UADObject*>(this)->GetParameterEnhancementList(parameter);

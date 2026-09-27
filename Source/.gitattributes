@@ -1,0 +1,4 @@
+# All text files are stored in the repository as UTF-8 with LF line endings.
+# On Windows checkout (core.autocrlf=true), working copies use CRLF.
+# On Linux checkout, working copies keep LF.
+*      text=auto

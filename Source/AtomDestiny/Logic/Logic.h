@@ -8,6 +8,9 @@
 
 #include "Logic.generated.h"
 
+// Emits new side of the unit
+DECLARE_MULTICAST_DELEGATE_OneParam(FLogicSideChanged, EGameSide);
+
 UINTERFACE(MinimalAPI, Blueprintable)
 class ULogic : public UInterface
 {
@@ -62,4 +65,7 @@ public:
     // Recalculates base unit parameters
     UFUNCTION(Meta = (AllowOverride = true))
     virtual void UpdateParameters() = 0;
+
+    // Emits on every unit side change
+    virtual FLogicSideChanged& OnSideChanged() = 0;
 };
