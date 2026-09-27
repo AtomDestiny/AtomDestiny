@@ -18,6 +18,7 @@ public:
     explicit UDespawner(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
     void Despawn(double time);
+    void Reset();
 
     virtual void Deactivate() override;
 

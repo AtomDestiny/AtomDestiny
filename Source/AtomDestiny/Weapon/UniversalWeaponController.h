@@ -20,30 +20,34 @@ public:
     explicit UUniversalWeaponController(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
     
     // Returns fire rate
-    virtual double GetFireRate() const override;
+    double GetFireRate() const override;
     
     // Returns true if weapon see target
-    virtual bool IsSeeTarget() const override;
+    bool IsSeeTarget() const override;
     
     // Fires from weapon, called by Logic
-    virtual void Fire(float deltaTime) override;
+    void Fire(float deltaTime) override;
     
 protected:
     
-    virtual void BeginPlay() override;
-    virtual void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction) override;
+    void BeginPlay() override;
+    void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction) override;
     
 private:
 
     FVoidCoroutine MakeShot();
     
     // Time between every shot
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shot delay", AllowPrivateAccess = "true"))
+    // These shots would use full ammunition count (Shot count)
+    // If ammunition count is equal to 1, then this parameter is ignored
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ammunition shot delay", AllowPrivateAccess = "true"))
     double m_shotDelay = 1.5;
     
-    // Ammunition count before reloading
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Shot count", AllowPrivateAccess = "true"))
-    int32 m_shotCount = 1.0;
+    // Ammunition count before weapon reloading
+    // Use 'Ammunition shot delay' parameter to configure delay between all ammunition shots
+    // If these parameter is equal to 1, then 'Ammunition shot delay' param does not make any sense
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Ammunition count", AllowPrivateAccess = "true"))
+    int32 m_ammunitionCount = 1.0;
 
     ///
     /// Particle prefab that spawns by weapon at firing.
@@ -68,7 +72,7 @@ private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Scan position", AllowPrivateAccess = "true"))
     TWeakObjectPtr<USceneComponent> m_scanPosition;
     
-    // Time between shots at shot positions
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Delay between shots", AllowPrivateAccess = "true"))
+    // Time between making shots at shot positions
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Delay between position shots", AllowPrivateAccess = "true"))
     double m_delayBetweenShots = 0;
 };

@@ -226,7 +226,7 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Minimal distance to shot"))
     double m_minShotDistance = 0;
 
-    // Layer mask
+    // Layer mask to ignore raycast hits
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Layer mask to ignore raycast hits"))
     TEnumAsByte<ECollisionChannel> m_layerMask;
 
