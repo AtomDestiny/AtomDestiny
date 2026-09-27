@@ -17,6 +17,7 @@ public:
     explicit AAimRocket(const FObjectInitializer& objectInitializer = FObjectInitializer::Get());
 
 protected:
-    virtual void Tick(float deltaSeconds) override;
-    virtual void Launch() override;
+    void Tick(float deltaSeconds) override;
+    void Launch() override;
+    void OnDisabled() override;
 };

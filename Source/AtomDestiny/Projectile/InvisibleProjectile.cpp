@@ -13,6 +13,7 @@ AInvisibleProjectile::AInvisibleProjectile(const FObjectInitializer& objectIniti
 
 void AInvisibleProjectile::Launch()
 {
+    Super::Launch();
     RunCoroutine(GenerateImpact());
 }
 

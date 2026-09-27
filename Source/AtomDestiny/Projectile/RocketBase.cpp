@@ -76,7 +76,7 @@ void ARocketBase::NotifyActorBeginOverlap(AActor* other)
         return;
 
     AtomDestiny::GetGameState(this)->AddDamage(this, EProjectileDamageOptions::ProjectilePoint);    // TODO: mb use Impact point instead
-    AtomDestiny::ObjectPool::Instance().Spawn(m_impactPrefab, m_points.impactPosition, FQuat::Identity);
+    AtomDestiny::ObjectPool::Instance().Spawn(m_impactPrefab, GetActorTransform().GetLocation(), FQuat::Identity);
 
     AtomDestiny::ObjectPool::Instance().Despawn(this);
 }

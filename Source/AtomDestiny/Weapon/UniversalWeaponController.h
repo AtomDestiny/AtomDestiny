@@ -29,13 +29,12 @@ public:
     void Fire(float deltaTime) override;
     
 protected:
-    
     void BeginPlay() override;
     void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction) override;
     
 private:
-
     FVoidCoroutine MakeShot();
+    void LaunchProjectile(const TWeakObjectPtr<AActor>& spawnedProjectile, const FProjectilePoints& projectilePoints);
     
     // Time between every shot
     // These shots would use full ammunition count (Shot count)
