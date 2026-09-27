@@ -53,5 +53,5 @@ namespace AtomDestiny::Utils
     {
         SetActorActive(object.Get(), status);
     }
-    
+
 } // namespace AtomDestiny::Utils
