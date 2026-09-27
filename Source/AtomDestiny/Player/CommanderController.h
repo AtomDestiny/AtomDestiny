@@ -57,9 +57,6 @@ public:
     // Destroy all units placed during setup and clear the session layout
     void ClearAllSetupUnits();
 
-    // Clears pending despawn timers for all actors on the current map
-    void ClearLevelDespawnTimers() const;
-
     // Writes the current layout to GameInstance before leaving Training (after battle)
     void PersistTacticsLayoutForNextVisit() const;
 

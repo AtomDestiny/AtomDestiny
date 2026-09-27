@@ -40,8 +40,9 @@ namespace AtomDestiny
         // Des-pawns the specified AActor back into its pool after time
         void Despawn(TWeakObjectPtr<AActor> object, double time) const;
         
-        // Cleans all pooled members
-        void DestroyAll();
+        // Forgets all pools, call it when the world ends.
+        // Pooled actors are destroyed by the world itself.
+        void Reset();
         
         // Destroys current object
         void Destroy(TWeakObjectPtr<AActor> object);

@@ -4,7 +4,6 @@
 
 #include "AtomDestiny/Core/ActorUtils.h"
 #include "AtomDestiny/Core/ActorComponentUtils.h"
-#include "AtomDestiny/Core/ObjectPool/Despawner.h"
 #include "Engine/Engine.h"
 
 using namespace AtomDestiny;
@@ -61,34 +60,8 @@ TWeakObjectPtr<AActor> Pool::Spawn(const FVector& position, const FQuat& rotatio
 
 void Pool::Despawn(TWeakObjectPtr<AActor> object)
 {
-    if (UDespawner* despawner = object->FindComponentByClass<UDespawner>())
-    {
-        despawner->ClearDespawnTimer();
-    }
-
     Utils::SetActorActive(object, false);
     object->SetActorLocation(FVector::Zero());
 
     m_inactive.push(std::move(object));
-}
-
-void Pool::DestroyAllInstances()
-{
-    while (!m_inactive.empty())
-    {
-        TWeakObjectPtr<AActor> object = m_inactive.top();
-        m_inactive.pop();
-
-        if (!object.IsValid())
-        {
-            continue;
-        }
-
-        if (UDespawner* despawner = object->FindComponentByClass<UDespawner>())
-        {
-            despawner->ClearDespawnTimer();
-        }
-
-        object->Destroy();
-    }
 }

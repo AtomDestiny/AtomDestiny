@@ -104,18 +104,8 @@ void ActorPool::Despawn(TWeakObjectPtr<AActor> object, double time) const
     despawner->Despawn(time);
 }
 
-void ActorPool::DestroyAll()
+void ActorPool::Reset()
 {
-    for (const auto& [actor, pool] : m_pools)
-    {
-        if (pool != nullptr)
-        {
-            pool->DestroyAllInstances();
-        }
-
-        (void)actor;
-    }
-
     m_pools.clear();
 }
 

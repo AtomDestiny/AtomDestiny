@@ -144,7 +144,6 @@ void UTrainingMainWidget::ReturnToMainMenu()
         }
 
         controller->ClearSetupUnits();
-        controller->ClearLevelDespawnTimers();
     }
 
     if (m_bArmySetupActive)

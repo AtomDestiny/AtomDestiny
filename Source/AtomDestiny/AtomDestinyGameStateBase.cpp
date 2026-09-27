@@ -189,7 +189,7 @@ void AAtomDestinyGameStateBase::EndPlay(const EEndPlayReason::Type EndPlayReason
     m_activeUnits.Reset();
     m_enemies.Reset();
 
-    AtomDestiny::ObjectPool::Instance().DestroyAll();
+    AtomDestiny::ObjectPool::Instance().Reset();
 }
 
 void AAtomDestinyGameStateBase::OnUnitCreated(AActor* actor, EGameSide side, EADUnitType)

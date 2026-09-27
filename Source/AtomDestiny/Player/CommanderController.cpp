@@ -4,7 +4,6 @@
 #include "Gameplay/AtomDestinyGameInstance.h"
 #include "Gameplay/UnitCatalog.h"
 #include "Gameplay/UnitStorage.h"
-#include "Core/ObjectPool/Despawner.h"
 #include "Core/ObjectPool/ActorPool.h"
 #include "Core/ActorComponentUtils.h"
 #include "Logic/UnitLogic.h"
@@ -19,7 +18,6 @@
 #include <InputMappingContext.h>
 #include <EngineUtils.h>
 #include <TimerManager.h>
-#include <UObject/UObjectIterator.h>
 #include <DrawDebugHelpers.h>
 #include <HAL/IConsoleManager.h>
 
@@ -165,17 +163,7 @@ void ACommanderController::ClearSetupUnits()
 {
     ClearSetupUnitHover();
 
-    for (const auto& [p, layout] : m_setupPlacedUnits)
-    {
-        const APawn* pawn = p.Get();
-        if (pawn == nullptr)
-            continue;
-
-        if (const auto despawner = pawn->FindComponentByClass<UDespawner>())
-            despawner->ClearDespawnTimer();
-    }
-
-    // Do not Destroy() here: OpenLevel unloads the Training map and removes actors.
+    // Do not Destroy() here: OpenLevel unloads the Training map and removes actors with their timers.
     m_setupPlacedUnits.Empty();
 }
 
@@ -192,21 +180,6 @@ void ACommanderController::ClearAllSetupUnits()
 
     ClearSetupUnitHover();
     m_setupPlacedUnits.Empty();
-}
-
-void ACommanderController::ClearLevelDespawnTimers() const
-{
-    const auto world = GetWorld();
-
-    if (world == nullptr)
-        return;
-
-    // TODO: use your own object manager instead of TObjectIterator if facing with the performance issues
-    for (TObjectIterator<UDespawner> it; it; ++it)
-    {
-        if (it->GetWorld() == world)
-            it->ClearDespawnTimer();
-    }
 }
 
 void ACommanderController::TryFinishArmySetup() const
