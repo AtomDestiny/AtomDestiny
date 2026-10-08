@@ -1,18 +1,19 @@
-﻿#include "HunterAnimation.h"
+#include "HunterAnimation.h"
 
 #include <Animation/AnimInstance.h>
 
-void UHunterAnimation::BeginPlay()
+#include <Components/SkeletalMeshComponent.h>
+
+void UHunterAnimation::InitializeComponent()
 {
-    Super::BeginPlay();
-    
+    Super::InitializeComponent();
+
+    // Unit logic can call Walk() from its BeginPlay before ours, so resolve the animator before any BeginPlay
     check(m_skeletalMeshComponent.IsValid());
     m_animation = m_skeletalMeshComponent->GetAnimInstance();
 
     check(m_animation.IsValid());
     m_isWalkingProperty = FindFieldChecked<FBoolProperty>(m_animation->GetClass(), TEXT("IsWalking"));
-
-    check(m_isWalkingProperty);
 }
 
 void UHunterAnimation::Idle()

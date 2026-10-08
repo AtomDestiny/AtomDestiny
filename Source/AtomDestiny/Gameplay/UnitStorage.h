@@ -88,6 +88,8 @@ namespace AtomDestiny
             return NSLOCTEXT("AtomDestiny", "UnitTypeShooter", "Shooter");
         case EADUnitType::Lancer:
             return NSLOCTEXT("AtomDestiny", "UnitTypeLancer", "Lancer");
+        case EADUnitType::Hunter:
+            return NSLOCTEXT("AtomDestiny", "UnitTypeHunter", "Hunter");
         default:
             return FText::GetEmpty();
         }
